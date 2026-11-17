@@ -52,6 +52,28 @@ public class BatchStok {
         return sisaJumlah;
     }
 
+    public boolean layakPada(LocalDate tanggalPengeluaran) {
+        if (tanggalPengeluaran == null) {
+            throw new IllegalArgumentException("Tanggal pengeluaran wajib diisi");
+        }
+        return sisaJumlah > 0
+                && statusPada(tanggalPengeluaran) != StatusKedaluwarsa.KEDALUWARSA;
+    }
+
+    public StatusKedaluwarsa statusPada(LocalDate tanggalPengecekan) {
+        if (tanggalPengecekan == null) {
+            throw new IllegalArgumentException("Tanggal pengecekan wajib diisi");
+        }
+        if (tanggalKedaluwarsa.isBefore(tanggalPengecekan)) {
+            return StatusKedaluwarsa.KEDALUWARSA;
+        }
+        LocalDate batasSegera = tanggalPengecekan.plusDays(3);
+        if (!tanggalKedaluwarsa.isAfter(batasSegera)) {
+            return StatusKedaluwarsa.SEGERA_KEDALUWARSA;
+        }
+        return StatusKedaluwarsa.AMAN;
+    }
+
     public void kurangiSisa(int jumlah) {
         if (jumlah <= 0) {
             throw new IllegalArgumentException("Jumlah pengurangan harus lebih dari 0");

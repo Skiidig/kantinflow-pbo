@@ -1,6 +1,7 @@
 package kantinflow;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class PenerimaanStok extends Transaksi {
     private DetailTransaksi detail;
@@ -46,6 +47,21 @@ public class PenerimaanStok extends Transaksi {
         return detail;
     }
 
+    public static PenerimaanStok dariPenyimpanan(
+            LocalDate tanggal,
+            BatchStok batch,
+            int jumlah) {
+        if (batch == null) {
+            throw new IllegalArgumentException("Batch penerimaan wajib ada");
+        }
+        if (jumlah <= 0) {
+            throw new IllegalArgumentException("Jumlah penerimaan harus lebih dari 0");
+        }
+        PenerimaanStok penerimaan = new PenerimaanStok(tanggal);
+        penerimaan.detail = new DetailTransaksi(batch, jumlah);
+        return penerimaan;
+    }
+
     @Override
     public String getJenis() {
         return "Penerimaan";
@@ -65,5 +81,13 @@ public class PenerimaanStok extends Transaksi {
             throw new IllegalStateException("Penerimaan belum memiliki detail");
         }
         return detail.getJumlahDiterima();
+    }
+
+    @Override
+    public List<RincianTransaksi> getRincian() {
+        if (detail == null) {
+            throw new IllegalStateException("Penerimaan belum memiliki detail");
+        }
+        return List.of(new RincianTransaksi(detail.getBatch(), detail.getJumlahDiterima()));
     }
 }

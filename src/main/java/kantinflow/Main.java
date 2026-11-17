@@ -1,9 +1,18 @@
 package kantinflow;
 
+import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
+import kantinflow.gui.JendelaKantinFlow;
+import kantinflow.penyimpanan.PenyimpananException;
+import kantinflow.penyimpanan.PenyimpananSQLite;
 
 public class Main {
     public static void main(String[] args) {
@@ -11,8 +20,74 @@ public class Main {
             jalankanDemo();
             return;
         }
+        if (args.length > 0 && "gui".equalsIgnoreCase(args[0])) {
+            jalankanGui();
+            return;
+        }
 
-        new MenuKonsol(new Scanner(System.in)).jalankan();
+        String lokasiDatabase = lokasiDatabase();
+        try (PenyimpananSQLite penyimpanan = new PenyimpananSQLite(lokasiDatabase)) {
+            new MenuKonsol(new Scanner(System.in), penyimpanan).jalankan();
+        } catch (PenyimpananException exception) {
+            System.out.println("Gagal membuka database: " + exception.getMessage());
+        }
+    }
+
+    private static String lokasiDatabase() {
+        String lokasi = System.getenv("KANTINFLOW_DB");
+        if (lokasi == null || lokasi.isBlank()) {
+            return "data/kantinflow.db";
+        }
+        return lokasi;
+    }
+
+    private static void jalankanGui() {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("GUI memerlukan lingkungan grafis. "
+                    + "Gunakan menu konsol tanpa argumen atau mode demo.");
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) {
+                // Look and feel sistem tidak wajib; Swing tetap memakai default.
+            }
+
+            PenyimpananSQLite penyimpanan = null;
+            try {
+                penyimpanan = new PenyimpananSQLite(lokasiDatabase());
+                JendelaKantinFlow jendela = new JendelaKantinFlow(penyimpanan);
+                jendela.tampilkan();
+            } catch (PenyimpananException exception) {
+                if (penyimpanan != null) {
+                    try {
+                        penyimpanan.close();
+                    } catch (PenyimpananException ignored) {
+                        // Kegagalan awal sudah dilaporkan.
+                    }
+                }
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Gagal membuka database: " + exception.getMessage(),
+                        "KantinFlow",
+                        JOptionPane.ERROR_MESSAGE);
+            } catch (RuntimeException exception) {
+                if (penyimpanan != null) {
+                    try {
+                        penyimpanan.close();
+                    } catch (PenyimpananException ignored) {
+                        // Kegagalan awal sudah dilaporkan.
+                    }
+                }
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Gagal membuka GUI: " + exception.getMessage(),
+                        "KantinFlow",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 
     private static void jalankanDemo() {
@@ -97,9 +172,17 @@ public class Main {
     private static void cetakRiwayat(List<Transaksi> riwayat, String satuan) {
         System.out.println("Riwayat transaksi:");
         for (Transaksi transaksi : riwayat) {
-            System.out.println("- " + transaksi.getJenis() + " "
-                    + transaksi.getBatch().getKode() + ": "
-                    + transaksi.getJumlah() + " " + satuan);
+            String alasan = transaksi.getAlasan();
+            for (RincianTransaksi rincian : transaksi.getRincian()) {
+                String baris = "- " + transaksi.getJenis() + " "
+                        + rincian.getBatch().getKode() + ": "
+                        + rincian.getJumlah() + " " + satuan;
+                if (!alasan.isEmpty()) {
+                    baris += " | tanggal: " + transaksi.getTanggal()
+                            + " | alasan: " + alasan;
+                }
+                System.out.println(baris);
+            }
         }
     }
 }

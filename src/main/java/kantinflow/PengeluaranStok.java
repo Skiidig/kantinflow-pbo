@@ -1,23 +1,37 @@
 package kantinflow;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class PengeluaranStok extends Transaksi {
-    private BatchStok batch;
-    private int jumlah;
+    private final List<RincianTransaksi> rincian;
+    private boolean otomatis;
 
     public PengeluaranStok(LocalDate tanggal) {
         super(tanggal);
+        this.rincian = new ArrayList<>();
+    }
+
+    public static PengeluaranStok dariPenyimpanan(
+            LocalDate tanggal,
+            List<RincianTransaksi> rincian,
+            boolean otomatis) {
+        if (rincian == null || rincian.isEmpty()) {
+            throw new IllegalArgumentException("Rincian pengeluaran wajib ada");
+        }
+        PengeluaranStok pengeluaran = new PengeluaranStok(tanggal);
+        pengeluaran.rincian.addAll(rincian);
+        pengeluaran.otomatis = otomatis;
+        return pengeluaran;
     }
 
     /**
-     * Memvalidasi kepemilikan batch, jumlah, dan kecukupan stok sebelum
-     * mengurangi sisa batch. Jika validasi gagal, tidak ada perubahan stok.
+     * Pengeluaran manual dari satu batch yang dipilih.
      */
     public void keluarkan(Barang barang, BatchStok batch, int jumlah) {
-        if (this.batch != null) {
-            throw new IllegalStateException("Pengeluaran ini sudah dicatat");
-        }
+        pastikanBelumTercatat();
         if (barang == null) {
             throw new IllegalArgumentException("Barang wajib diisi");
         }
@@ -38,28 +52,59 @@ public class PengeluaranStok extends Transaksi {
         }
 
         batch.kurangiSisa(jumlah);
-        this.batch = batch;
-        this.jumlah = jumlah;
+        rincian.add(new RincianTransaksi(batch, jumlah));
+        this.otomatis = false;
+    }
+
+    /**
+     * Pengeluaran otomatis FEFO. Seluruh alokasi disusun dan total stok layak
+     * diperiksa sebelum satu batch pun dikurangi.
+     */
+    public void keluarkanFefo(Barang barang, int jumlah, LocalDate tanggalPengeluaran) {
+        pastikanBelumTercatat();
+        List<RincianTransaksi> alokasi = new FefoAllocator()
+                .susun(barang, jumlah, tanggalPengeluaran);
+
+        for (RincianTransaksi rincianAlokasi : alokasi) {
+            rincianAlokasi.getBatch().kurangiSisa(rincianAlokasi.getJumlah());
+        }
+        rincian.addAll(alokasi);
+        this.otomatis = true;
+    }
+
+    private void pastikanBelumTercatat() {
+        if (!rincian.isEmpty()) {
+            throw new IllegalStateException("Pengeluaran ini sudah dicatat");
+        }
     }
 
     @Override
     public String getJenis() {
-        return "Pengeluaran";
+        return otomatis ? "Pengeluaran FEFO" : "Pengeluaran";
     }
 
     @Override
     public BatchStok getBatch() {
-        if (batch == null) {
+        if (rincian.isEmpty()) {
             throw new IllegalStateException("Pengeluaran belum dicatat");
         }
-        return batch;
+        return rincian.get(0).getBatch();
     }
 
     @Override
     public int getJumlah() {
-        if (batch == null) {
+        if (rincian.isEmpty()) {
             throw new IllegalStateException("Pengeluaran belum dicatat");
         }
-        return jumlah;
+        int total = 0;
+        for (RincianTransaksi rincianTransaksi : rincian) {
+            total += rincianTransaksi.getJumlah();
+        }
+        return total;
+    }
+
+    @Override
+    public List<RincianTransaksi> getRincian() {
+        return Collections.unmodifiableList(rincian);
     }
 }

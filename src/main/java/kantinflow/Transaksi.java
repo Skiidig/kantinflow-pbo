@@ -1,6 +1,7 @@
 package kantinflow;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Kontrak umum untuk semua transaksi stok yang disimpan pada satu riwayat.
@@ -24,4 +25,13 @@ public abstract class Transaksi {
     public abstract BatchStok getBatch();
 
     public abstract int getJumlah();
+
+    public abstract List<RincianTransaksi> getRincian();
+
+    /**
+     * Alasan opsional untuk transaksi yang membutuhkannya, misalnya pembuangan.
+     */
+    public String getAlasan() {
+        return "";
+    }
 }
