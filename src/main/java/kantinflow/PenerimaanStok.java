@@ -29,6 +29,12 @@ public class PenerimaanStok extends Transaksi {
         if (barang == null) {
             throw new IllegalArgumentException("Barang wajib diisi");
         }
+        for (BatchStok batchAda : barang.getDaftarBatch()) {
+            if (batchAda.getKode().equalsIgnoreCase(kodeBatch)) {
+                throw new IllegalArgumentException(
+                        "Kode batch sudah digunakan: " + kodeBatch);
+            }
+        }
 
         BatchStok batch = new BatchStok(
                 kodeBatch,

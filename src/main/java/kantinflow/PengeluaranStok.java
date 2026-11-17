@@ -44,6 +44,11 @@ public class PengeluaranStok extends Transaksi {
         if (jumlah <= 0) {
             throw new IllegalArgumentException("Jumlah harus lebih dari 0");
         }
+        if (getTanggal().isBefore(batch.getTanggalMasuk())) {
+            throw new IllegalArgumentException(
+                    "Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch "
+                    + batch.getKode());
+        }
         if (batch.getSisaJumlah() < jumlah) {
             throw new StokTidakCukupException(
                     "Stok tidak cukup: diminta " + jumlah + " " + barang.getSatuan()
@@ -64,6 +69,15 @@ public class PengeluaranStok extends Transaksi {
         pastikanBelumTercatat();
         List<RincianTransaksi> alokasi = new FefoAllocator()
                 .susun(barang, jumlah, tanggalPengeluaran);
+
+        for (RincianTransaksi rincianAlokasi : alokasi) {
+            if (tanggalPengeluaran.isBefore(
+                    rincianAlokasi.getBatch().getTanggalMasuk())) {
+                throw new IllegalArgumentException(
+                        "Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch "
+                        + rincianAlokasi.getBatch().getKode());
+            }
+        }
 
         for (RincianTransaksi rincianAlokasi : alokasi) {
             rincianAlokasi.getBatch().kurangiSisa(rincianAlokasi.getJumlah());

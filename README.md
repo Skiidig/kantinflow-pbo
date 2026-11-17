@@ -130,4 +130,11 @@ Untuk mengulang pengujian dari awal, hentikan aplikasi lalu hapus database uji:
 Remove-Item data/kantinflow-uji.db
 ```
 
-Baca [rancangan dan skenario uji](docs/rancangan-stok-masuk.md) untuk konteks pengembangan. Untuk mencoba aplikasi dari clone baru, ikuti [panduan demo](docs/panduan-demo.md). Bukti tangkapan layar pengujian GUI tersedia di `docs/bukti-gui/`.
+Baca [rancangan dan skenario uji](docs/rancangan-stok-masuk.md) untuk konteks pengembangan. Untuk mencoba aplikasi dari clone baru, ikuti [panduan demo](docs/panduan-demo.md). Ringkasan kelas, skema, exception, dan hasil pengujian tersedia di [ringkasan implementasi PBO](docs/ringkasan-implementasi-pbo.md). Bukti tangkapan layar pengujian GUI tersedia di `docs/bukti-gui/`.
+
+Regression test domain dan penyimpanan dapat dijalankan dengan:
+
+```powershell
+javac -cp "out;lib/*" -d tests-out tests/RegresiKantinFlow.java
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" RegresiKantinFlow
+```

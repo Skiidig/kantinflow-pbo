@@ -429,6 +429,12 @@ public class PenyimpananSQLite implements AutoCloseable {
                         "Batch " + rincian.getBatch().getKode()
                         + " bukan milik barang " + barang.getNama());
             }
+            if (transaksi.getTanggal().isBefore(
+                    rincian.getBatch().getTanggalMasuk())) {
+                throw new PenyimpananException(
+                        "Tanggal transaksi tidak boleh sebelum tanggal masuk batch "
+                        + rincian.getBatch().getKode());
+            }
         }
 
         try {

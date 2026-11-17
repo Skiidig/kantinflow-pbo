@@ -50,6 +50,11 @@ public class PembuanganStok extends Transaksi {
         if (alasan == null || alasan.isBlank()) {
             throw new IllegalArgumentException("Alasan pembuangan wajib diisi");
         }
+        if (getTanggal().isBefore(batch.getTanggalMasuk())) {
+            throw new IllegalArgumentException(
+                    "Tanggal pembuangan tidak boleh sebelum tanggal masuk batch "
+                    + batch.getKode());
+        }
         if (batch.statusPada(getTanggal()) != StatusKedaluwarsa.KEDALUWARSA) {
             throw new IllegalArgumentException(
                     "Batch belum kedaluwarsa pada tanggal pembuangan");
