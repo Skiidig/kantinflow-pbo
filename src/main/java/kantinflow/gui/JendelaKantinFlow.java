@@ -72,6 +72,11 @@ public class JendelaKantinFlow {
     private final JTextField fieldJumlahFefo = new JTextField(5);
     private final JTextField fieldTanggalFefo = new JTextField(11);
     private final JTextField fieldTanggalPemantauan = new JTextField(11);
+    private final JTextField fieldStokMinimum = new JTextField(6);
+    private final JComboBox<Barang> comboBarangAktif = new JComboBox<>();
+    private final JLabel labelNamaBarang = new JLabel();
+    private final JTextField fieldNamaBarang = new JTextField(18);
+    private final JTextField fieldSatuanBarang = new JTextField(12);
     private final JComboBox<BatchStok> comboBatchBuang = new JComboBox<>();
     private final JTextField fieldJumlahBuang = new JTextField(7);
     private final JTextField fieldTanggalBuang = new JTextField(11);
@@ -79,16 +84,24 @@ public class JendelaKantinFlow {
     private final JLabel labelBatchDipilih = new JLabel("Belum ada batch dipilih");
     private final JLabel labelSaldo = new JLabel("0 kotak");
     private final JLabel labelJumlahBatch = new JLabel("0 batch");
+    private final JLabel labelStokFisik = new JLabel("Fisik: 0");
+    private final JLabel labelStokLayak = new JLabel("Layak: -");
+    private final JLabel labelStokMinimum = new JLabel("Minimum: 0");
+    private final JLabel labelStatusRestok = new JLabel("Status: Belum diperiksa");
     private final JTextArea areaStatus = new JTextArea(3, 40);
     private final JButton tombolSimpan = new JButton("Simpan Penerimaan");
     private final JButton tombolKeluarkan = new JButton("Keluarkan Stok");
     private final JButton tombolFefo = new JButton("Keluarkan FEFO");
     private final JButton tombolPeriksa = new JButton("Periksa Kedaluwarsa");
+    private final JButton tombolSimpanMinimum = new JButton("Simpan Minimum");
     private final JButton tombolBuang = new JButton("Buang Stok");
+    private final JButton tombolTambahBarang = new JButton("Tambah Barang");
     private final JButton tombolMuatUlang = new JButton("Muat Ulang");
+    private final List<Barang> daftarBarang;
     private final List<Transaksi> riwayat = new ArrayList<>();
     private Barang barang;
     private LocalDate tanggalPemantauanTerakhir;
+    private boolean menggantiBarang;
     private boolean sudahDitutup;
 
     public JendelaKantinFlow(PenyimpananSQLite penyimpanan) {
@@ -96,9 +109,13 @@ public class JendelaKantinFlow {
             throw new IllegalArgumentException("Penyimpanan wajib diisi");
         }
         this.penyimpanan = penyimpanan;
-        this.barang = penyimpanan.muatBarang();
+        this.daftarBarang = new ArrayList<>(penyimpanan.muatSemuaBarang());
+        if (this.daftarBarang.isEmpty()) {
+            throw new IllegalArgumentException("Database belum memiliki barang");
+        }
+        this.barang = this.daftarBarang.get(0);
         this.riwayat.addAll(penyimpanan.muatRiwayat(this.barang));
-        this.frame = new JFrame("KantinFlow - Stok Susu Kotak");
+        this.frame = new JFrame("KantinFlow - Stok Barang");
 
         this.modelBatch = new DefaultTableModel(
                 new Object[]{"Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa"},
@@ -146,14 +163,51 @@ public class JendelaKantinFlow {
         JPanel identitas = new JPanel();
         identitas.setOpaque(false);
         identitas.setLayout(new javax.swing.BoxLayout(identitas, javax.swing.BoxLayout.Y_AXIS));
-        JLabel namaBarang = new JLabel(barang.getNama());
-        namaBarang.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        namaBarang.setForeground(Color.WHITE);
+        labelNamaBarang.setName("labelNamaBarang");
+        labelNamaBarang.setText(barang.getNama());
+        labelNamaBarang.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        labelNamaBarang.setForeground(Color.WHITE);
+        labelNamaBarang.setAlignmentX(0.0f);
         JLabel keterangan = new JLabel("Stok fisik, batch, dan riwayat transaksi");
         keterangan.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         keterangan.setForeground(new Color(200, 212, 235));
-        identitas.add(namaBarang);
+        keterangan.setAlignmentX(0.0f);
+        identitas.add(labelNamaBarang);
         identitas.add(keterangan);
+
+        JPanel pemilih = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        pemilih.setOpaque(false);
+        pemilih.setAlignmentX(0.0f);
+        JLabel labelPemilih = new JLabel("Barang aktif:");
+        labelPemilih.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        labelPemilih.setForeground(new Color(200, 212, 235));
+        comboBarangAktif.setName("barangAktif");
+        comboBarangAktif.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        comboBarangAktif.setPreferredSize(new Dimension(240, 26));
+        comboBarangAktif.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public java.awt.Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Barang item) {
+                    setText(item.getNama() + " (" + item.getSatuan() + ")");
+                }
+                return this;
+            }
+        });
+        comboBarangAktif.addActionListener(event -> {
+            if (!menggantiBarang) {
+                gantiBarangAktif((Barang) comboBarangAktif.getSelectedItem());
+            }
+        });
+        pemilih.add(labelPemilih);
+        pemilih.add(comboBarangAktif);
+        identitas.add(pemilih);
 
         JPanel saldoPanel = new JPanel();
         saldoPanel.setOpaque(false);
@@ -206,6 +260,7 @@ public class JendelaKantinFlow {
         tabBawah.addTab("Riwayat Transaksi", scrollRiwayat);
         tabBawah.addTab("Pemantauan Kedaluwarsa", buatPanelPemantauan());
         tabBawah.addTab("Pembuangan Stok", buatPanelPembuangan());
+        tabBawah.addTab("Tambah Barang", buatPanelTambahBarang());
 
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, isi, tabBawah);
         split.setResizeWeight(0.68);
@@ -236,7 +291,7 @@ public class JendelaKantinFlow {
             }
         });
         frame.setMinimumSize(new Dimension(1000, 820));
-        frame.setSize(1120, 1000);
+        frame.setSize(1120, 1020);
         frame.setLocationRelativeTo(null);
         frame.getRootPane().setDefaultButton(tombolSimpan);
     }
@@ -331,14 +386,30 @@ public class JendelaKantinFlow {
         tombolPeriksa.addActionListener(event -> periksaKedaluwarsa());
         kontrol.add(tombolPeriksa);
 
+        kontrol.add(new JLabel("Stok minimum:"));
+        fieldStokMinimum.setName("stokMinimum");
+        kontrol.add(fieldStokMinimum);
+        tombolSimpanMinimum.setName("tombolSimpanMinimum");
+        tombolSimpanMinimum.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolSimpanMinimum.addActionListener(event -> simpanStokMinimum());
+        kontrol.add(tombolSimpanMinimum);
+
+        JPanel ringkasan = new JPanel(new GridLayout(1, 4, 8, 0));
+        ringkasan.setOpaque(false);
+        ringkasan.add(buatLabelRingkasan(labelStokFisik, "labelStokFisik"));
+        ringkasan.add(buatLabelRingkasan(labelStokLayak, "labelStokLayak"));
+        ringkasan.add(buatLabelRingkasan(labelStokMinimum, "labelStokMinimum"));
+        ringkasan.add(buatLabelRingkasan(labelStatusRestok, "labelStatusRestok"));
+
         JLabel petunjuk = new JLabel(
-                "Hanya batch dengan sisa lebih dari 0 yang ditampilkan.");
+                "Hanya batch bersisa yang ditampilkan. Stok layak memakai aturan FEFO.");
         petunjuk.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         petunjuk.setForeground(ABU);
 
         JPanel atas = new JPanel(new BorderLayout(0, 4));
         atas.setOpaque(false);
         atas.add(kontrol, BorderLayout.NORTH);
+        atas.add(ringkasan, BorderLayout.CENTER);
         atas.add(petunjuk, BorderLayout.SOUTH);
 
         JScrollPane scroll = new JScrollPane(tabelPemantauan);
@@ -348,6 +419,109 @@ public class JendelaKantinFlow {
         panel.add(atas, BorderLayout.NORTH);
         panel.add(scroll, BorderLayout.CENTER);
         return panel;
+    }
+
+    private JLabel buatLabelRingkasan(JLabel label, String nama) {
+        label.setName(nama);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        label.setForeground(ABU);
+        label.setBorder(new EmptyBorder(3, 2, 3, 2));
+        return label;
+    }
+
+    private JPanel buatPanelTambahBarang() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        fieldNamaBarang.setName("namaBarangBaru");
+        fieldSatuanBarang.setName("satuanBarangBaru");
+        tombolTambahBarang.setName("tombolTambahBarang");
+        tombolTambahBarang.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolTambahBarang.addActionListener(event -> tambahBarang());
+
+        JPanel isian = new JPanel(new GridLayout(1, 2, 12, 4));
+        isian.setOpaque(false);
+        isian.add(buatField("Nama barang", fieldNamaBarang));
+        isian.add(buatField("Satuan", fieldSatuanBarang));
+
+        JPanel form = new JPanel(new BorderLayout(0, 8));
+        form.setOpaque(false);
+        form.add(isian, BorderLayout.CENTER);
+        form.add(tombolTambahBarang, BorderLayout.SOUTH);
+
+        JLabel petunjuk = new JLabel(
+                "Nama dan satuan wajib diisi. Barang baru langsung menjadi barang aktif.");
+        petunjuk.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        petunjuk.setForeground(ABU);
+
+        panel.add(form, BorderLayout.CENTER);
+        panel.add(petunjuk, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private void tambahBarang() {
+        String nama = fieldNamaBarang.getText().trim();
+        String satuan = fieldSatuanBarang.getText().trim();
+        try {
+            Barang baru = new Barang(nama, satuan);
+            baru = penyimpanan.simpanBarang(baru);
+            daftarBarang.add(baru);
+            this.barang = baru;
+            this.riwayat.clear();
+            this.tanggalPemantauanTerakhir = null;
+            perbaruiTampilan();
+            fieldNamaBarang.setText("");
+            fieldSatuanBarang.setText("");
+            setStatus("Barang ditambahkan: " + barang.getNama()
+                    + " (" + barang.getSatuan() + ").", HIJAU);
+        } catch (IllegalArgumentException | PenyimpananException exception) {
+            setStatus("Tambah barang gagal: " + exception.getMessage(), MERAH);
+        }
+    }
+
+    private void gantiBarangAktif(Barang dipilih) {
+        if (dipilih == null || (barang != null && dipilih.getId() == barang.getId())) {
+            return;
+        }
+        try {
+            Barang terbaru = penyimpanan.muatBarang(dipilih.getId());
+            for (int i = 0; i < daftarBarang.size(); i++) {
+                if (daftarBarang.get(i).getId() == terbaru.getId()) {
+                    daftarBarang.set(i, terbaru);
+                    break;
+                }
+            }
+            this.barang = terbaru;
+            this.riwayat.clear();
+            this.riwayat.addAll(penyimpanan.muatRiwayat(terbaru));
+            this.tanggalPemantauanTerakhir = null;
+            fieldJumlahKeluar.setText("");
+            perbaruiTampilan();
+            setStatus("Barang aktif: " + barang.getNama()
+                    + " (" + barang.getSatuan() + ").", ABU);
+        } catch (PenyimpananException exception) {
+            setStatus("Gagal mengganti barang: " + exception.getMessage(), MERAH);
+            perbaruiComboBarang();
+        }
+    }
+
+    private void perbaruiComboBarang() {
+        menggantiBarang = true;
+        try {
+            comboBarangAktif.removeAllItems();
+            for (Barang item : daftarBarang) {
+                comboBarangAktif.addItem(item);
+            }
+            for (int i = 0; i < comboBarangAktif.getItemCount(); i++) {
+                if (comboBarangAktif.getItemAt(i).getId() == barang.getId()) {
+                    comboBarangAktif.setSelectedIndex(i);
+                    break;
+                }
+            }
+        } finally {
+            menggantiBarang = false;
+        }
     }
 
     private JPanel buatPanelPembuangan() {
@@ -463,7 +637,7 @@ public class JendelaKantinFlow {
         }
 
         try {
-            penyimpanan.simpanTransaksi(pembuangan);
+            penyimpanan.simpanTransaksi(barang, pembuangan);
         } catch (PenyimpananException exception) {
             boolean dimuatUlang = muatUlang();
             setStatus(
@@ -485,6 +659,52 @@ public class JendelaKantinFlow {
         setStatus("Pembuangan berhasil: " + kode + ", " + jumlah + " "
                 + barang.getSatuan() + " pada " + tanggalPembuangan
                 + ". Alasan: " + alasan + ".", HIJAU);
+    }
+
+    private void simpanStokMinimum() {
+        int minimum;
+        try {
+            minimum = Integer.parseInt(fieldStokMinimum.getText().trim());
+        } catch (NumberFormatException exception) {
+            setStatus("Stok minimum harus berupa angka bulat.", MERAH);
+            return;
+        }
+        if (minimum < 0) {
+            setStatus("Stok minimum tidak boleh negatif.", MERAH);
+            return;
+        }
+
+        try {
+            penyimpanan.simpanStokMinimum(barang, minimum);
+            barang.setStokMinimum(minimum);
+            fieldStokMinimum.setText(String.valueOf(minimum));
+            perbaruiRingkasanStok();
+            setStatus("Stok minimum " + barang.getNama() + " disimpan: "
+                    + minimum + " " + barang.getSatuan() + ".", HIJAU);
+        } catch (IllegalArgumentException | PenyimpananException exception) {
+            setStatus("Gagal menyimpan stok minimum: "
+                    + exception.getMessage(), MERAH);
+        }
+    }
+
+    private void perbaruiRingkasanStok() {
+        int fisik = barang.hitungSaldo();
+        labelStokFisik.setText("Fisik: " + fisik + " " + barang.getSatuan());
+        labelStokMinimum.setText("Minimum: " + barang.getStokMinimum()
+                + " " + barang.getSatuan());
+        if (tanggalPemantauanTerakhir == null) {
+            labelStokLayak.setText("Layak: -");
+            labelStatusRestok.setText("Status: Belum diperiksa");
+            labelStatusRestok.setForeground(ABU);
+            return;
+        }
+
+        int layak = barang.hitungStokLayak(tanggalPemantauanTerakhir);
+        labelStokLayak.setText("Layak: " + layak + " " + barang.getSatuan());
+        boolean perluRestok = layak <= barang.getStokMinimum();
+        labelStatusRestok.setText(
+                "Status: " + (perluRestok ? "Perlu restok" : "Cukup"));
+        labelStatusRestok.setForeground(perluRestok ? MERAH : HIJAU);
     }
 
     private void periksaKedaluwarsa() {
@@ -512,6 +732,7 @@ public class JendelaKantinFlow {
     private void perbaruiPemantauan() {
         modelPemantauan.setRowCount(0);
         if (tanggalPemantauanTerakhir == null) {
+            perbaruiRingkasanStok();
             return;
         }
         for (BatchStok batch : barang.getDaftarBatch()) {
@@ -526,6 +747,7 @@ public class JendelaKantinFlow {
                 status.getLabel()
             });
         }
+        perbaruiRingkasanStok();
     }
 
     private void pasangHeader(JTable tabel) {
@@ -759,7 +981,7 @@ public class JendelaKantinFlow {
         }
 
         try {
-            penyimpanan.simpanTransaksi(penerimaan);
+            penyimpanan.simpanTransaksi(barang, penerimaan);
         } catch (PenyimpananException exception) {
             boolean dimuatUlang = muatUlang();
             setStatus(
@@ -808,7 +1030,7 @@ public class JendelaKantinFlow {
         }
 
         try {
-            penyimpanan.simpanTransaksi(pengeluaran);
+            penyimpanan.simpanTransaksi(barang, pengeluaran);
         } catch (PenyimpananException exception) {
             boolean dimuatUlang = muatUlang();
             setStatus(
@@ -860,7 +1082,7 @@ public class JendelaKantinFlow {
         }
 
         try {
-            penyimpanan.simpanTransaksi(pengeluaran);
+            penyimpanan.simpanTransaksi(barang, pengeluaran);
         } catch (PenyimpananException exception) {
             boolean dimuatUlang = muatUlang();
             setStatus(
@@ -920,8 +1142,14 @@ public class JendelaKantinFlow {
         BatchStok batchDipilih = batchTerpilih();
         String kodeDipilih = batchDipilih == null ? null : batchDipilih.getKode();
         try {
-            Barang barangTerbaru = penyimpanan.muatBarang();
+            Barang barangTerbaru = penyimpanan.muatBarang(barang.getId());
             List<Transaksi> riwayatTerbaru = penyimpanan.muatRiwayat(barangTerbaru);
+            for (int i = 0; i < daftarBarang.size(); i++) {
+                if (daftarBarang.get(i).getId() == barangTerbaru.getId()) {
+                    daftarBarang.set(i, barangTerbaru);
+                    break;
+                }
+            }
             barang = barangTerbaru;
             riwayat.clear();
             riwayat.addAll(riwayatTerbaru);
@@ -946,6 +1174,8 @@ public class JendelaKantinFlow {
     }
 
     private void perbaruiTampilan() {
+        labelNamaBarang.setText(barang.getNama());
+        perbaruiComboBarang();
         modelBatch.setRowCount(0);
         for (BatchStok batch : barang.getDaftarBatch()) {
             modelBatch.addRow(new Object[]{
@@ -958,6 +1188,7 @@ public class JendelaKantinFlow {
         tabelBatch.clearSelection();
         labelSaldo.setText(barang.hitungSaldo() + " " + barang.getSatuan());
         labelJumlahBatch.setText(barang.jumlahBatch() + " batch");
+        fieldStokMinimum.setText(String.valueOf(barang.getStokMinimum()));
         perbaruiBatchDipilih();
         perbaruiRiwayat();
         perbaruiPilihanBatchBuang();

@@ -11,6 +11,7 @@ import kantinflow.penyimpanan.PenyimpananSQLite;
 
 public class MenuKonsol {
     private Barang barang;
+    private final List<Barang> daftarBarang;
     private final List<Transaksi> riwayat;
     private final Scanner scanner;
     private final PenyimpananSQLite penyimpanan;
@@ -25,11 +26,17 @@ public class MenuKonsol {
         }
         this.scanner = scanner;
         this.penyimpanan = penyimpanan;
+        this.daftarBarang = new ArrayList<>();
         this.riwayat = new ArrayList<>();
         if (penyimpanan == null) {
             this.barang = new Barang("Susu Kotak", "kotak");
+            this.daftarBarang.add(this.barang);
         } else {
-            this.barang = penyimpanan.muatBarang();
+            this.daftarBarang.addAll(penyimpanan.muatSemuaBarang());
+            if (this.daftarBarang.isEmpty()) {
+                throw new PenyimpananException("Data barang tidak ditemukan di database");
+            }
+            this.barang = this.daftarBarang.get(0);
             this.riwayat.addAll(penyimpanan.muatRiwayat(this.barang));
         }
     }
@@ -43,29 +50,38 @@ public class MenuKonsol {
 
                 switch (pilihan) {
                     case "1":
-                        terimaStok();
+                        pilihBarangAktif();
                         break;
                     case "2":
-                        keluarkanStokManual();
+                        tambahBarang();
                         break;
                     case "3":
-                        keluarkanStokFefo();
+                        terimaStok();
                         break;
                     case "4":
-                        lihatSaldoDanRiwayat();
+                        keluarkanStokManual();
                         break;
                     case "5":
-                        pemantauanKedaluwarsa();
+                        keluarkanStokFefo();
                         break;
                     case "6":
-                        buangStokKedaluwarsa();
+                        lihatSaldoDanRiwayat();
                         break;
                     case "7":
+                        pemantauanKedaluwarsa();
+                        break;
+                    case "8":
+                        buangStokKedaluwarsa();
+                        break;
+                    case "9":
+                        aturStokMinimum();
+                        break;
+                    case "10":
                         System.out.println("Terima kasih. Program selesai.");
                         berjalan = false;
                         break;
                     default:
-                        System.out.println("Pilihan tidak valid. Masukkan angka 1-7.");
+                        System.out.println("Pilihan tidak valid. Masukkan angka 1-10.");
                 }
             }
         } catch (InputSelesaiException exception) {
@@ -77,14 +93,108 @@ public class MenuKonsol {
     private void tampilkanMenu() {
         System.out.println();
         System.out.println("=== KantinFlow ===");
-        System.out.println("Barang: " + barang.getNama());
-        System.out.println("1. Terima stok");
-        System.out.println("2. Keluarkan stok dari batch yang dipilih (manual)");
-        System.out.println("3. Keluarkan stok otomatis (FEFO)");
-        System.out.println("4. Lihat saldo dan riwayat");
-        System.out.println("5. Pemantauan Kedaluwarsa");
-        System.out.println("6. Pembuangan Stok Kedaluwarsa");
-        System.out.println("7. Keluar");
+        System.out.println("Barang aktif: " + barang.getNama()
+                + " (" + barang.getSatuan() + ")");
+        System.out.println("1. Pilih barang aktif");
+        System.out.println("2. Tambah barang");
+        System.out.println("3. Terima stok");
+        System.out.println("4. Keluarkan stok dari batch yang dipilih (manual)");
+        System.out.println("5. Keluarkan stok otomatis (FEFO)");
+        System.out.println("6. Lihat saldo dan riwayat");
+        System.out.println("7. Pemantauan Kedaluwarsa");
+        System.out.println("8. Pembuangan Stok Kedaluwarsa");
+        System.out.println("9. Atur stok minimum");
+        System.out.println("10. Keluar");
+    }
+
+    private void pilihBarangAktif() {
+        System.out.println("Daftar barang:");
+        for (int i = 0; i < daftarBarang.size(); i++) {
+            Barang item = daftarBarang.get(i);
+            System.out.println((i + 1) + ". " + item.getNama()
+                    + " (" + item.getSatuan() + ")");
+        }
+
+        String teks = baca("Pilih nomor barang (0 batal):");
+        int nomor;
+        try {
+            nomor = Integer.parseInt(teks);
+        } catch (NumberFormatException exception) {
+            System.out.println("Nomor barang harus berupa angka.");
+            return;
+        }
+        if (nomor == 0) {
+            return;
+        }
+        if (nomor < 1 || nomor > daftarBarang.size()) {
+            System.out.println("Nomor barang tidak valid.");
+            return;
+        }
+
+        Barang dipilih = daftarBarang.get(nomor - 1);
+        try {
+            if (penyimpanan != null) {
+                Barang terbaru = penyimpanan.muatBarang(dipilih.getId());
+                daftarBarang.set(nomor - 1, terbaru);
+                dipilih = terbaru;
+            }
+            this.barang = dipilih;
+            this.riwayat.clear();
+            if (penyimpanan != null) {
+                this.riwayat.addAll(penyimpanan.muatRiwayat(this.barang));
+            }
+            System.out.println("Barang aktif: " + barang.getNama()
+                    + " (" + barang.getSatuan() + ")");
+        } catch (PenyimpananException exception) {
+            System.out.println("Gagal memilih barang: " + exception.getMessage());
+        }
+    }
+
+    private void tambahBarang() {
+        String nama = baca("Nama barang:");
+        String satuan = baca("Satuan:");
+        try {
+            Barang baru = new Barang(nama, satuan);
+            if (penyimpanan != null) {
+                baru = penyimpanan.simpanBarang(baru);
+            }
+            daftarBarang.add(baru);
+            this.barang = baru;
+            this.riwayat.clear();
+            System.out.println("Barang ditambahkan: " + barang.getNama()
+                    + " (" + barang.getSatuan() + "). Barang aktif diganti.");
+        } catch (IllegalArgumentException | PenyimpananException exception) {
+            System.out.println("Tambah barang gagal: " + exception.getMessage());
+        }
+    }
+
+    private void aturStokMinimum() {
+        System.out.println("Stok minimum saat ini: " + barang.getStokMinimum()
+                + " " + barang.getSatuan());
+        String teks = baca("Stok minimum baru (bilangan bulat >= 0):");
+        int minimum;
+        try {
+            minimum = Integer.parseInt(teks);
+        } catch (NumberFormatException exception) {
+            System.out.println("Stok minimum harus berupa angka bulat.");
+            return;
+        }
+        if (minimum < 0) {
+            System.out.println("Stok minimum tidak boleh negatif.");
+            return;
+        }
+
+        try {
+            if (penyimpanan != null) {
+                penyimpanan.simpanStokMinimum(barang, minimum);
+            }
+            barang.setStokMinimum(minimum);
+            System.out.println("Stok minimum " + barang.getNama()
+                    + " disimpan: " + minimum + " " + barang.getSatuan());
+        } catch (IllegalArgumentException | PenyimpananException exception) {
+            System.out.println("Gagal menyimpan stok minimum: "
+                    + exception.getMessage());
+        }
     }
 
     private void terimaStok() {
@@ -197,7 +307,9 @@ public class MenuKonsol {
     }
 
     private void lihatSaldoDanRiwayat() {
-        System.out.println("Saldo: " + barang.hitungSaldo() + " " + barang.getSatuan());
+        System.out.println("Stok fisik: " + barang.hitungSaldo() + " " + barang.getSatuan());
+        System.out.println("Stok minimum: " + barang.getStokMinimum()
+                + " " + barang.getSatuan());
         System.out.println("Jumlah batch: " + barang.jumlahBatch());
         System.out.println("Jumlah riwayat: " + riwayat.size());
 
@@ -307,6 +419,15 @@ public class MenuKonsol {
         if (!adaBatchBersisa) {
             System.out.println("Tidak ada batch bersisa.");
         }
+
+        int fisik = barang.hitungSaldo();
+        int layak = barang.hitungStokLayak(tanggalPengecekan);
+        int minimum = barang.getStokMinimum();
+        System.out.println("Stok fisik: " + fisik + " " + barang.getSatuan());
+        System.out.println("Stok layak per " + tanggalPengecekan + ": "
+                + layak + " " + barang.getSatuan());
+        System.out.println("Stok minimum: " + minimum + " " + barang.getSatuan());
+        System.out.println("Status: " + (layak <= minimum ? "Perlu restok" : "Cukup"));
     }
 
     private boolean simpan(Transaksi transaksi) {
@@ -314,7 +435,7 @@ public class MenuKonsol {
             return true;
         }
         try {
-            penyimpanan.simpanTransaksi(transaksi);
+            penyimpanan.simpanTransaksi(barang, transaksi);
             return true;
         } catch (PenyimpananException exception) {
             System.out.println("Penyimpanan gagal: " + exception.getMessage());
@@ -328,8 +449,14 @@ public class MenuKonsol {
             return;
         }
         try {
-            Barang barangTerbaru = penyimpanan.muatBarang();
+            Barang barangTerbaru = penyimpanan.muatBarang(barang.getId());
             List<Transaksi> riwayatTerbaru = penyimpanan.muatRiwayat(barangTerbaru);
+            for (int i = 0; i < daftarBarang.size(); i++) {
+                if (daftarBarang.get(i).getId() == barang.getId()) {
+                    daftarBarang.set(i, barangTerbaru);
+                    break;
+                }
+            }
             this.barang = barangTerbaru;
             this.riwayat.clear();
             this.riwayat.addAll(riwayatTerbaru);
