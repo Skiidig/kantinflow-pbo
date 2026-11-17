@@ -2,7 +2,7 @@
 
 Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori.
 
-Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan**, **Stok Masuk**, dan **Stok Keluar**; halaman lain masih tersedia pada GUI Swing lama. Semua halaman JavaFX memakai domain dan `PenyimpananSQLite` yang sama.
+Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan**, **Barang**, **Stok Masuk**, dan **Stok Keluar**; halaman lain masih tersedia pada GUI Swing lama. Semua halaman JavaFX memakai domain dan `PenyimpananSQLite` yang sama.
 
 ## Persiapan lokal
 
@@ -68,7 +68,7 @@ GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`)
 
 Tema memakai FlatLaf Light. Halaman yang tinggi dapat di-scroll; jendela default 1180×700 dan minimum 900×600 sehingga tetap nyaman pada layar 1366×768. Mengganti barang akan memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
 
-### Menjalankan GUI JavaFX (tahap 1)
+### Menjalankan GUI JavaFX
 
 Prasyarat: **JDK 25** dan **Maven 3.9+**. JavaFX yang dipakai adalah `25.0.5`; JDK 25 juga yang direkomendasikan oleh release notes JavaFX 25. SQLite JDBC tetap `3.54.1.0`.
 
@@ -94,9 +94,11 @@ $env:KANTINFLOW_DB = "$PWD\data\kantinflow-fx-uji.db"
 mvn javafx:run
 ```
 
-Tahap migrasi ini menampilkan **Ringkasan**, **Stok Masuk**, dan **Stok Keluar**. Stok Keluar menyediakan pengeluaran manual dengan sisa batch terpilih dan pengeluaran FEFO dengan tanggal. Hasil FEFO menampilkan alokasi per batch. Halaman Barang, Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
+Tahap migrasi ini menampilkan **Ringkasan**, **Barang**, **Stok Masuk**, dan **Stok Keluar**. Halaman Barang menyediakan tabel barang, tambah barang dengan minimum, serta pengaturan minimum barang aktif. Stok Keluar menyediakan pengeluaran manual dengan sisa batch terpilih dan FEFO dengan tanggal; hasil FEFO menampilkan alokasi per batch. Halaman Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
 
-Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png), [Stok Keluar berhasil](docs/bukti-gui/gui-fx-stok-keluar-berhasil.png), [Stok Keluar ditolak](docs/bukti-gui/gui-fx-stok-keluar-ditolak.png), dan [pengeluaran manual](docs/bukti-gui/gui-fx-stok-keluar-manual.png).
+Setiap halaman memakai scroll dan sudah diuji pada jendela 1366×768 serta 960×640. Form menampilkan pesan validasi dekat input, sidebar memakai ikon sederhana, dan proses database menampilkan `ProgressIndicator` serta menonaktifkan halaman selama task.
+
+Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png), [Barang](docs/bukti-gui/gui-fx-barang.png), [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png), [Stok Keluar](docs/bukti-gui/gui-fx-stok-keluar.png), [Stok Keluar berhasil](docs/bukti-gui/gui-fx-stok-keluar-berhasil.png), [Stok Keluar ditolak](docs/bukti-gui/gui-fx-stok-keluar-ditolak.png), dan [pengeluaran manual](docs/bukti-gui/gui-fx-stok-keluar-manual.png).
 
 ### Database lokal setiap komputer
 

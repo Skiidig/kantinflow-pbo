@@ -31,22 +31,24 @@
                 <ColumnConstraints percentWidth="50"/>
             </columnConstraints>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                <Label text="Kode batch" styleClass="field-label"/>
+                <Label text="Kode batch *" styleClass="field-label"/>
                 <TextField fx:id="kodeBatchField" id="kodeBatch" promptText="contoh: ROTI-A"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                <Label text="Jumlah" styleClass="field-label"/>
+                <Label text="Jumlah *" styleClass="field-label"/>
                 <TextField fx:id="jumlahField" id="jumlah" promptText="bilangan bulat"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                <Label text="Tanggal masuk" styleClass="field-label"/>
+                <Label text="Tanggal masuk *" styleClass="field-label"/>
                 <DatePicker fx:id="tanggalMasukPicker" id="tanggalMasuk" maxWidth="Infinity"/>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                <Label text="Tanggal kedaluwarsa" styleClass="field-label"/>
+                <Label text="Tanggal kedaluwarsa *" styleClass="field-label"/>
                 <DatePicker fx:id="tanggalKedaluwarsaPicker" id="tanggalKedaluwarsa" maxWidth="Infinity"/>
             </VBox>
         </GridPane>
+        <Label fx:id="errorLabel" id="errorStokMasuk" styleClass="error-text"
+               wrapText="true"/>
         <Button fx:id="simpanButton" id="simpanPenerimaan" text="Simpan Penerimaan"
                 styleClass="primary-button" maxWidth="Infinity"/>
     </VBox>

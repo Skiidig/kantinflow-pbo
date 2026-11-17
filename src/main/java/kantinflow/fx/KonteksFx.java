@@ -23,6 +23,13 @@ public interface KonteksFx {
             LocalDate tanggalMasuk, LocalDate tanggalKedaluwarsa,
             Consumer<Boolean> selesai);
 
+    void tambahBarangAsync(String nama, String satuan, int stokMinimum,
+            Consumer<Boolean> selesai);
+
+    void simpanMinimumAsync(int stokMinimum, Consumer<Boolean> selesai);
+
+    void pilihBarangAsync(Barang barang);
+
     void keluarkanManualAsync(BatchStok batch, int jumlah,
             Consumer<HasilPengeluaran> selesai);
 

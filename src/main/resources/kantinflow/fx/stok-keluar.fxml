@@ -32,11 +32,11 @@
         <VBox styleClass="card" spacing="10" GridPane.columnIndex="0"
               GridPane.rowIndex="0">
             <Label text="Pengeluaran Manual" styleClass="card-title"/>
-            <Label text="Batch" styleClass="field-label"/>
+            <Label text="Batch *" styleClass="field-label"/>
             <ComboBox fx:id="batchCombo" id="batchManual" maxWidth="Infinity"/>
             <Label fx:id="sisaBatchLabel" id="sisaBatch"
                    styleClass="accent-text" wrapText="true"/>
-            <Label text="Jumlah" styleClass="field-label"/>
+            <Label text="Jumlah *" styleClass="field-label"/>
             <TextField fx:id="jumlahManualField" id="jumlahKeluar"
                        promptText="bilangan bulat"/>
             <Button fx:id="manualButton" id="tombolKeluarkan"
@@ -47,10 +47,10 @@
         <VBox styleClass="card" spacing="10" GridPane.columnIndex="1"
               GridPane.rowIndex="0">
             <Label text="Pengeluaran FEFO" styleClass="card-title"/>
-            <Label text="Jumlah" styleClass="field-label"/>
+            <Label text="Jumlah *" styleClass="field-label"/>
             <TextField fx:id="jumlahFefoField" id="jumlahFefo"
                        promptText="bilangan bulat"/>
-            <Label text="Tanggal pengeluaran" styleClass="field-label"/>
+            <Label text="Tanggal pengeluaran *" styleClass="field-label"/>
             <DatePicker fx:id="tanggalFefoPicker" id="tanggalFefo"
                         maxWidth="Infinity"/>
             <Button fx:id="fefoButton" id="tombolFefo" text="Keluarkan FEFO"
@@ -60,7 +60,10 @@
         </VBox>
     </GridPane>
 
-    <VBox styleClass="card result-card" spacing="8">
+    <Label fx:id="errorLabel" id="errorStokKeluar" styleClass="error-text"
+           wrapText="true"/>
+
+    <VBox styleClass="result-card" spacing="8">
         <Label text="Hasil Alokasi" styleClass="card-title"/>
         <Label fx:id="hasilAlokasiLabel" id="hasilAlokasi"
                styleClass="allocation" wrapText="true"/>

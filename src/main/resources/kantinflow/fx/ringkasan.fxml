@@ -22,38 +22,41 @@
                styleClass="page-subtitle"/>
     </VBox>
 
-    <HBox styleClass="card toolbar" spacing="10" alignment="CENTER_LEFT">
+    <HBox styleClass="toolbar" spacing="10" alignment="CENTER_LEFT">
         <Label text="Tanggal pengecekan" styleClass="field-label"/>
         <DatePicker fx:id="tanggalPicker" id="tanggalRingkasan" prefWidth="160"/>
         <Button fx:id="periksaButton" id="periksaRingkasan" text="Periksa" styleClass="primary-button"/>
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
 
+    <Label fx:id="errorLabel" id="errorRingkasan" styleClass="error-text"
+           wrapText="true"/>
+
     <GridPane hgap="16" vgap="16">
         <columnConstraints>
             <ColumnConstraints percentWidth="50"/>
             <ColumnConstraints percentWidth="50"/>
         </columnConstraints>
-        <VBox styleClass="card stat-card" GridPane.columnIndex="0"
+        <VBox styleClass="stat-card" GridPane.columnIndex="0"
               GridPane.rowIndex="0" spacing="8">
             <Label text="Stok fisik" styleClass="stat-title"/>
             <Label fx:id="fisikLabel" id="ringkasanFisik" text="-" styleClass="stat-value"/>
             <Label text="Seluruh sisa batch" styleClass="stat-note"/>
         </VBox>
-        <VBox styleClass="card stat-card" GridPane.columnIndex="1"
+        <VBox styleClass="stat-card" GridPane.columnIndex="1"
               GridPane.rowIndex="0" spacing="8">
             <Label text="Stok layak" styleClass="stat-title"/>
             <Label fx:id="layakLabel" id="ringkasanLayak" text="-" styleClass="stat-value"/>
             <Label text="Batch yang layak pada tanggal pengecekan"
                    styleClass="stat-note" wrapText="true"/>
         </VBox>
-        <VBox styleClass="card stat-card" GridPane.columnIndex="0"
+        <VBox styleClass="stat-card" GridPane.columnIndex="0"
               GridPane.rowIndex="1" spacing="8">
             <Label text="Stok minimum" styleClass="stat-title"/>
             <Label fx:id="minimumLabel" id="ringkasanMinimum" text="-" styleClass="stat-value"/>
             <Label text="Batas kebutuhan barang aktif" styleClass="stat-note"/>
         </VBox>
-        <VBox styleClass="card stat-card" GridPane.columnIndex="1"
+        <VBox styleClass="stat-card" GridPane.columnIndex="1"
               GridPane.rowIndex="1" spacing="8">
             <Label text="Status" styleClass="stat-title"/>
             <Label fx:id="statusRestokLabel" id="ringkasanStatus" text="Belum diperiksa"

@@ -13,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
@@ -43,7 +44,11 @@ public class ShellController implements KonteksFx, AutoCloseable {
     @FXML
     private Label statusLabel;
     @FXML
+    private ProgressIndicator progress;
+    @FXML
     private ToggleButton navRingkasan;
+    @FXML
+    private ToggleButton navBarang;
     @FXML
     private ToggleButton navStokMasuk;
     @FXML
@@ -62,6 +67,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
     private List<Transaksi> riwayat;
     private java.time.LocalDate tanggalPemantauan;
     private HalamanFx halamanRingkasan;
+    private HalamanFx halamanBarang;
     private HalamanFx halamanStokMasuk;
     private HalamanFx halamanStokKeluar;
     private HalamanFx halamanAktif;
@@ -72,6 +78,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
     @FXML
     private void initialize() {
         navRingkasan.setToggleGroup(grupNav);
+        navBarang.setToggleGroup(grupNav);
         navStokMasuk.setToggleGroup(grupNav);
         navStokKeluar.setToggleGroup(grupNav);
         grupNav.selectedToggleProperty().addListener((obs, lama, baru) -> {
@@ -109,9 +116,11 @@ public class ShellController implements KonteksFx, AutoCloseable {
         });
 
         halamanRingkasan = muatHalaman("/kantinflow/fx/ringkasan.fxml");
+        halamanBarang = muatHalaman("/kantinflow/fx/barang.fxml");
         halamanStokMasuk = muatHalaman("/kantinflow/fx/stok-masuk.fxml");
         halamanStokKeluar = muatHalaman("/kantinflow/fx/stok-keluar.fxml");
         halamanRingkasan.setKonteks(this);
+        halamanBarang.setKonteks(this);
         halamanStokMasuk.setKonteks(this);
         halamanStokKeluar.setKonteks(this);
     }
@@ -170,6 +179,8 @@ public class ShellController implements KonteksFx, AutoCloseable {
         halamanContainer.getChildren().setAll(scroll);
         if ("ringkasan".equals(nama)) {
             navRingkasan.setSelected(true);
+        } else if ("barang".equals(nama)) {
+            navBarang.setSelected(true);
         } else if ("stok-masuk".equals(nama)) {
             navStokMasuk.setSelected(true);
         } else {
@@ -181,6 +192,11 @@ public class ShellController implements KonteksFx, AutoCloseable {
     @FXML
     private void tampilkanRingkasan() {
         tampilkanHalaman(halamanRingkasan, "ringkasan");
+    }
+
+    @FXML
+    private void tampilkanBarang() {
+        tampilkanHalaman(halamanBarang, "barang");
     }
 
     @FXML
@@ -196,6 +212,9 @@ public class ShellController implements KonteksFx, AutoCloseable {
     private void perbaruiHalaman() {
         if (halamanRingkasan != null) {
             halamanRingkasan.perbarui();
+        }
+        if (halamanBarang != null) {
+            halamanBarang.perbarui();
         }
         if (halamanStokMasuk != null) {
             halamanStokMasuk.perbarui();
@@ -257,8 +276,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
             return;
         }
         sibuk = true;
-        barangCombo.setDisable(true);
-        halamanContainer.setDisable(true);
+        aturSibukUI(true);
         tampilkanPesan("Menyimpan penerimaan...", true);
 
         Barang aktif = this.barang;
@@ -285,8 +303,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
             HasilSimpan hasil = task.getValue();
             terapkanHasil(hasil);
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
             tampilkanPesan(hasil.pesan, hasil.berhasil);
             if (selesai != null) {
                 selesai.accept(hasil.berhasil);
@@ -294,8 +311,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         });
         task.setOnFailed(event -> {
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
             Throwable error = task.getException();
             tampilkanPesan("Penerimaan gagal: "
                     + (error == null ? "kesalahan tidak diketahui" : error.getMessage()),
@@ -356,8 +372,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
             return;
         }
         sibuk = true;
-        barangCombo.setDisable(true);
-        halamanContainer.setDisable(true);
+        aturSibukUI(true);
         tampilkanPesan(fefo ? "Memproses pengeluaran FEFO..."
                 : "Memproses pengeluaran manual...", true);
 
@@ -404,8 +419,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         task.setOnSucceeded(event -> {
             HasilPengeluaran hasil = task.getValue();
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
 
             if (hasil.barang() == null) {
                 tampilkanPesan(hasil.pesan(), false);
@@ -442,8 +456,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         });
         task.setOnFailed(event -> {
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
             Throwable error = task.getException();
             String pesan = "Pengeluaran gagal: "
                     + (error == null ? "kesalahan tidak diketahui" : error.getMessage());
@@ -456,14 +469,178 @@ public class ShellController implements KonteksFx, AutoCloseable {
         io.submit(task);
     }
 
+    @Override
+    public void pilihBarangAsync(Barang target) {
+        gantiBarangAsync(target);
+    }
+
+    @Override
+    public void tambahBarangAsync(String nama, String satuan, int stokMinimum,
+            Consumer<Boolean> selesai) {
+        if (sibuk) {
+            tampilkanPesan("Tunggu proses sebelumnya selesai.", false);
+            if (selesai != null) {
+                selesai.accept(false);
+            }
+            return;
+        }
+        sibuk = true;
+        aturSibukUI(true);
+        tampilkanPesan("Menambah barang...", true);
+        int idAktif = barang.getId();
+        long versiAktif = versiBarang;
+
+        Task<HasilTambah> task = new Task<>() {
+            @Override
+            protected HasilTambah call() {
+                try {
+                    Barang baru = penyimpanan.simpanBarang(
+                            new Barang(0, nama, satuan, stokMinimum));
+                    List<Barang> daftarBaru = penyimpanan.muatSemuaBarang();
+                    return new HasilTambah(true, "Barang ditambahkan: "
+                            + baru.getNama() + " (" + baru.getSatuan() + ").",
+                            baru, daftarBaru);
+                } catch (RuntimeException exception) {
+                    return new HasilTambah(false, "Tambah barang gagal: "
+                            + exception.getMessage(), null, null);
+                }
+            }
+        };
+        task.setOnSucceeded(event -> {
+            HasilTambah hasil = task.getValue();
+            sibuk = false;
+            aturSibukUI(false);
+            if (hasil.barang == null) {
+                tampilkanPesan(hasil.pesan, false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            if (barang.getId() != idAktif || versiBarang != versiAktif) {
+                tampilkanPesan("Hasil tambah barang lama diabaikan.", false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            daftarBarang.clear();
+            daftarBarang.addAll(hasil.daftar);
+            barang = hasil.barang;
+            riwayat.clear();
+            tanggalPemantauan = null;
+            versiBarang++;
+            perbaruiCombo();
+            perbaruiHalaman();
+            tampilkanPesan(hasil.pesan, true);
+            if (selesai != null) {
+                selesai.accept(true);
+            }
+        });
+        task.setOnFailed(event -> {
+            sibuk = false;
+            aturSibukUI(false);
+            Throwable error = task.getException();
+            tampilkanPesan("Tambah barang gagal: "
+                    + (error == null ? "kesalahan tidak diketahui" : error.getMessage()),
+                    false);
+            if (selesai != null) {
+                selesai.accept(false);
+            }
+        });
+        io.submit(task);
+    }
+
+    @Override
+    public void simpanMinimumAsync(int stokMinimum, Consumer<Boolean> selesai) {
+        if (sibuk) {
+            tampilkanPesan("Tunggu proses sebelumnya selesai.", false);
+            if (selesai != null) {
+                selesai.accept(false);
+            }
+            return;
+        }
+        sibuk = true;
+        aturSibukUI(true);
+        tampilkanPesan("Menyimpan stok minimum...", true);
+        Barang target = barang;
+        int idAktif = target.getId();
+        long versiAktif = versiBarang;
+
+        Task<HasilMinimum> task = new Task<>() {
+            @Override
+            protected HasilMinimum call() {
+                try {
+                    penyimpanan.simpanStokMinimum(target, stokMinimum);
+                    Barang baru = penyimpanan.muatBarang(idAktif);
+                    List<Barang> daftarBaru = penyimpanan.muatSemuaBarang();
+                    return new HasilMinimum(true, "Stok minimum "
+                            + target.getNama() + " disimpan: " + stokMinimum
+                            + " " + target.getSatuan() + ".", baru, daftarBaru);
+                } catch (RuntimeException exception) {
+                    return new HasilMinimum(false,
+                            "Gagal menyimpan stok minimum: "
+                            + exception.getMessage(), null, null);
+                }
+            }
+        };
+        task.setOnSucceeded(event -> {
+            HasilMinimum hasil = task.getValue();
+            sibuk = false;
+            aturSibukUI(false);
+            if (hasil.barang == null) {
+                tampilkanPesan(hasil.pesan, false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            if (barang.getId() != idAktif || versiBarang != versiAktif) {
+                tampilkanPesan("Hasil minimum barang lama diabaikan.", false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            daftarBarang.clear();
+            daftarBarang.addAll(hasil.daftar);
+            barang = hasil.barang;
+            versiBarang++;
+            perbaruiCombo();
+            perbaruiHalaman();
+            tampilkanPesan(hasil.pesan, true);
+            if (selesai != null) {
+                selesai.accept(true);
+            }
+        });
+        task.setOnFailed(event -> {
+            sibuk = false;
+            aturSibukUI(false);
+            Throwable error = task.getException();
+            tampilkanPesan("Gagal menyimpan stok minimum: "
+                    + (error == null ? "kesalahan tidak diketahui" : error.getMessage()),
+                    false);
+            if (selesai != null) {
+                selesai.accept(false);
+            }
+        });
+        io.submit(task);
+    }
+
+    private void aturSibukUI(boolean aktif) {
+        progress.setVisible(aktif);
+        progress.setManaged(aktif);
+        barangCombo.setDisable(aktif);
+        halamanContainer.setDisable(aktif);
+    }
+
     private void gantiBarangAsync(Barang target) {
         if (sibuk) {
             perbaruiCombo();
             return;
         }
         sibuk = true;
-        barangCombo.setDisable(true);
-        halamanContainer.setDisable(true);
+        aturSibukUI(true);
         tampilkanPesan("Memuat " + target.getNama() + "...", true);
 
         Task<HasilBarang> task = new Task<>() {
@@ -481,8 +658,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         task.setOnSucceeded(event -> {
             HasilBarang hasil = task.getValue();
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
             if (hasil.barang == null) {
                 tampilkanPesan("Gagal mengganti barang: " + hasil.error, false);
                 perbaruiCombo();
@@ -505,8 +681,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         });
         task.setOnFailed(event -> {
             sibuk = false;
-            barangCombo.setDisable(false);
-            halamanContainer.setDisable(false);
+            aturSibukUI(false);
             Throwable error = task.getException();
             tampilkanPesan("Gagal mengganti barang: "
                     + (error == null ? "kesalahan tidak diketahui" : error.getMessage()),
@@ -532,6 +707,36 @@ public class ShellController implements KonteksFx, AutoCloseable {
             } catch (PenyimpananException exception) {
                 System.err.println("Gagal menutup database: " + exception.getMessage());
             }
+        }
+    }
+
+    private static final class HasilTambah {
+        private final boolean berhasil;
+        private final String pesan;
+        private final Barang barang;
+        private final List<Barang> daftar;
+
+        private HasilTambah(boolean berhasil, String pesan, Barang barang,
+                List<Barang> daftar) {
+            this.berhasil = berhasil;
+            this.pesan = pesan;
+            this.barang = barang;
+            this.daftar = daftar;
+        }
+    }
+
+    private static final class HasilMinimum {
+        private final boolean berhasil;
+        private final String pesan;
+        private final Barang barang;
+        private final List<Barang> daftar;
+
+        private HasilMinimum(boolean berhasil, String pesan, Barang barang,
+                List<Barang> daftar) {
+            this.berhasil = berhasil;
+            this.pesan = pesan;
+            this.barang = barang;
+            this.daftar = daftar;
         }
     }
 

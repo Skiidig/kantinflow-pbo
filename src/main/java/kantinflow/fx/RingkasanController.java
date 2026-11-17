@@ -26,6 +26,8 @@ public class RingkasanController implements HalamanFx {
     private Label minimumLabel;
     @FXML
     private Label statusRestokLabel;
+    @FXML
+    private Label errorLabel;
 
     private KonteksFx konteks;
 
@@ -47,9 +49,12 @@ public class RingkasanController implements HalamanFx {
     private void periksa() {
         LocalDate tanggal = tanggalPicker.getValue();
         if (tanggal == null) {
+            errorLabel.setText("Tanggal pengecekan wajib diisi.");
             konteks.tampilkanPesan("Tanggal pengecekan wajib diisi.", false);
+            tanggalPicker.requestFocus();
             return;
         }
+        errorLabel.setText("");
         konteks.setTanggalPemantauan(tanggal);
         perbarui();
         konteks.tampilkanPesan("Ringkasan diperiksa untuk tanggal " + tanggal + ".", true);

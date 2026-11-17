@@ -2,8 +2,10 @@
 
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -26,13 +28,16 @@
             </Label>
             <ComboBox fx:id="barangCombo" id="barangAktif" maxWidth="Infinity"/>
             <VBox styleClass="nav-box" spacing="4">
-                <ToggleButton fx:id="navRingkasan" id="navRingkasan" text="Ringkasan"
+                <ToggleButton fx:id="navRingkasan" id="navRingkasan" text="▦  Ringkasan"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanRingkasan"/>
-                <ToggleButton fx:id="navStokMasuk" id="navStokMasuk" text="Stok Masuk"
+                <ToggleButton fx:id="navBarang" id="navBarang" text="▤  Barang"
+                              styleClass="nav-button" maxWidth="Infinity"
+                              onAction="#tampilkanBarang"/>
+                <ToggleButton fx:id="navStokMasuk" id="navStokMasuk" text="↓  Stok Masuk"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanStokMasuk"/>
-                <ToggleButton fx:id="navStokKeluar" id="navStokKeluar" text="Stok Keluar"
+                <ToggleButton fx:id="navStokKeluar" id="navStokKeluar" text="↑  Stok Keluar"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanStokKeluar"/>
             </VBox>
@@ -44,7 +49,11 @@
         <StackPane fx:id="halamanContainer" styleClass="content"/>
     </center>
     <bottom>
-        <Label fx:id="statusLabel" id="status" text="Memuat data..."
-               styleClass="status" maxWidth="Infinity" wrapText="true"/>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="10">
+            <Label fx:id="statusLabel" id="status" text="Memuat data..."
+                   styleClass="status" HBox.hgrow="ALWAYS" wrapText="true"/>
+            <ProgressIndicator fx:id="progress" prefWidth="20" prefHeight="20"
+                               visible="false" managed="false"/>
+        </HBox>
     </bottom>
 </BorderPane>

@@ -37,6 +37,8 @@ public class StokKeluarController implements HalamanFx {
     private Button fefoButton;
     @FXML
     private Label hasilAlokasiLabel;
+    @FXML
+    private Label errorLabel;
 
     private KonteksFx konteks;
     private int idBarangTerakhir = -1;
@@ -106,15 +108,18 @@ public class StokKeluarController implements HalamanFx {
             return;
         }
         BatchStok batch = batchCombo.getValue();
+        errorLabel.setText("");
         if (batch == null) {
-            konteks.tampilkanPesan("Pilih batch terlebih dahulu.", false);
+            errorLabel.setText("Pilih batch terlebih dahulu.");
+            batchCombo.requestFocus();
             return;
         }
         int jumlah;
         try {
             jumlah = Integer.parseInt(jumlahManualField.getText().trim());
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Jumlah harus berupa angka bulat.", false);
+            errorLabel.setText("Jumlah harus berupa angka bulat.");
+            jumlahManualField.requestFocus();
             return;
         }
 
@@ -128,16 +133,19 @@ public class StokKeluarController implements HalamanFx {
         if (sibuk || konteks == null) {
             return;
         }
+        errorLabel.setText("");
         int jumlah;
         try {
             jumlah = Integer.parseInt(jumlahFefoField.getText().trim());
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Jumlah harus berupa angka bulat.", false);
+            errorLabel.setText("Jumlah harus berupa angka bulat.");
+            jumlahFefoField.requestFocus();
             return;
         }
         LocalDate tanggal = tanggalFefoPicker.getValue();
         if (tanggal == null) {
-            konteks.tampilkanPesan("Tanggal pengeluaran wajib diisi.", false);
+            errorLabel.setText("Tanggal pengeluaran wajib diisi.");
+            tanggalFefoPicker.requestFocus();
             return;
         }
 
@@ -150,6 +158,7 @@ public class StokKeluarController implements HalamanFx {
     private void selesai(HasilPengeluaran hasil, boolean fefo) {
         sibuk = false;
         if (hasil.berhasil()) {
+            errorLabel.setText("");
             hasilAlokasiLabel.setText(formatAlokasi(hasil));
             if (fefo) {
                 jumlahFefoField.clear();
@@ -158,7 +167,8 @@ public class StokKeluarController implements HalamanFx {
                 jumlahManualField.clear();
             }
         } else {
-            hasilAlokasiLabel.setText("Tidak ada alokasi: " + hasil.pesan());
+            errorLabel.setText(hasil.pesan());
+            hasilAlokasiLabel.setText("Tidak ada alokasi pada pengeluaran ini.");
         }
         perbarui();
     }
@@ -197,6 +207,7 @@ public class StokKeluarController implements HalamanFx {
             jumlahManualField.clear();
             jumlahFefoField.clear();
             tanggalFefoPicker.setValue(LocalDate.now());
+            errorLabel.setText("");
             hasilAlokasiLabel.setText("Belum ada pengeluaran pada halaman ini.");
         } else if (kodeTerpilih != null) {
             batchCombo.getItems().stream()

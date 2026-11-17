@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -38,6 +39,8 @@ public class StokMasukController implements HalamanFx {
     private TableColumn<BatchStok, String> kolomMasuk;
     @FXML
     private TableColumn<BatchStok, String> kolomKedaluwarsa;
+    @FXML
+    private Label errorLabel;
 
     private KonteksFx konteks;
 
@@ -73,6 +76,7 @@ public class StokMasukController implements HalamanFx {
         if (konteks == null) {
             return;
         }
+        errorLabel.setText("");
         String kode = kodeBatchField.getText() == null
                 ? "" : kodeBatchField.getText().trim();
         int jumlah;
@@ -80,13 +84,15 @@ public class StokMasukController implements HalamanFx {
             jumlah = Integer.parseInt(jumlahField.getText() == null
                     ? "" : jumlahField.getText().trim());
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Jumlah harus berupa angka bulat.", false);
+            errorLabel.setText("Jumlah harus berupa angka bulat.");
+            jumlahField.requestFocus();
             return;
         }
         LocalDate masuk = tanggalMasukPicker.getValue();
         LocalDate kedaluwarsa = tanggalKedaluwarsaPicker.getValue();
         if (masuk == null || kedaluwarsa == null) {
-            konteks.tampilkanPesan("Tanggal masuk dan kedaluwarsa wajib diisi.", false);
+            errorLabel.setText("Tanggal masuk dan kedaluwarsa wajib diisi.");
+            tanggalMasukPicker.requestFocus();
             return;
         }
 
@@ -94,11 +100,14 @@ public class StokMasukController implements HalamanFx {
         konteks.simpanPenerimaanAsync(kode, jumlah, masuk, kedaluwarsa, sukses -> {
             simpanButton.setDisable(false);
             if (sukses) {
+                errorLabel.setText("");
                 kodeBatchField.clear();
                 jumlahField.clear();
                 LocalDate hariIni = LocalDate.now();
                 tanggalMasukPicker.setValue(hariIni);
                 tanggalKedaluwarsaPicker.setValue(hariIni.plusMonths(1));
+            } else {
+                errorLabel.setText("Penerimaan gagal. Periksa status di bawah.");
             }
         });
     }

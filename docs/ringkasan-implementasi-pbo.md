@@ -33,10 +33,11 @@ hasil pengujian, dan batas aplikasi.
 | `Ui` | warna, font, komponen | helper tampilan | Konsistensi visual FlatLaf. |
 | `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
 | `KantinFlowFxApp` | `ShellController`, `Stage` | `start()`, `stop()` | Entry point JavaFX; memuat data awal di thread latar dan FXML shell. |
-| `ShellController` | `barang`, `daftarBarang`, `riwayat`, `penyimpanan`, `io`, `versiBarang` | `setData()`, `simpanPenerimaanAsync()`, `keluarkanManualAsync()`, `keluarkanFefoAsync()`, `gantiBarangAsync()`, `close()` | Shell JavaFX, navigasi tiga halaman, status, task SQLite, dan penjagaan hasil task barang lama. |
+| `ShellController` | `barang`, `daftarBarang`, `riwayat`, `penyimpanan`, `io`, `versiBarang` | `setData()`, `simpanPenerimaanAsync()`, `tambahBarangAsync()`, `simpanMinimumAsync()`, `keluarkanManualAsync()`, `keluarkanFefoAsync()`, `pilihBarangAsync()`, `close()` | Shell JavaFX, navigasi empat halaman, status/progress, task SQLite, dan penjagaan hasil task barang lama. |
 | `KonteksFx` | kontrak state dan aksi | getter, set tanggal, simpan async, pesan | Batas panel JavaFX dan shell. |
 | `HalamanFx` | — | `setKonteks()`, `perbarui()`, `getNode()` | Kontrak halaman FXML. |
 | `RingkasanController` | `DatePicker`, label stok/status | `perbarui()`, `periksa()` | Halaman Ringkasan JavaFX. |
+| `BarangController` | tabel barang, field tambah, minimum aktif | `perbarui()`, `tambah()`, `simpanMinimum()` | Halaman Barang JavaFX dan sinkronisasi barang aktif. |
 | `StokMasukController` | field penerimaan, DatePicker, table | `perbarui()`, `simpan()` | Halaman Stok Masuk JavaFX. |
 | `StokKeluarController` | combo batch, field manual/FEFO, hasil alokasi | `perbarui()`, `keluarkanManual()`, `keluarkanFefo()` | Halaman Stok Keluar JavaFX. |
 | `HasilPengeluaran` | status, pesan, rincian, state barang/riwayat | record hasil | Membawa hasil task pengeluaran ke UI. |
@@ -201,6 +202,7 @@ SEMUA_REGRESI_LULUS
 | Demo lama | Saldo 5, 5, 3, 3 dan riwayat 1, 1, 2, 2. |
 | JavaFX tahap 1 | Pindah Susu→Roti; terima 5; jumlah 0 dan kode duplikat ditolak; trigger penyimpanan gagal ditangani dan tabel tetap 1; Ringkasan 5/5/5 `Perlu restok`; switch barang; reopen mempertahankan 1 batch. |
 | JavaFX Stok Keluar | Manual 5→2=3; manual 4 ditolak; FEFO 8 pada A=5/B=7 menghasilkan A=0/B=4 dengan dua rincian; FEFO 5 ditolak; batch kedaluwarsa dilewati; tanggal sebelum masuk ditolak; switch membersihkan pilihan; trigger gagal simpan rollback; reopen mempertahankan data. |
+| JavaFX Barang | Input kosong/negatif/bukan angka ditolak dekat form; Roti bungkus minimum 5 ditambahkan; minimum 6 → `Perlu restok`, minimum 0 → `Cukup`; tambah ganda hanya satu baris; trigger gagal tambah/minimum tidak mengubah data; sidebar/tabel sinkron; reopen mempertahankan 3 barang dan minimum Roti. |
 | Peluncur JavaFX | `run-fx.cmd` dari salinan baru berhasil membuka `KantinFlow - JavaFX` setelah Maven 3.9.11/JDK 25. |
 
 ### Pemeriksaan penyimpanan
@@ -244,7 +246,7 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
 - GUI membutuhkan `flatlaf-3.8.jar` di `lib/`; setup menyiapkannya, tetapi
   menjalankan `java` manual tanpa `lib/*` akan gagal memuat tema.
 - Filter riwayat, pencarian, dan fitur tambahan belum disediakan.
-- JavaFX tahap 1 baru memiliki halaman Ringkasan, Stok Masuk, dan Stok Keluar; empat halaman lain masih di Swing.
+- JavaFX tahap 1 baru memiliki halaman Ringkasan, Barang, Stok Masuk, dan Stok Keluar; tiga halaman lain masih di Swing.
 - JavaFX membutuhkan Maven 3.9+ dan JDK 25; belum ada Maven Wrapper di repo.
 - Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
   tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
