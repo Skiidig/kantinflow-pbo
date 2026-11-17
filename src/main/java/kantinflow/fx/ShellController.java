@@ -21,13 +21,16 @@ import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
 import kantinflow.Barang;
+import kantinflow.BatchStok;
 import kantinflow.PenerimaanStok;
+import kantinflow.PengeluaranStok;
+import kantinflow.RincianTransaksi;
 import kantinflow.Transaksi;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
 /**
- * Shell JavaFX tahap pertama: sidebar, pemilih barang, dua halaman, status.
+ * Shell JavaFX: sidebar, pemilih barang, tiga halaman, status.
  * Semua akses SQLite dijalankan di executor latar.
  */
 public class ShellController implements KonteksFx, AutoCloseable {
@@ -43,6 +46,8 @@ public class ShellController implements KonteksFx, AutoCloseable {
     private ToggleButton navRingkasan;
     @FXML
     private ToggleButton navStokMasuk;
+    @FXML
+    private ToggleButton navStokKeluar;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "kantinflow-fx-io");
@@ -58,14 +63,17 @@ public class ShellController implements KonteksFx, AutoCloseable {
     private java.time.LocalDate tanggalPemantauan;
     private HalamanFx halamanRingkasan;
     private HalamanFx halamanStokMasuk;
+    private HalamanFx halamanStokKeluar;
     private HalamanFx halamanAktif;
     private boolean menggantiBarang;
     private boolean sibuk;
+    private long versiBarang;
 
     @FXML
     private void initialize() {
         navRingkasan.setToggleGroup(grupNav);
         navStokMasuk.setToggleGroup(grupNav);
+        navStokKeluar.setToggleGroup(grupNav);
         grupNav.selectedToggleProperty().addListener((obs, lama, baru) -> {
             if (baru == null) {
                 if (lama != null) {
@@ -102,8 +110,10 @@ public class ShellController implements KonteksFx, AutoCloseable {
 
         halamanRingkasan = muatHalaman("/kantinflow/fx/ringkasan.fxml");
         halamanStokMasuk = muatHalaman("/kantinflow/fx/stok-masuk.fxml");
+        halamanStokKeluar = muatHalaman("/kantinflow/fx/stok-keluar.fxml");
         halamanRingkasan.setKonteks(this);
         halamanStokMasuk.setKonteks(this);
+        halamanStokKeluar.setKonteks(this);
     }
 
     public void setData(PenyimpananSQLite penyimpanan, List<Barang> daftarBarang,
@@ -113,6 +123,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
         this.barang = barang;
         this.riwayat = riwayat;
         this.tanggalPemantauan = null;
+        versiBarang++;
         perbaruiCombo();
         perbaruiHalaman();
         tampilkanHalaman(halamanRingkasan, "ringkasan");
@@ -159,8 +170,10 @@ public class ShellController implements KonteksFx, AutoCloseable {
         halamanContainer.getChildren().setAll(scroll);
         if ("ringkasan".equals(nama)) {
             navRingkasan.setSelected(true);
-        } else {
+        } else if ("stok-masuk".equals(nama)) {
             navStokMasuk.setSelected(true);
+        } else {
+            navStokKeluar.setSelected(true);
         }
         halaman.perbarui();
     }
@@ -175,12 +188,20 @@ public class ShellController implements KonteksFx, AutoCloseable {
         tampilkanHalaman(halamanStokMasuk, "stok-masuk");
     }
 
+    @FXML
+    private void tampilkanStokKeluar() {
+        tampilkanHalaman(halamanStokKeluar, "stok-keluar");
+    }
+
     private void perbaruiHalaman() {
         if (halamanRingkasan != null) {
             halamanRingkasan.perbarui();
         }
         if (halamanStokMasuk != null) {
             halamanStokMasuk.perbarui();
+        }
+        if (halamanStokKeluar != null) {
+            halamanStokKeluar.perbarui();
         }
     }
 
@@ -310,6 +331,131 @@ public class ShellController implements KonteksFx, AutoCloseable {
         perbaruiHalaman();
     }
 
+    @Override
+    public void keluarkanManualAsync(BatchStok batch, int jumlah,
+            Consumer<HasilPengeluaran> selesai) {
+        jalankanPengeluaran(batch, jumlah, java.time.LocalDate.now(), false, selesai);
+    }
+
+    @Override
+    public void keluarkanFefoAsync(int jumlah, java.time.LocalDate tanggal,
+            Consumer<HasilPengeluaran> selesai) {
+        jalankanPengeluaran(null, jumlah, tanggal, true, selesai);
+    }
+
+    private void jalankanPengeluaran(BatchStok batch, int jumlah,
+            java.time.LocalDate tanggal, boolean fefo,
+            Consumer<HasilPengeluaran> selesai) {
+        if (sibuk) {
+            tampilkanPesan("Tunggu proses sebelumnya selesai.", false);
+            if (selesai != null) {
+                selesai.accept(new HasilPengeluaran(
+                        false, "Tunggu proses sebelumnya selesai.",
+                        List.of(), barang, riwayat));
+            }
+            return;
+        }
+        sibuk = true;
+        barangCombo.setDisable(true);
+        halamanContainer.setDisable(true);
+        tampilkanPesan(fefo ? "Memproses pengeluaran FEFO..."
+                : "Memproses pengeluaran manual...", true);
+
+        Barang aktif = this.barang;
+        int idAktif = aktif.getId();
+        long versiAktif = versiBarang;
+        Task<HasilPengeluaran> task = new Task<>() {
+            @Override
+            protected HasilPengeluaran call() {
+                PengeluaranStok pengeluaran = new PengeluaranStok(tanggal);
+                boolean berhasil = false;
+                List<RincianTransaksi> rincian = List.of();
+                String pesan;
+                try {
+                    if (fefo) {
+                        pengeluaran.keluarkanFefo(aktif, jumlah, tanggal);
+                    } else {
+                        pengeluaran.keluarkan(aktif, batch, jumlah);
+                    }
+                    penyimpanan.simpanTransaksi(aktif, pengeluaran);
+                    berhasil = true;
+                    rincian = List.copyOf(pengeluaran.getRincian());
+                    pesan = fefo ? "Pengeluaran FEFO berhasil."
+                            : "Pengeluaran berhasil.";
+                } catch (RuntimeException exception) {
+                    pesan = (fefo ? "Pengeluaran FEFO gagal: "
+                            : "Pengeluaran gagal: ") + exception.getMessage();
+                }
+
+                Barang terbaru = null;
+                List<Transaksi> riwayatBaru = null;
+                try {
+                    terbaru = penyimpanan.muatBarang(idAktif);
+                    riwayatBaru = penyimpanan.muatRiwayat(terbaru);
+                } catch (PenyimpananException exception) {
+                    pesan = pesan + " Gagal memuat ulang: " + exception.getMessage();
+                    berhasil = false;
+                    rincian = List.of();
+                }
+                return new HasilPengeluaran(berhasil, pesan, rincian,
+                        terbaru, riwayatBaru);
+            }
+        };
+        task.setOnSucceeded(event -> {
+            HasilPengeluaran hasil = task.getValue();
+            sibuk = false;
+            barangCombo.setDisable(false);
+            halamanContainer.setDisable(false);
+
+            if (hasil.barang() == null) {
+                tampilkanPesan(hasil.pesan(), false);
+                if (selesai != null) {
+                    selesai.accept(hasil);
+                }
+                return;
+            }
+            if (barang.getId() != idAktif || versiBarang != versiAktif) {
+                HasilPengeluaran basi = new HasilPengeluaran(
+                        false, "Hasil pengeluaran barang lama diabaikan.",
+                        List.of(), barang, riwayat);
+                tampilkanPesan(basi.pesan(), false);
+                if (selesai != null) {
+                    selesai.accept(basi);
+                }
+                return;
+            }
+
+            for (int i = 0; i < daftarBarang.size(); i++) {
+                if (daftarBarang.get(i).getId() == hasil.barang().getId()) {
+                    daftarBarang.set(i, hasil.barang());
+                    break;
+                }
+            }
+            barang = hasil.barang();
+            riwayat = hasil.riwayat();
+            perbaruiCombo();
+            perbaruiHalaman();
+            tampilkanPesan(hasil.pesan(), hasil.berhasil());
+            if (selesai != null) {
+                selesai.accept(hasil);
+            }
+        });
+        task.setOnFailed(event -> {
+            sibuk = false;
+            barangCombo.setDisable(false);
+            halamanContainer.setDisable(false);
+            Throwable error = task.getException();
+            String pesan = "Pengeluaran gagal: "
+                    + (error == null ? "kesalahan tidak diketahui" : error.getMessage());
+            tampilkanPesan(pesan, false);
+            if (selesai != null) {
+                selesai.accept(new HasilPengeluaran(
+                        false, pesan, List.of(), barang, riwayat));
+            }
+        });
+        io.submit(task);
+    }
+
     private void gantiBarangAsync(Barang target) {
         if (sibuk) {
             perbaruiCombo();
@@ -351,6 +497,7 @@ public class ShellController implements KonteksFx, AutoCloseable {
             barang = hasil.barang;
             riwayat = hasil.riwayat;
             tanggalPemantauan = null;
+            versiBarang++;
             perbaruiCombo();
             perbaruiHalaman();
             tampilkanPesan("Barang aktif: " + barang.getNama()

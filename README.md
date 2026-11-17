@@ -2,7 +2,7 @@
 
 Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori.
 
-Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan** dan **Stok Masuk**; halaman lain masih tersedia pada GUI Swing lama. Keduanya memakai domain dan `PenyimpananSQLite` yang sama.
+Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan**, **Stok Masuk**, dan **Stok Keluar**; halaman lain masih tersedia pada GUI Swing lama. Semua halaman JavaFX memakai domain dan `PenyimpananSQLite` yang sama.
 
 ## Persiapan lokal
 
@@ -94,9 +94,9 @@ $env:KANTINFLOW_DB = "$PWD\data\kantinflow-fx-uji.db"
 mvn javafx:run
 ```
 
-Tahap pertama hanya menampilkan navigasi **Ringkasan** dan **Stok Masuk**. Halaman Barang, Stok Keluar, Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
+Tahap migrasi ini menampilkan **Ringkasan**, **Stok Masuk**, dan **Stok Keluar**. Stok Keluar menyediakan pengeluaran manual dengan sisa batch terpilih dan pengeluaran FEFO dengan tanggal. Hasil FEFO menampilkan alokasi per batch. Halaman Barang, Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
 
-Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png) dan [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png).
+Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png), [Stok Keluar berhasil](docs/bukti-gui/gui-fx-stok-keluar-berhasil.png), [Stok Keluar ditolak](docs/bukti-gui/gui-fx-stok-keluar-ditolak.png), dan [pengeluaran manual](docs/bukti-gui/gui-fx-stok-keluar-manual.png).
 
 ### Database lokal setiap komputer
 

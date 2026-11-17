@@ -204,3 +204,20 @@
 .status-error {
     -fx-text-fill: #B42318;
 }
+
+
+.accent-text {
+    -fx-text-fill: #1D4ED8;
+    -fx-font-weight: bold;
+}
+
+.result-card {
+    -fx-background-color: #F8FAFC;
+}
+
+.allocation {
+    -fx-text-fill: #0F172A;
+    -fx-font-family: "Consolas", "Cascadia Mono", monospace;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 3px;
+}

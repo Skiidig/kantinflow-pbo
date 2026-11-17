@@ -32,6 +32,9 @@
                 <ToggleButton fx:id="navStokMasuk" id="navStokMasuk" text="Stok Masuk"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanStokMasuk"/>
+                <ToggleButton fx:id="navStokKeluar" id="navStokKeluar" text="Stok Keluar"
+                              styleClass="nav-button" maxWidth="Infinity"
+                              onAction="#tampilkanStokKeluar"/>
             </VBox>
             <Region VBox.vgrow="ALWAYS"/>
             <Label text="JavaFX 25 · SQLite" styleClass="sidebar-footer"/>
