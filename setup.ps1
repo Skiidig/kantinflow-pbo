@@ -31,6 +31,47 @@ function Test-SqliteJar {
     }
 }
 
+function Unduh-Dengan-Java {
+    param(
+        [string]$Uri,
+        [string]$Destination
+    )
+
+    $java = Get-Command java -ErrorAction SilentlyContinue
+    if ($null -eq $java) {
+        throw "Java tidak ditemukan untuk jalur unduhan cadangan."
+    }
+
+    $sourceDir = Join-Path ([System.IO.Path]::GetTempPath()) ("kantinflow-unduh-" + [Guid]::NewGuid().ToString('N'))
+    $sourcePath = Join-Path $sourceDir 'UnduhDriver.java'
+    New-Item -ItemType Directory -Force -Path $sourceDir | Out-Null
+    try {
+        $source = @'
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class UnduhDriver {
+    public static void main(String[] args) throws Exception {
+        try (InputStream in = URI.create(args[0]).toURL().openStream();
+                OutputStream out = Files.newOutputStream(Path.of(args[1]))) {
+            in.transferTo(out);
+        }
+    }
+}
+'@
+        Set-Content -LiteralPath $sourcePath -Value $source -Encoding ASCII
+        & $java.Source $sourcePath $Uri $Destination
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unduhan Java berhenti dengan kode $LASTEXITCODE."
+        }
+    } finally {
+        Remove-Item -LiteralPath $sourceDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 if (Test-SqliteJar $jarPath) {
     Write-Host "[OK] Driver SQLite sudah tersedia dan valid:" -ForegroundColor Green
     Write-Host "     $jarPath"
@@ -52,7 +93,18 @@ try {
     Write-Host "Mengunduh driver SQLite $version dari Maven Central..."
     Write-Host "  $downloadUrl"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath -UseBasicParsing
+    try {
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath -UseBasicParsing
+    } catch {
+        Write-Host "Jalur HTTPS PowerShell gagal; mencoba jalur Java..." -ForegroundColor Yellow
+    }
+
+    if (-not (Test-SqliteJar $tempPath)) {
+        if (Test-Path -LiteralPath $tempPath) {
+            Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+        }
+        Unduh-Dengan-Java -Uri $downloadUrl -Destination $tempPath
+    }
 
     if (-not (Test-SqliteJar $tempPath)) {
         throw "File unduhan bukan driver SQLite yang valid."

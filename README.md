@@ -20,7 +20,7 @@ Persiapan awal untuk teman kelompok:
 
 `run-gui.cmd` selalu bekerja dari folder tempat skrip berada, jadi tetap dapat dijalankan dari folder kerja lain atau lewat shortcut. Jika Java, `javac`, atau driver belum siap, skrip menampilkan petunjuk dan tidak melanjutkan kompilasi. Jika kompilasi atau peluncuran gagal, pesan kesalahan ditampilkan sebelum jendela ditutup.
 
-`setup.ps1` memakai driver SQLite JDBC versi `3.54.1.0` dari Maven Central. Jika file di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai driver siap pakai.
+`setup.ps1` memakai driver SQLite JDBC versi `3.54.1.0` dari Maven Central. Jika file di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai driver siap pakai. Jika jalur HTTPS PowerShell gagal, skrip mencoba unduhan melalui Java sebelum melaporkan kegagalan.
 
 ### Memasang SQLite JDBC secara manual
 
@@ -130,4 +130,4 @@ Untuk mengulang pengujian dari awal, hentikan aplikasi lalu hapus database uji:
 Remove-Item data/kantinflow-uji.db
 ```
 
-Baca [rancangan dan skenario uji](docs/rancangan-stok-masuk.md) untuk konteks pengembangan. Bukti tangkapan layar pengujian GUI tersedia di `docs/bukti-gui/`.
+Baca [rancangan dan skenario uji](docs/rancangan-stok-masuk.md) untuk konteks pengembangan. Untuk mencoba aplikasi dari clone baru, ikuti [panduan demo](docs/panduan-demo.md). Bukti tangkapan layar pengujian GUI tersedia di `docs/bukti-gui/`.
