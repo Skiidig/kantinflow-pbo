@@ -3,17 +3,33 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$version = '3.54.1.0'
-$jarName = "sqlite-jdbc-$version.jar"
 $root = $PSScriptRoot
 $libDir = Join-Path $root 'lib'
-$jarPath = Join-Path $libDir $jarName
-$downloadUrl = "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/$version/$jarName"
+
+$dependencies = @(
+    [pscustomobject]@{
+        Nama     = 'SQLite JDBC'
+        Versi    = '3.54.1.0'
+        Jar      = 'sqlite-jdbc-3.54.1.0.jar'
+        Entry    = 'org/sqlite/JDBC.class'
+        Url      = 'https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.54.1.0/sqlite-jdbc-3.54.1.0.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'FlatLaf'
+        Versi    = '3.8'
+        Jar      = 'flatlaf-3.8.jar'
+        Entry    = 'com/formdev/flatlaf/FlatLightLaf.class'
+        Url      = 'https://repo1.maven.org/maven2/com/formdev/flatlaf/3.8/flatlaf-3.8.jar'
+    }
+)
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
 
-function Test-SqliteJar {
-    param([string]$Path)
+function Test-JarEntry {
+    param(
+        [string]$Path,
+        [string]$Entry
+    )
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return $false
@@ -22,7 +38,7 @@ function Test-SqliteJar {
     try {
         $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
         try {
-            return ($null -ne $archive.GetEntry('org/sqlite/JDBC.class'))
+            return ($null -ne $archive.GetEntry($Entry))
         } finally {
             $archive.Dispose()
         }
@@ -72,61 +88,76 @@ public class UnduhDriver {
     }
 }
 
-if (Test-SqliteJar $jarPath) {
-    Write-Host "[OK] Driver SQLite sudah tersedia dan valid:" -ForegroundColor Green
-    Write-Host "     $jarPath"
-    Write-Host "     Versi $version"
+New-Item -ItemType Directory -Force -Path $libDir | Out-Null
+
+$missing = @()
+foreach ($dep in $dependencies) {
+    $target = Join-Path $libDir $dep.Jar
+    if (Test-JarEntry -Path $target -Entry $dep.Entry) {
+        Write-Host "[OK] $($dep.Nama) $($dep.Versi) sudah tersedia dan valid:" -ForegroundColor Green
+        Write-Host "     $target"
+    } else {
+        $missing += $dep
+    }
+}
+
+if ($missing.Count -eq 0) {
     exit 0
 }
 
 if ($CheckOnly) {
-    Write-Host "[GAGAL] Driver SQLite tidak ditemukan atau tidak valid:" -ForegroundColor Red
-    Write-Host "        $jarPath"
+    Write-Host "[GAGAL] Dependensi berikut belum tersedia atau tidak valid:" -ForegroundColor Red
+    foreach ($dep in $missing) {
+        Write-Host "        $($dep.Jar) (butuh $($dep.Entry))"
+    }
     Write-Host "Jalankan setup.ps1 terlebih dahulu untuk mengunduhnya."
     exit 1
 }
 
-New-Item -ItemType Directory -Force -Path $libDir | Out-Null
-$tempPath = Join-Path $libDir (".$jarName.download-" + [Guid]::NewGuid().ToString('N') + '.tmp')
+foreach ($dep in $missing) {
+    $target = Join-Path $libDir $dep.Jar
+    $tempPath = Join-Path $libDir (".$($dep.Jar).download-" + [Guid]::NewGuid().ToString('N') + '.tmp')
 
-try {
-    Write-Host "Mengunduh driver SQLite $version dari Maven Central..."
-    Write-Host "  $downloadUrl"
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     try {
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath -UseBasicParsing
-    } catch {
-        Write-Host "Jalur HTTPS PowerShell gagal; mencoba jalur Java..." -ForegroundColor Yellow
-    }
+        Write-Host "Mengunduh $($dep.Nama) $($dep.Versi) dari Maven Central..."
+        Write-Host "  $($dep.Url)"
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        try {
+            Invoke-WebRequest -Uri $dep.Url -OutFile $tempPath -UseBasicParsing
+        } catch {
+            Write-Host "Jalur HTTPS PowerShell gagal; mencoba jalur Java..." -ForegroundColor Yellow
+        }
 
-    if (-not (Test-SqliteJar $tempPath)) {
+        if (-not (Test-JarEntry -Path $tempPath -Entry $dep.Entry)) {
+            if (Test-Path -LiteralPath $tempPath) {
+                Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+            }
+            Unduh-Dengan-Java -Uri $dep.Url -Destination $tempPath
+        }
+
+        if (-not (Test-JarEntry -Path $tempPath -Entry $dep.Entry)) {
+            throw "File unduhan bukan JAR $($dep.Nama) yang valid."
+        }
+
+        Move-Item -LiteralPath $tempPath -Destination $target -Force
+
+        if (-not (Test-JarEntry -Path $target -Entry $dep.Entry)) {
+            throw "JAR $($dep.Nama) tidak valid setelah dipindahkan."
+        }
+
+        Write-Host "[OK] $($dep.Nama) berhasil disiapkan:" -ForegroundColor Green
+        Write-Host "     $target"
+    } catch {
+        Write-Host "[GAGAL] Gagal menyiapkan $($dep.Nama)." -ForegroundColor Red
+        Write-Host "        $($_.Exception.Message)"
+        Write-Host "        File sementara tidak dipakai sebagai dependensi."
+        Write-Host "        Periksa koneksi internet, lalu jalankan setup.ps1 lagi."
+        exit 1
+    } finally {
         if (Test-Path -LiteralPath $tempPath) {
             Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
         }
-        Unduh-Dengan-Java -Uri $downloadUrl -Destination $tempPath
-    }
-
-    if (-not (Test-SqliteJar $tempPath)) {
-        throw "File unduhan bukan driver SQLite yang valid."
-    }
-
-    Move-Item -LiteralPath $tempPath -Destination $jarPath -Force
-
-    if (-not (Test-SqliteJar $jarPath)) {
-        throw "Driver hasil unduhan tidak valid setelah dipindahkan."
-    }
-
-    Write-Host "[OK] Driver SQLite berhasil disiapkan:" -ForegroundColor Green
-    Write-Host "     $jarPath"
-    exit 0
-} catch {
-    Write-Host "[GAGAL] Gagal menyiapkan driver SQLite." -ForegroundColor Red
-    Write-Host "        $($_.Exception.Message)"
-    Write-Host "        File sementara tidak dipakai sebagai driver."
-    Write-Host "        Periksa koneksi internet, lalu jalankan setup.ps1 lagi."
-    exit 1
-} finally {
-    if (Test-Path -LiteralPath $tempPath) {
-        Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
     }
 }
+
+exit 0

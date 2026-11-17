@@ -29,3 +29,13 @@ data/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Build output dan artefak pengujian lokal
+target/
+.m2-repo/
+.m2-settings.xml
+fx-run.out
+fx-run.err
+run-fx.out
+run-fx.err
+out/

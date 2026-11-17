@@ -2,7 +2,8 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 set "ROOT=%~dp0"
-set "JAR=%ROOT%lib\sqlite-jdbc-3.54.1.0.jar"
+set "SQLITE_JAR=%ROOT%lib\sqlite-jdbc-3.54.1.0.jar"
+set "FLATLAF_JAR=%ROOT%lib\flatlaf-3.8.jar"
 set "OUT=%ROOT%out"
 
 pushd "%ROOT%" >nul 2>&1
@@ -32,7 +33,7 @@ if errorlevel 1 (
 where powershell >nul 2>&1
 if errorlevel 1 (
     echo [GAGAL] Windows PowerShell tidak ditemukan.
-    echo         PowerShell diperlukan untuk memeriksa driver SQLite.
+    echo         PowerShell diperlukan untuk memeriksa dependensi Java.
     goto :gagal
 )
 
@@ -43,16 +44,17 @@ if not exist "%ROOT%setup.ps1" (
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%setup.ps1" -CheckOnly >nul 2>&1
 if errorlevel 1 (
-    echo [GAGAL] Driver SQLite belum siap.
+    echo [GAGAL] Dependensi Java belum siap.
     echo         File yang diharapkan:
-    echo         %JAR%
+    echo         %SQLITE_JAR%
+    echo         %FLATLAF_JAR%
     echo.
     echo Jalankan setup.ps1 terlebih dahulu, misalnya:
     echo   powershell -ExecutionPolicy Bypass -File "%~dp0setup.ps1"
     goto :gagal
 )
 
-echo [OK] Java, javac, dan driver SQLite tersedia.
+echo [OK] Java, javac, SQLite JDBC, dan FlatLaf tersedia.
 if defined KANTINFLOW_DB (
     echo      Database uji: %KANTINFLOW_DB%
 ) else (
@@ -70,14 +72,18 @@ if errorlevel 1 (
 )
 
 set "SOURCES="
-for /r "%ROOT%src\main\java" %%F in (*.java) do set "SOURCES=!SOURCES! "%%F""
+for /r "%ROOT%src\main\java" %%F in (*.java) do (
+    if /I not "%%~dpF"=="%ROOT%src\main\java\kantinflow\fx\" (
+        set "SOURCES=!SOURCES! "%%F""
+    )
+)
 if not defined SOURCES (
     echo [GAGAL] Tidak ada file .java di:
     echo         %ROOT%src\main\java
     goto :gagal
 )
 
-echo [INFO] Mengompilasi seluruh sumber Java...
+echo [INFO] Mengompilasi sumber Swing...
 javac -encoding UTF-8 -cp "%ROOT%lib\*" -d "%OUT%" !SOURCES!
 if errorlevel 1 (
     echo.

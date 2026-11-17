@@ -20,8 +20,24 @@ hasil pengujian, dan batas aplikasi.
 | `StatusKedaluwarsa` | `label` | `getLabel()` | Enum `KEDALUWARSA`, `SEGERA_KEDALUWARSA`, `AMAN`. |
 | `PenyimpananSQLite` | `koneksi` | `muatSemuaBarang()`, `muatBarang(id)`, `simpanBarang()`, `muatRiwayat()`, `simpanTransaksi()`, `simpanStokMinimum()` | Semua akses JDBC dan transaksi SQLite. |
 | `MenuKonsol` | `barang`, `daftarBarang`, `riwayat`, `scanner`, `penyimpanan` | `jalankan()`, aksi menu | Antarmuka konsol dan barang aktif. |
-| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, model tabel, field form, `penyimpanan` | `tampilkan()`, aksi form, `muatUlang()` | Antarmuka Swing dan barang aktif. |
-| `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI. |
+| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar, pemilih barang, CardLayout, status, dan koordinasi panel. |
+| `KonteksKantin` | kontrak `Barang`, `Transaksi`, tanggal pemantauan | getter, simpan, tambah, ganti, pesan | Batas antara panel halaman dan shell. |
+| `PanelKantin` | `konteks` | `perbarui()` | Dasar halaman dengan header konsisten. |
+| `PanelRingkasan` | label stok/status, field tanggal | `perbarui()` | Ringkasan fisik, layak, minimum, status restok. |
+| `PanelBarang` | tabel barang, form tambah, field minimum | `perbarui()` | Daftar barang, tambah barang, minimum. |
+| `PanelStokMasuk` | field penerimaan, tabel batch | `perbarui()` | Penerimaan dan daftar batch. |
+| `PanelStokKeluar` | combo batch, field manual/FEFO | `perbarui()` | Pengeluaran manual dan FEFO. |
+| `PanelPemantauan` | tanggal, tabel status | `perbarui()` | Pemantauan kedaluwarsa. |
+| `PanelPembuangan` | combo batch, jumlah, tanggal, alasan | `perbarui()` | Pembuangan batch. |
+| `PanelRiwayat` | tabel rincian | `perbarui()` | Riwayat lengkap barang aktif. |
+| `Ui` | warna, font, komponen | helper tampilan | Konsistensi visual FlatLaf. |
+| `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
+| `KantinFlowFxApp` | `ShellController`, `Stage` | `start()`, `stop()` | Entry point JavaFX; memuat data awal di thread latar dan FXML shell. |
+| `ShellController` | `barang`, `daftarBarang`, `riwayat`, `penyimpanan`, `io` | `setData()`, `simpanPenerimaanAsync()`, `gantiBarangAsync()`, `close()` | Shell JavaFX, navigasi dua halaman, status, dan task SQLite di latar. |
+| `KonteksFx` | kontrak state dan aksi | getter, set tanggal, simpan async, pesan | Batas panel JavaFX dan shell. |
+| `HalamanFx` | — | `setKonteks()`, `perbarui()`, `getNode()` | Kontrak halaman FXML. |
+| `RingkasanController` | `DatePicker`, label stok/status | `perbarui()`, `periksa()` | Halaman Ringkasan JavaFX. |
+| `StokMasukController` | field penerimaan, DatePicker, table | `perbarui()`, `simpan()` | Halaman Stok Masuk JavaFX. |
 
 ## 2. Relasi aktual
 
@@ -177,7 +193,11 @@ SEMUA_REGRESI_LULUS
 | FEFO sebelum tanggal masuk di Swing | `Pengeluaran FEFO gagal: Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch B1`; stok/riwayat tidak berubah. |
 | FEFO sebelum tanggal masuk di konsol | Pesan sama; stok/riwayat tidak berubah. |
 | Panduan demo setelah perbaikan | FEFO 8 menghasilkan A=0/B=4; FEFO 5 ditolak; minimum 5 menghasilkan `Perlu restok`; reopen mempertahankan saldo 4, minimum 5, dan 4 baris riwayat. |
+| GUI FlatLaf baru | Tambah Roti, pindah barang, terima 2 batch, manual 2, tolak manual 4, FEFO lintas batch, tolak FEFO 3, monitoring, minimum, pembuangan, reopen, dan navigasi tujuh halaman berhasil. |
+| Ukuran jendela | Default 1180×700 dan diperkecil 960×640; seluruh halaman dapat dinavigasi dan halaman memakai scroll. |
 | Demo lama | Saldo 5, 5, 3, 3 dan riwayat 1, 1, 2, 2. |
+| JavaFX tahap 1 | Pindah Susu→Roti; terima 5; jumlah 0 dan kode duplikat ditolak; trigger penyimpanan gagal ditangani dan tabel tetap 1; Ringkasan 5/5/5 `Perlu restok`; switch barang; reopen mempertahankan 1 batch. |
+| Peluncur JavaFX | `run-fx.cmd` dari salinan baru berhasil membuka `KantinFlow - JavaFX` setelah Maven 3.9.11/JDK 25. |
 
 ### Pemeriksaan penyimpanan
 
@@ -217,6 +237,11 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
   sedangkan alur GUI diuji dengan harness Swing.
 - Migrasi saat ini hanya penambahan kolom `stok_minimum`; perubahan skema
   berikutnya perlu strategi versi/migrasi tersendiri.
-- Driver SQLite dapat menimbulkan peringatan native access pada JDK 25 jika
-  dijalankan tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak
-  memaksa flag tersebut agar tetap kompatibel dengan JDK lain.
+- GUI membutuhkan `flatlaf-3.8.jar` di `lib/`; setup menyiapkannya, tetapi
+  menjalankan `java` manual tanpa `lib/*` akan gagal memuat tema.
+- Filter riwayat, pencarian, dan fitur tambahan belum disediakan.
+- JavaFX tahap 1 baru memiliki halaman Ringkasan dan Stok Masuk; lima halaman lain masih di Swing.
+- JavaFX membutuhkan Maven 3.9+ dan JDK 25; belum ada Maven Wrapper di repo.
+- Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
+  tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
+  tersebut agar tetap kompatibel dengan JDK lain.

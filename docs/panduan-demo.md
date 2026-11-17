@@ -37,7 +37,7 @@ lebih dahulu. Data pada `data/kantinflow.db` milik pengguna tidak tersentuh.
 
 ## 3. Tambahkan Roti
 
-Buka tab **Tambah Barang**, isi:
+Buka halaman **Barang**, bagian **Tambah Barang**, lalu isi:
 
 - Nama barang: `Roti`
 - Satuan: `bungkus`
@@ -49,7 +49,7 @@ pilihan barang aktif menampilkan `Roti (bungkus)`.
 
 ## 4. Terima dua batch
 
-Gunakan **Form Penerimaan** untuk batch pertama:
+Buka halaman **Stok Masuk**, lalu gunakan **Form Penerimaan** untuk batch pertama:
 
 - Kode batch: `ROTI-A`
 - Jumlah: `5`
@@ -70,7 +70,7 @@ pada `2026-11-18`.
 
 ## 5. Keluarkan 8 lewat FEFO
 
-Pada panel **Pengeluaran FEFO (otomatis)**:
+Buka halaman **Stok Keluar**, lalu pada panel **Pengeluaran FEFO**:
 
 - Jumlah: `8`
 - Tanggal: `2026-11-18`
@@ -89,7 +89,7 @@ Riwayat menampilkan satu transaksi FEFO dengan dua rincian batch.
 
 ## 6. Minta 5 lagi
 
-Masih di panel FEFO, isi jumlah `5` dan tanggal `2026-11-18`, lalu klik
+Masih di halaman **Stok Keluar** panel FEFO, isi jumlah `5` dan tanggal `2026-11-18`, lalu klik
 **Keluarkan FEFO**.
 
 **Hasil yang diharapkan:**
@@ -102,11 +102,11 @@ Saldo tetap `4 bungkus`, `ROTI-B` tetap `4`, dan riwayat tidak bertambah.
 
 ## 7. Periksa pemantauan dan stok minimum
 
-Buka tab **Pemantauan Kedaluwarsa**:
+Buka halaman **Barang**, isi stok minimum `5`, lalu klik **Simpan Minimum**.
+Kemudian buka halaman **Pemantauan**:
 
 1. Isi tanggal pengecekan `2026-11-18`.
-2. Isi stok minimum `5`.
-3. Klik **Simpan Minimum**, lalu **Periksa Kedaluwarsa**.
+2. Klik **Periksa Kedaluwarsa**.
 
 **Hasil yang diharapkan:**
 
@@ -133,7 +133,7 @@ Tutup GUI, lalu jalankan lagi:
 .\run-gui.cmd
 ```
 
-Pilih **Roti** pada pilihan barang aktif.
+Pilih **Roti** pada pemilih barang aktif di sidebar.
 
 **Hasil yang diharapkan:**
 

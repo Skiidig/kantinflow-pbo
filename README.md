@@ -1,6 +1,8 @@
 # KantinFlow PBO
 
-Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori. GUI Swing menyediakan jendela penerimaan, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, pemilihan barang aktif, penambahan barang, pengaturan stok minimum, tabel batch, dan riwayat transaksi.
+Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori.
+
+Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan** dan **Stok Masuk**; halaman lain masih tersedia pada GUI Swing lama. Keduanya memakai domain dan `PenyimpananSQLite` yang sama.
 
 ## Persiapan lokal
 
@@ -12,36 +14,39 @@ Persiapan awal untuk teman kelompok:
 
 1. Clone repo ini.
 2. Pasang JDK 25, lalu pastikan perintah `java` dan `javac` dapat dijalankan dari Command Prompt. Cek dengan `java -version` dan `javac -version`.
-3. Buka PowerShell di akar repo, lalu siapkan driver SQLite sekali:
+3. Buka PowerShell di akar repo, lalu siapkan dependensi sekali:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\setup.ps1
    ```
-4. Buka `run-gui.cmd` dengan klik dua kali. Skrip akan memeriksa JDK dan driver, mengompilasi seluruh sumber Java ke `out`, lalu membuka GUI.
+4. Buka `run-gui.cmd` dengan klik dua kali. Skrip akan memeriksa JDK, SQLite JDBC, dan FlatLaf, mengompilasi seluruh sumber Java ke `out`, lalu membuka GUI.
 
-`run-gui.cmd` selalu bekerja dari folder tempat skrip berada, jadi tetap dapat dijalankan dari folder kerja lain atau lewat shortcut. Jika Java, `javac`, atau driver belum siap, skrip menampilkan petunjuk dan tidak melanjutkan kompilasi. Jika kompilasi atau peluncuran gagal, pesan kesalahan ditampilkan sebelum jendela ditutup.
+`run-gui.cmd` selalu bekerja dari folder tempat skrip berada, jadi tetap dapat dijalankan dari folder kerja lain atau lewat shortcut. Jika Java, `javac`, atau dependensi belum siap, skrip menampilkan petunjuk dan tidak melanjutkan kompilasi. Jika kompilasi atau peluncuran gagal, pesan kesalahan ditampilkan sebelum jendela ditutup.
 
-`setup.ps1` memakai driver SQLite JDBC versi `3.54.1.0` dari Maven Central. Jika file di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai driver siap pakai. Jika jalur HTTPS PowerShell gagal, skrip mencoba unduhan melalui Java sebelum melaporkan kegagalan.
+`setup.ps1` menyiapkan SQLite JDBC `3.54.1.0` dan FlatLaf `3.8` dari Maven Central. Jika JAR di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai dependensi siap pakai. Jika jalur HTTPS PowerShell gagal, skrip mencoba unduhan melalui Java sebelum melaporkan kegagalan.
 
-### Memasang SQLite JDBC secara manual
+### Memasang dependensi secara manual
 
-Cara termudah adalah `setup.ps1` di atas. Jika ingin manual, unduh sekali ke folder `lib`:
+Cara termudah adalah `setup.ps1` di atas. Jika ingin manual, unduh kedua JAR ke folder `lib`:
 
 ```powershell
 New-Item -ItemType Directory -Force lib | Out-Null
-$sqliteJar = "lib/sqlite-jdbc-3.54.1.0.jar"
 Invoke-WebRequest `
   -Uri "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.54.1.0/sqlite-jdbc-3.54.1.0.jar" `
-  -OutFile $sqliteJar
+  -OutFile "lib/sqlite-jdbc-3.54.1.0.jar"
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/com/formdev/flatlaf/3.8/flatlaf-3.8.jar" `
+  -OutFile "lib/flatlaf-3.8.jar"
 ```
 
-Alternatif: salin manual `sqlite-jdbc-3.54.1.0.jar` ke `lib/`. Seluruh kode Java berada di `src/main/java/kantinflow/`, dengan `kantinflow.Main` sebagai titik masuk.
+Alternatif: salin manual kedua JAR ke `lib/`. Seluruh kode Java berada di `src/main/java/kantinflow/`, dengan `kantinflow.Main` sebagai titik masuk.
 
-### Kompilasi
+### Kompilasi Swing/console
 
-Jalankan dari akar repo di PowerShell:
+Kompilasi manual jalur Swing tidak menyertakan sumber JavaFX. Untuk JavaFX gunakan Maven di bagian berikutnya.
 
 ```powershell
-$javaSources = Get-ChildItem -Path src/main/java -Recurse -Filter *.java -File
+$javaSources = Get-ChildItem -Path src/main/java -Recurse -Filter *.java -File |
+  Where-Object { $_.FullName -notmatch '\\kantinflow\\fx\\' }
 javac -cp "lib/*" -d out $javaSources.FullName
 ```
 
@@ -59,7 +64,39 @@ Cara praktis di Windows adalah `run-gui.cmd` seperti di atas. Untuk menjalankan 
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Header memiliki pemilih barang aktif; tab **Tambah Barang** menyediakan isian nama dan satuan. Jendela menampilkan saldo, batch, formulir penerimaan, pengeluaran manual, form FEFO, serta tab Riwayat Transaksi, Pemantauan Kedaluwarsa, Pembuangan Stok, dan Tambah Barang. Tab pemantauan juga menampilkan stok fisik, stok layak pada tanggal pengecekan, stok minimum, dan status **Perlu restok**/**Cukup**; stok minimum dapat diubah dari tab tersebut. Perubahan langsung disimpan ke SQLite; setelah simpan atau gagal, tabel, saldo, dan riwayat dimuat ulang dari database.
+GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar di kiri berisi pemilih barang aktif dan navigasi halaman; pemilih barang selalu terlihat. Halaman **Ringkasan** menampilkan stok fisik, stok layak pada tanggal pengecekan, minimum, dan status restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dan daftar batch. **Stok Keluar** menyediakan pengeluaran manual (dengan sisa batch terpilih) dan FEFO. **Pemantauan** menampilkan status kedaluwarsa, **Pembuangan** menangani pembuangan, dan **Riwayat** menampilkan seluruh rincian transaksi barang aktif.
+
+Tema memakai FlatLaf Light. Halaman yang tinggi dapat di-scroll; jendela default 1180×700 dan minimum 900×600 sehingga tetap nyaman pada layar 1366×768. Mengganti barang akan memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
+
+### Menjalankan GUI JavaFX (tahap 1)
+
+Prasyarat: **JDK 25** dan **Maven 3.9+**. JavaFX yang dipakai adalah `25.0.5`; JDK 25 juga yang direkomendasikan oleh release notes JavaFX 25. SQLite JDBC tetap `3.54.1.0`.
+
+Perintah yang diuji dari akar repo:
+
+```powershell
+mvn -DskipTests compile
+mvn javafx:run
+```
+
+Atau:
+
+```powershell
+.\run-fx.cmd
+```
+
+`run-fx.cmd` dapat dijalankan dari folder kerja lain dan mempertahankan `KANTINFLOW_DB`. Jika Maven tidak ada di `PATH`, pasang Maven atau arahkan `KANTINFLOW_MAVEN` ke `mvn.cmd`. Tidak perlu menjalankan `setup.ps1` untuk jalur JavaFX karena Maven mengunduh dependensi JavaFX dan SQLite JDBC.
+
+Database uji:
+
+```powershell
+$env:KANTINFLOW_DB = "$PWD\data\kantinflow-fx-uji.db"
+mvn javafx:run
+```
+
+Tahap pertama hanya menampilkan navigasi **Ringkasan** dan **Stok Masuk**. Halaman Barang, Stok Keluar, Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
+
+Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png) dan [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png).
 
 ### Database lokal setiap komputer
 

@@ -10,6 +10,8 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import com.formdev.flatlaf.FlatLightLaf;
+
 import kantinflow.gui.JendelaKantinFlow;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
@@ -49,11 +51,14 @@ public class Main {
         }
 
         SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception ignored) {
-                // Look and feel sistem tidak wajib; Swing tetap memakai default.
-            }
+            FlatLightLaf.setup();
+            UIManager.put("Component.arc", 12);
+            UIManager.put("Button.arc", 12);
+            UIManager.put("TextComponent.arc", 10);
+            UIManager.put("Component.focusWidth", 1);
+            UIManager.put("ScrollBar.width", 12);
+            UIManager.put("Table.showVerticalLines", false);
+            UIManager.put("Table.showHorizontalLines", true);
 
             PenyimpananSQLite penyimpanan = null;
             try {

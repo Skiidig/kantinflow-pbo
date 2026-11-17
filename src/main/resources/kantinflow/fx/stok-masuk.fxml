@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="halaman" xmlns="http://javafx.com/javafx/25"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="kantinflow.fx.StokMasukController"
+      styleClass="page" spacing="16">
+    <padding><Insets top="24" right="28" bottom="24" left="28"/></padding>
+
+    <VBox styleClass="page-header" spacing="4">
+        <Label text="Stok Masuk" styleClass="page-title"/>
+        <Label text="Terima batch baru untuk barang aktif."
+               styleClass="page-subtitle"/>
+    </VBox>
+
+    <VBox styleClass="card" spacing="12">
+        <Label text="Form Penerimaan" styleClass="card-title"/>
+        <GridPane hgap="18" vgap="8">
+            <columnConstraints>
+                <ColumnConstraints percentWidth="50"/>
+                <ColumnConstraints percentWidth="50"/>
+            </columnConstraints>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <Label text="Kode batch" styleClass="field-label"/>
+                <TextField fx:id="kodeBatchField" id="kodeBatch" promptText="contoh: ROTI-A"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                <Label text="Jumlah" styleClass="field-label"/>
+                <TextField fx:id="jumlahField" id="jumlah" promptText="bilangan bulat"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <Label text="Tanggal masuk" styleClass="field-label"/>
+                <DatePicker fx:id="tanggalMasukPicker" id="tanggalMasuk" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <Label text="Tanggal kedaluwarsa" styleClass="field-label"/>
+                <DatePicker fx:id="tanggalKedaluwarsaPicker" id="tanggalKedaluwarsa" maxWidth="Infinity"/>
+            </VBox>
+        </GridPane>
+        <Button fx:id="simpanButton" id="simpanPenerimaan" text="Simpan Penerimaan"
+                styleClass="primary-button" maxWidth="Infinity"/>
+    </VBox>
+
+    <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+        <Label text="Batch Barang Aktif" styleClass="card-title"/>
+        <TableView fx:id="tabelBatch" id="tabelBatch" prefHeight="280" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="kolomKode" text="Kode Batch" prefWidth="160"/>
+                <TableColumn fx:id="kolomSisa" text="Sisa" prefWidth="120"/>
+                <TableColumn fx:id="kolomMasuk" text="Tanggal Masuk" prefWidth="150"/>
+                <TableColumn fx:id="kolomKedaluwarsa" text="Tanggal Kedaluwarsa"
+                             prefWidth="180"/>
+            </columns>
+        </TableView>
+    </VBox>
+</VBox>
