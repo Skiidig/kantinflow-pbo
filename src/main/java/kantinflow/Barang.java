@@ -41,6 +41,10 @@ public class Barang {
         return Collections.unmodifiableList(daftarBatch);
     }
 
+    public boolean memilikiBatch(BatchStok batch) {
+        return batch != null && daftarBatch.contains(batch);
+    }
+
     public int jumlahBatch() {
         return daftarBatch.size();
     }

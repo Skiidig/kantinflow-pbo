@@ -2,15 +2,11 @@ package kantinflow;
 
 import java.time.LocalDate;
 
-public class PenerimaanStok {
-    private final LocalDate tanggal;
+public class PenerimaanStok extends Transaksi {
     private DetailTransaksi detail;
 
     public PenerimaanStok(LocalDate tanggal) {
-        if (tanggal == null) {
-            throw new IllegalArgumentException("Tanggal penerimaan wajib diisi");
-        }
-        this.tanggal = tanggal;
+        super(tanggal);
     }
 
     /**
@@ -46,11 +42,28 @@ public class PenerimaanStok {
         return detailBaru;
     }
 
-    public LocalDate getTanggal() {
-        return tanggal;
-    }
-
     public DetailTransaksi getDetail() {
         return detail;
+    }
+
+    @Override
+    public String getJenis() {
+        return "Penerimaan";
+    }
+
+    @Override
+    public BatchStok getBatch() {
+        if (detail == null) {
+            throw new IllegalStateException("Penerimaan belum memiliki detail");
+        }
+        return detail.getBatch();
+    }
+
+    @Override
+    public int getJumlah() {
+        if (detail == null) {
+            throw new IllegalStateException("Penerimaan belum memiliki detail");
+        }
+        return detail.getJumlahDiterima();
     }
 }

@@ -51,4 +51,14 @@ public class BatchStok {
     public int getSisaJumlah() {
         return sisaJumlah;
     }
+
+    public void kurangiSisa(int jumlah) {
+        if (jumlah <= 0) {
+            throw new IllegalArgumentException("Jumlah pengurangan harus lebih dari 0");
+        }
+        if (jumlah > sisaJumlah) {
+            throw new IllegalArgumentException("Stok tidak cukup");
+        }
+        sisaJumlah -= jumlah;
+    }
 }
