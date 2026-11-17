@@ -17,12 +17,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -34,9 +38,11 @@ import javax.swing.table.DefaultTableModel;
 
 import kantinflow.Barang;
 import kantinflow.BatchStok;
+import kantinflow.PembuanganStok;
 import kantinflow.PenerimaanStok;
 import kantinflow.PengeluaranStok;
 import kantinflow.RincianTransaksi;
+import kantinflow.StatusKedaluwarsa;
 import kantinflow.StokTidakCukupException;
 import kantinflow.Transaksi;
 import kantinflow.penyimpanan.PenyimpananException;
@@ -56,6 +62,8 @@ public class JendelaKantinFlow {
     private final JTable tabelBatch;
     private final DefaultTableModel modelRiwayat;
     private final JTable tabelRiwayat;
+    private final DefaultTableModel modelPemantauan;
+    private final JTable tabelPemantauan;
     private final JTextField fieldKode = new JTextField(16);
     private final JTextField fieldJumlah = new JTextField(16);
     private final JTextField fieldTanggalMasuk = new JTextField(16);
@@ -63,6 +71,11 @@ public class JendelaKantinFlow {
     private final JTextField fieldJumlahKeluar = new JTextField(7);
     private final JTextField fieldJumlahFefo = new JTextField(5);
     private final JTextField fieldTanggalFefo = new JTextField(11);
+    private final JTextField fieldTanggalPemantauan = new JTextField(11);
+    private final JComboBox<BatchStok> comboBatchBuang = new JComboBox<>();
+    private final JTextField fieldJumlahBuang = new JTextField(7);
+    private final JTextField fieldTanggalBuang = new JTextField(11);
+    private final JTextField fieldAlasanBuang = new JTextField(24);
     private final JLabel labelBatchDipilih = new JLabel("Belum ada batch dipilih");
     private final JLabel labelSaldo = new JLabel("0 kotak");
     private final JLabel labelJumlahBatch = new JLabel("0 batch");
@@ -70,9 +83,12 @@ public class JendelaKantinFlow {
     private final JButton tombolSimpan = new JButton("Simpan Penerimaan");
     private final JButton tombolKeluarkan = new JButton("Keluarkan Stok");
     private final JButton tombolFefo = new JButton("Keluarkan FEFO");
+    private final JButton tombolPeriksa = new JButton("Periksa Kedaluwarsa");
+    private final JButton tombolBuang = new JButton("Buang Stok");
     private final JButton tombolMuatUlang = new JButton("Muat Ulang");
     private final List<Transaksi> riwayat = new ArrayList<>();
     private Barang barang;
+    private LocalDate tanggalPemantauanTerakhir;
     private boolean sudahDitutup;
 
     public JendelaKantinFlow(PenyimpananSQLite penyimpanan) {
@@ -102,6 +118,15 @@ public class JendelaKantinFlow {
             }
         };
         this.tabelRiwayat = new JTable(modelRiwayat);
+        this.modelPemantauan = new DefaultTableModel(
+                new Object[]{"Kode Batch", "Sisa", "Tanggal Kedaluwarsa", "Status"},
+                0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        this.tabelPemantauan = new JTable(modelPemantauan);
 
         bangunTampilan();
         aturNilaiAwal();
@@ -149,6 +174,7 @@ public class JendelaKantinFlow {
 
         siapkanTabelBatch();
         siapkanTabelRiwayat();
+        siapkanTabelPemantauan();
 
         JScrollPane scrollBatch = new JScrollPane(tabelBatch);
         scrollBatch.setBorder(BorderFactory.createTitledBorder(
@@ -170,15 +196,18 @@ public class JendelaKantinFlow {
         isi.add(batchSection, BorderLayout.CENTER);
         isi.add(buatFormPenerimaan(), BorderLayout.EAST);
 
-        JPanel panelRiwayat = new JPanel(new BorderLayout());
-        panelRiwayat.setOpaque(false);
         JScrollPane scrollRiwayat = new JScrollPane(tabelRiwayat);
-        scrollRiwayat.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(GARIS), "Riwayat Transaksi"));
+        scrollRiwayat.setBorder(BorderFactory.createLineBorder(GARIS));
         scrollRiwayat.getViewport().setBackground(Color.WHITE);
-        panelRiwayat.add(scrollRiwayat, BorderLayout.CENTER);
 
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, isi, panelRiwayat);
+        JTabbedPane tabBawah = new JTabbedPane();
+        tabBawah.setName("tabBawah");
+        tabBawah.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tabBawah.addTab("Riwayat Transaksi", scrollRiwayat);
+        tabBawah.addTab("Pemantauan Kedaluwarsa", buatPanelPemantauan());
+        tabBawah.addTab("Pembuangan Stok", buatPanelPembuangan());
+
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, isi, tabBawah);
         split.setResizeWeight(0.68);
         split.setDividerSize(8);
         split.setBorder(null);
@@ -206,8 +235,8 @@ public class JendelaKantinFlow {
                 tutup();
             }
         });
-        frame.setMinimumSize(new Dimension(980, 760));
-        frame.setSize(1120, 900);
+        frame.setMinimumSize(new Dimension(1000, 820));
+        frame.setSize(1120, 1000);
         frame.setLocationRelativeTo(null);
         frame.getRootPane().setDefaultButton(tombolSimpan);
     }
@@ -245,6 +274,258 @@ public class JendelaKantinFlow {
         tabelRiwayat.getColumnModel().getColumn(2).setPreferredWidth(110);
         tabelRiwayat.getColumnModel().getColumn(3).setPreferredWidth(85);
         tabelRiwayat.getColumnModel().getColumn(4).setPreferredWidth(220);
+    }
+
+    private void siapkanTabelPemantauan() {
+        tabelPemantauan.setName("tabelPemantauan");
+        tabelPemantauan.setRowHeight(26);
+        tabelPemantauan.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tabelPemantauan.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pasangHeader(tabelPemantauan);
+        tabelPemantauan.setGridColor(new Color(220, 227, 238));
+        tabelPemantauan.setFillsViewportHeight(true);
+        tabelPemantauan.getColumnModel().getColumn(0).setPreferredWidth(150);
+        tabelPemantauan.getColumnModel().getColumn(1).setPreferredWidth(90);
+        tabelPemantauan.getColumnModel().getColumn(2).setPreferredWidth(160);
+        tabelPemantauan.getColumnModel().getColumn(3).setPreferredWidth(220);
+        tabelPemantauan.getColumnModel().getColumn(3).setCellRenderer(
+                new DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(
+                    JTable table,
+                    Object value,
+                    boolean isSelected,
+                    boolean hasFocus,
+                    int row,
+                    int column) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
+                String status = String.valueOf(value);
+                if ("Kedaluwarsa".equals(status)) {
+                    label.setForeground(MERAH);
+                } else if ("Segera kedaluwarsa".equals(status)) {
+                    label.setForeground(new Color(166, 91, 0));
+                } else if ("Aman".equals(status)) {
+                    label.setForeground(HIJAU);
+                } else {
+                    label.setForeground(ABU);
+                }
+                return label;
+            }
+        });
+    }
+
+    private JPanel buatPanelPemantauan() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPanel kontrol = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        kontrol.setOpaque(false);
+        kontrol.add(new JLabel("Tanggal pengecekan (yyyy-MM-dd):"));
+        fieldTanggalPemantauan.setName("tanggalPemantauan");
+        fieldTanggalPemantauan.setToolTipText("Format yyyy-MM-dd");
+        kontrol.add(fieldTanggalPemantauan);
+        tombolPeriksa.setName("tombolPeriksa");
+        tombolPeriksa.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolPeriksa.addActionListener(event -> periksaKedaluwarsa());
+        kontrol.add(tombolPeriksa);
+
+        JLabel petunjuk = new JLabel(
+                "Hanya batch dengan sisa lebih dari 0 yang ditampilkan.");
+        petunjuk.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        petunjuk.setForeground(ABU);
+
+        JPanel atas = new JPanel(new BorderLayout(0, 4));
+        atas.setOpaque(false);
+        atas.add(kontrol, BorderLayout.NORTH);
+        atas.add(petunjuk, BorderLayout.SOUTH);
+
+        JScrollPane scroll = new JScrollPane(tabelPemantauan);
+        scroll.setBorder(BorderFactory.createLineBorder(GARIS));
+        scroll.getViewport().setBackground(Color.WHITE);
+
+        panel.add(atas, BorderLayout.NORTH);
+        panel.add(scroll, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buatPanelPembuangan() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        comboBatchBuang.setName("batchBuang");
+        comboBatchBuang.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public java.awt.Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof BatchStok batch) {
+                    setText(batch.getKode() + " | sisa " + batch.getSisaJumlah()
+                            + " " + barang.getSatuan() + " | kedaluwarsa "
+                            + batch.getTanggalKedaluwarsa());
+                }
+                return this;
+            }
+        });
+
+        fieldJumlahBuang.setName("jumlahBuang");
+        fieldTanggalBuang.setName("tanggalBuang");
+        fieldTanggalBuang.setToolTipText("Format yyyy-MM-dd");
+        fieldAlasanBuang.setName("alasanBuang");
+
+        JPanel barisAtas = new JPanel(new GridLayout(1, 2, 12, 4));
+        barisAtas.setOpaque(false);
+        barisAtas.add(buatField("Batch", comboBatchBuang));
+        barisAtas.add(buatField("Jumlah", fieldJumlahBuang));
+
+        JPanel barisBawah = new JPanel(new GridLayout(1, 2, 12, 4));
+        barisBawah.setOpaque(false);
+        barisBawah.add(buatField("Tanggal pembuangan (yyyy-MM-dd)",
+                fieldTanggalBuang));
+        barisBawah.add(buatField("Alasan", fieldAlasanBuang));
+
+        JPanel isian = new JPanel(new GridLayout(2, 1, 0, 6));
+        isian.setOpaque(false);
+        isian.add(barisAtas);
+        isian.add(barisBawah);
+
+        tombolBuang.setName("tombolBuang");
+        tombolBuang.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolBuang.addActionListener(event -> buangStokKedaluwarsa());
+
+        JPanel form = new JPanel(new BorderLayout(0, 8));
+        form.setOpaque(false);
+        form.add(isian, BorderLayout.CENTER);
+        form.add(tombolBuang, BorderLayout.SOUTH);
+
+        JLabel petunjuk = new JLabel(
+                "Hanya batch berstatus Kedaluwarsa pada tanggal pembuangan yang dapat dibuang.");
+        petunjuk.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        petunjuk.setForeground(ABU);
+
+        panel.add(form, BorderLayout.CENTER);
+        panel.add(petunjuk, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private JPanel buatField(String teks, javax.swing.JComponent komponen) {
+        JPanel panel = new JPanel(new BorderLayout(0, 3));
+        panel.setOpaque(false);
+        JLabel label = new JLabel(teks);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(komponen, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void buangStokKedaluwarsa() {
+        BatchStok batch = (BatchStok) comboBatchBuang.getSelectedItem();
+        if (batch == null) {
+            setStatus("Pilih batch yang akan dibuang terlebih dahulu.", MERAH);
+            return;
+        }
+
+        int jumlah;
+        try {
+            jumlah = Integer.parseInt(fieldJumlahBuang.getText().trim());
+        } catch (NumberFormatException exception) {
+            setStatus("Jumlah harus berupa angka bulat.", MERAH);
+            return;
+        }
+
+        LocalDate tanggalPembuangan;
+        try {
+            tanggalPembuangan = LocalDate.parse(fieldTanggalBuang.getText().trim());
+        } catch (DateTimeParseException exception) {
+            setStatus("Format tanggal tidak valid. Gunakan yyyy-MM-dd.", MERAH);
+            return;
+        }
+        String alasan = fieldAlasanBuang.getText().trim();
+
+        PembuanganStok pembuangan = new PembuanganStok(tanggalPembuangan);
+        try {
+            pembuangan.buang(barang, batch, jumlah, alasan);
+        } catch (StokTidakCukupException exception) {
+            muatUlang();
+            setStatus(exception.getMessage(), MERAH);
+            return;
+        } catch (IllegalArgumentException exception) {
+            muatUlang();
+            setStatus("Pembuangan gagal: " + exception.getMessage(), MERAH);
+            return;
+        }
+
+        try {
+            penyimpanan.simpanTransaksi(pembuangan);
+        } catch (PenyimpananException exception) {
+            boolean dimuatUlang = muatUlang();
+            setStatus(
+                    "Penyimpanan gagal: " + exception.getMessage()
+                    + (dimuatUlang
+                            ? ". Tampilan dimuat ulang dari database."
+                            : ". Tampilan gagal dimuat ulang."),
+                    MERAH);
+            return;
+        }
+
+        String kode = batch.getKode();
+        if (!muatUlang()) {
+            return;
+        }
+        fieldJumlahBuang.setText("");
+        fieldAlasanBuang.setText("");
+        fieldTanggalBuang.setText(LocalDate.now().toString());
+        setStatus("Pembuangan berhasil: " + kode + ", " + jumlah + " "
+                + barang.getSatuan() + " pada " + tanggalPembuangan
+                + ". Alasan: " + alasan + ".", HIJAU);
+    }
+
+    private void periksaKedaluwarsa() {
+        LocalDate tanggalPengecekan;
+        try {
+            tanggalPengecekan = LocalDate.parse(
+                    fieldTanggalPemantauan.getText().trim());
+        } catch (DateTimeParseException exception) {
+            setStatus("Format tanggal tidak valid. Gunakan yyyy-MM-dd.", MERAH);
+            return;
+        }
+
+        tanggalPemantauanTerakhir = tanggalPengecekan;
+        perbaruiPemantauan();
+        if (modelPemantauan.getRowCount() == 0) {
+            setStatus("Pemantauan " + tanggalPengecekan
+                    + ": tidak ada batch bersisa.", ABU);
+        } else {
+            setStatus("Pemantauan " + tanggalPengecekan + " selesai: "
+                    + modelPemantauan.getRowCount() + " batch bersisa diperiksa.",
+                    ABU);
+        }
+    }
+
+    private void perbaruiPemantauan() {
+        modelPemantauan.setRowCount(0);
+        if (tanggalPemantauanTerakhir == null) {
+            return;
+        }
+        for (BatchStok batch : barang.getDaftarBatch()) {
+            if (batch.getSisaJumlah() <= 0) {
+                continue;
+            }
+            StatusKedaluwarsa status = batch.statusPada(tanggalPemantauanTerakhir);
+            modelPemantauan.addRow(new Object[]{
+                batch.getKode(),
+                batch.getSisaJumlah() + " " + barang.getSatuan(),
+                batch.getTanggalKedaluwarsa().toString(),
+                status.getLabel()
+            });
+        }
     }
 
     private void pasangHeader(JTable tabel) {
@@ -400,7 +681,7 @@ public class JendelaKantinFlow {
             GridBagConstraints label,
             GridBagConstraints input,
             String teks,
-            JTextField field,
+            javax.swing.JComponent field,
             int baris) {
         label.gridy = baris;
         form.add(new JLabel(teks), label);
@@ -413,6 +694,8 @@ public class JendelaKantinFlow {
         fieldTanggalMasuk.setText(hariIni.toString());
         fieldTanggalKedaluwarsa.setText(hariIni.plusMonths(1).toString());
         fieldTanggalFefo.setText(hariIni.toString());
+        fieldTanggalPemantauan.setText(hariIni.toString());
+        fieldTanggalBuang.setText(hariIni.toString());
     }
 
     public void tampilkan() {
@@ -677,6 +960,30 @@ public class JendelaKantinFlow {
         labelJumlahBatch.setText(barang.jumlahBatch() + " batch");
         perbaruiBatchDipilih();
         perbaruiRiwayat();
+        perbaruiPilihanBatchBuang();
+        perbaruiPemantauan();
+    }
+
+    private void perbaruiPilihanBatchBuang() {
+        String kodeDipilih = comboBatchBuang.getItemCount() == 0
+                ? null
+                : ((BatchStok) comboBatchBuang.getSelectedItem()).getKode();
+        comboBatchBuang.removeAllItems();
+        for (BatchStok batch : barang.getDaftarBatch()) {
+            if (batch.getSisaJumlah() > 0) {
+                comboBatchBuang.addItem(batch);
+            }
+        }
+        if (kodeDipilih != null) {
+            for (int i = 0; i < comboBatchBuang.getItemCount(); i++) {
+                if (kodeDipilih.equals(
+                        comboBatchBuang.getItemAt(i).getKode())) {
+                    comboBatchBuang.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+        tombolBuang.setEnabled(comboBatchBuang.getItemCount() > 0);
     }
 
     private void perbaruiRiwayat() {
