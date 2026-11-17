@@ -1,6 +1,6 @@
 # KantinFlow PBO
 
-Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, dan riwayat transaksi. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori. Tahap pertama GUI Swing menyediakan jendela penerimaan dan tampilan batch untuk Susu Kotak. GUI dan login untuk fitur lain menyusul.
+Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, dan riwayat transaksi. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori. GUI Swing menyediakan jendela penerimaan, pengeluaran manual dari batch yang dipilih, pengeluaran otomatis FEFO, tabel batch, dan riwayat transaksi untuk Susu Kotak. GUI dan login untuk fitur lain menyusul.
 
 ## Persiapan lokal
 
@@ -41,7 +41,7 @@ java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Jendela menampilkan saldo fisik, tabel batch, dan formulir penerimaan. Perubahan langsung disimpan ke SQLite; setelah simpan atau gagal, tabel dan saldo dimuat ulang dari database.
+GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Jendela menampilkan saldo fisik, tabel batch, formulir penerimaan, pengeluaran manual dari batch yang dipilih, form FEFO dengan jumlah dan tanggal pengeluaran, serta riwayat transaksi. Perubahan langsung disimpan ke SQLite; setelah simpan atau gagal, tabel, saldo, dan riwayat dimuat ulang dari database.
 
 Tanpa argumen aplikasi membuka menu konsol. Argumen `demo` tetap menjalankan empat skenario di memori.
 

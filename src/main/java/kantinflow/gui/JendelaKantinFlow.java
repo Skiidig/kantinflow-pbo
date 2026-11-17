@@ -3,14 +3,18 @@ package kantinflow.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -18,40 +22,56 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import kantinflow.Barang;
 import kantinflow.BatchStok;
 import kantinflow.PenerimaanStok;
+import kantinflow.PengeluaranStok;
+import kantinflow.RincianTransaksi;
+import kantinflow.StokTidakCukupException;
+import kantinflow.Transaksi;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
 public class JendelaKantinFlow {
     private static final Color BIRU = new Color(30, 42, 85);
-    private static final Color TEAL = new Color(0, 131, 143);
     private static final Color ABU = new Color(89, 89, 89);
     private static final Color LATAR = new Color(245, 247, 251);
     private static final Color HIJAU = new Color(30, 123, 77);
     private static final Color MERAH = new Color(176, 0, 32);
+    private static final Color GARIS = new Color(197, 208, 222);
 
     private final PenyimpananSQLite penyimpanan;
     private final JFrame frame;
     private final DefaultTableModel modelBatch;
     private final JTable tabelBatch;
+    private final DefaultTableModel modelRiwayat;
+    private final JTable tabelRiwayat;
     private final JTextField fieldKode = new JTextField(16);
     private final JTextField fieldJumlah = new JTextField(16);
     private final JTextField fieldTanggalMasuk = new JTextField(16);
     private final JTextField fieldTanggalKedaluwarsa = new JTextField(16);
+    private final JTextField fieldJumlahKeluar = new JTextField(7);
+    private final JTextField fieldJumlahFefo = new JTextField(5);
+    private final JTextField fieldTanggalFefo = new JTextField(11);
+    private final JLabel labelBatchDipilih = new JLabel("Belum ada batch dipilih");
     private final JLabel labelSaldo = new JLabel("0 kotak");
     private final JLabel labelJumlahBatch = new JLabel("0 batch");
-    private final JTextArea areaStatus = new JTextArea(2, 40);
+    private final JTextArea areaStatus = new JTextArea(3, 40);
     private final JButton tombolSimpan = new JButton("Simpan Penerimaan");
+    private final JButton tombolKeluarkan = new JButton("Keluarkan Stok");
+    private final JButton tombolFefo = new JButton("Keluarkan FEFO");
     private final JButton tombolMuatUlang = new JButton("Muat Ulang");
+    private final List<Transaksi> riwayat = new ArrayList<>();
     private Barang barang;
     private boolean sudahDitutup;
 
@@ -61,7 +81,9 @@ public class JendelaKantinFlow {
         }
         this.penyimpanan = penyimpanan;
         this.barang = penyimpanan.muatBarang();
-        this.frame = new JFrame("KantinFlow - Penerimaan Stok");
+        this.riwayat.addAll(penyimpanan.muatRiwayat(this.barang));
+        this.frame = new JFrame("KantinFlow - Stok Susu Kotak");
+
         this.modelBatch = new DefaultTableModel(
                 new Object[]{"Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa"},
                 0) {
@@ -71,11 +93,20 @@ public class JendelaKantinFlow {
             }
         };
         this.tabelBatch = new JTable(modelBatch);
+        this.modelRiwayat = new DefaultTableModel(
+                new Object[]{"Tanggal", "Jenis Transaksi", "Kode Batch", "Jumlah", "Alasan"},
+                0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        this.tabelRiwayat = new JTable(modelRiwayat);
 
         bangunTampilan();
         aturNilaiAwal();
         perbaruiTampilan();
-        setStatus("Data dimuat dari database. Siap menerima stok.", ABU);
+        setStatus("Data dan riwayat dimuat dari database. Siap menerima stok.", ABU);
     }
 
     private void bangunTampilan() {
@@ -93,7 +124,7 @@ public class JendelaKantinFlow {
         JLabel namaBarang = new JLabel(barang.getNama());
         namaBarang.setFont(new Font("Segoe UI", Font.BOLD, 24));
         namaBarang.setForeground(Color.WHITE);
-        JLabel keterangan = new JLabel("Stok fisik dan batch tersimpan");
+        JLabel keterangan = new JLabel("Stok fisik, batch, dan riwayat transaksi");
         keterangan.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         keterangan.setForeground(new Color(200, 212, 235));
         identitas.add(namaBarang);
@@ -116,11 +147,109 @@ public class JendelaKantinFlow {
         header.add(identitas, BorderLayout.WEST);
         header.add(saldoPanel, BorderLayout.EAST);
 
+        siapkanTabelBatch();
+        siapkanTabelRiwayat();
+
+        JScrollPane scrollBatch = new JScrollPane(tabelBatch);
+        scrollBatch.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(GARIS), "Daftar Batch"));
+        scrollBatch.getViewport().setBackground(Color.WHITE);
+
+        JPanel panelAksi = new JPanel(new GridLayout(2, 1, 0, 6));
+        panelAksi.setOpaque(false);
+        panelAksi.add(buatPanelPengeluaran());
+        panelAksi.add(buatPanelFefo());
+
+        JPanel batchSection = new JPanel(new BorderLayout(0, 8));
+        batchSection.setOpaque(false);
+        batchSection.add(scrollBatch, BorderLayout.CENTER);
+        batchSection.add(panelAksi, BorderLayout.SOUTH);
+
+        JPanel isi = new JPanel(new BorderLayout(14, 0));
+        isi.setOpaque(false);
+        isi.add(batchSection, BorderLayout.CENTER);
+        isi.add(buatFormPenerimaan(), BorderLayout.EAST);
+
+        JPanel panelRiwayat = new JPanel(new BorderLayout());
+        panelRiwayat.setOpaque(false);
+        JScrollPane scrollRiwayat = new JScrollPane(tabelRiwayat);
+        scrollRiwayat.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(GARIS), "Riwayat Transaksi"));
+        scrollRiwayat.getViewport().setBackground(Color.WHITE);
+        panelRiwayat.add(scrollRiwayat, BorderLayout.CENTER);
+
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, isi, panelRiwayat);
+        split.setResizeWeight(0.68);
+        split.setDividerSize(8);
+        split.setBorder(null);
+        split.setContinuousLayout(true);
+        split.setDividerLocation(500);
+
+        areaStatus.setName("status");
+        areaStatus.setEditable(false);
+        areaStatus.setLineWrap(true);
+        areaStatus.setWrapStyleWord(true);
+        areaStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        areaStatus.setBorder(new EmptyBorder(9, 12, 9, 12));
+        areaStatus.setBackground(new Color(238, 243, 250));
+        areaStatus.setOpaque(true);
+
+        root.add(header, BorderLayout.NORTH);
+        root.add(split, BorderLayout.CENTER);
+        root.add(areaStatus, BorderLayout.SOUTH);
+
+        frame.setContentPane(root);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent event) {
+                tutup();
+            }
+        });
+        frame.setMinimumSize(new Dimension(980, 760));
+        frame.setSize(1120, 900);
+        frame.setLocationRelativeTo(null);
+        frame.getRootPane().setDefaultButton(tombolSimpan);
+    }
+
+    private void siapkanTabelBatch() {
         tabelBatch.setName("tabelBatch");
         tabelBatch.setRowHeight(28);
         tabelBatch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabelBatch.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tabelBatch.getTableHeader().setDefaultRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+        tabelBatch.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pasangHeader(tabelBatch);
+        tabelBatch.setSelectionBackground(new Color(210, 235, 235));
+        tabelBatch.setGridColor(new Color(220, 227, 238));
+        tabelBatch.setFillsViewportHeight(true);
+        tabelBatch.getColumnModel().getColumn(0).setPreferredWidth(140);
+        tabelBatch.getColumnModel().getColumn(1).setPreferredWidth(70);
+        tabelBatch.getColumnModel().getColumn(2).setPreferredWidth(130);
+        tabelBatch.getColumnModel().getColumn(3).setPreferredWidth(150);
+        tabelBatch.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                perbaruiBatchDipilih();
+            }
+        });
+    }
+
+    private void siapkanTabelRiwayat() {
+        tabelRiwayat.setName("tabelRiwayat");
+        tabelRiwayat.setRowHeight(24);
+        tabelRiwayat.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tabelRiwayat.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pasangHeader(tabelRiwayat);
+        tabelRiwayat.setGridColor(new Color(220, 227, 238));
+        tabelRiwayat.setFillsViewportHeight(true);
+        tabelRiwayat.getColumnModel().getColumn(0).setPreferredWidth(95);
+        tabelRiwayat.getColumnModel().getColumn(1).setPreferredWidth(135);
+        tabelRiwayat.getColumnModel().getColumn(2).setPreferredWidth(110);
+        tabelRiwayat.getColumnModel().getColumn(3).setPreferredWidth(85);
+        tabelRiwayat.getColumnModel().getColumn(4).setPreferredWidth(220);
+    }
+
+    private void pasangHeader(JTable tabel) {
+        tabel.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabel.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public java.awt.Component getTableCellRendererComponent(
                     JTable table,
@@ -138,50 +267,6 @@ public class JendelaKantinFlow {
                 return label;
             }
         });
-        tabelBatch.setSelectionBackground(new Color(210, 235, 235));
-        tabelBatch.setGridColor(new Color(220, 227, 238));
-        tabelBatch.setFillsViewportHeight(true);
-        tabelBatch.getColumnModel().getColumn(0).setPreferredWidth(140);
-        tabelBatch.getColumnModel().getColumn(1).setPreferredWidth(70);
-        tabelBatch.getColumnModel().getColumn(2).setPreferredWidth(130);
-        tabelBatch.getColumnModel().getColumn(3).setPreferredWidth(150);
-
-        JScrollPane scrollBatch = new JScrollPane(tabelBatch);
-        scrollBatch.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(197, 208, 222)),
-                "Daftar Batch"));
-        scrollBatch.getViewport().setBackground(Color.WHITE);
-
-        JPanel isi = new JPanel(new BorderLayout(14, 0));
-        isi.setOpaque(false);
-        isi.add(scrollBatch, BorderLayout.CENTER);
-        isi.add(buatFormPenerimaan(), BorderLayout.EAST);
-
-        areaStatus.setName("status");
-        areaStatus.setEditable(false);
-        areaStatus.setLineWrap(true);
-        areaStatus.setWrapStyleWord(true);
-        areaStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        areaStatus.setBorder(new EmptyBorder(9, 12, 9, 12));
-        areaStatus.setBackground(new Color(238, 243, 250));
-        areaStatus.setOpaque(true);
-
-        root.add(header, BorderLayout.NORTH);
-        root.add(isi, BorderLayout.CENTER);
-        root.add(areaStatus, BorderLayout.SOUTH);
-
-        frame.setContentPane(root);
-        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent event) {
-                tutup();
-            }
-        });
-        frame.setMinimumSize(new Dimension(900, 560));
-        frame.setSize(1040, 640);
-        frame.setLocationRelativeTo(null);
-        frame.getRootPane().setDefaultButton(tombolSimpan);
     }
 
     private JPanel buatFormPenerimaan() {
@@ -190,8 +275,7 @@ public class JendelaKantinFlow {
         form.setPreferredSize(new Dimension(325, 0));
         form.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(new Color(197, 208, 222)),
-                        "Form Penerimaan"),
+                        BorderFactory.createLineBorder(GARIS), "Form Penerimaan"),
                 new EmptyBorder(12, 14, 12, 14)));
 
         GridBagConstraints label = new GridBagConstraints();
@@ -242,7 +326,7 @@ public class JendelaKantinFlow {
         tombolMuatUlang.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         tombolMuatUlang.addActionListener(event -> {
             if (muatUlang()) {
-                setStatus("Data dimuat ulang dari database.", ABU);
+                setStatus("Data dan riwayat dimuat ulang dari database.", ABU);
             }
         });
         form.add(tombolMuatUlang, tombolKedua);
@@ -255,6 +339,60 @@ public class JendelaKantinFlow {
         form.add(new JLabel(""), pengisi);
 
         return form;
+    }
+
+    private JPanel buatPanelPengeluaran() {
+        JPanel panel = new JPanel(new BorderLayout(8, 4));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(GARIS), "Pengeluaran Manual"),
+                new EmptyBorder(7, 10, 7, 10)));
+
+        labelBatchDipilih.setName("labelBatchDipilih");
+        labelBatchDipilih.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        labelBatchDipilih.setForeground(BIRU);
+        panel.add(labelBatchDipilih, BorderLayout.NORTH);
+
+        JPanel kontrol = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        kontrol.setOpaque(false);
+        kontrol.add(new JLabel("Jumlah:"));
+        fieldJumlahKeluar.setName("jumlahKeluar");
+        kontrol.add(fieldJumlahKeluar);
+        tombolKeluarkan.setName("tombolKeluarkan");
+        tombolKeluarkan.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolKeluarkan.addActionListener(event -> keluarkanStokManual());
+        kontrol.add(tombolKeluarkan);
+        panel.add(kontrol, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel buatPanelFefo() {
+        JPanel panel = new JPanel(new BorderLayout(8, 4));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(GARIS),
+                        "Pengeluaran FEFO (otomatis)"),
+                new EmptyBorder(7, 10, 7, 10)));
+
+        JPanel kontrol = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        kontrol.setOpaque(false);
+        kontrol.add(new JLabel("Jumlah:"));
+        fieldJumlahFefo.setName("jumlahFefo");
+        kontrol.add(fieldJumlahFefo);
+        kontrol.add(new JLabel("Tanggal (yyyy-MM-dd):"));
+        fieldTanggalFefo.setName("tanggalFefo");
+        fieldTanggalFefo.setToolTipText("Format yyyy-MM-dd");
+        kontrol.add(fieldTanggalFefo);
+        tombolFefo.setName("tombolFefo");
+        tombolFefo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tombolFefo.addActionListener(event -> keluarkanStokFefo());
+        kontrol.add(tombolFefo);
+        panel.add(kontrol, BorderLayout.CENTER);
+
+        return panel;
     }
 
     private void tambahField(
@@ -274,6 +412,7 @@ public class JendelaKantinFlow {
         LocalDate hariIni = LocalDate.now();
         fieldTanggalMasuk.setText(hariIni.toString());
         fieldTanggalKedaluwarsa.setText(hariIni.plusMonths(1).toString());
+        fieldTanggalFefo.setText(hariIni.toString());
     }
 
     public void tampilkan() {
@@ -343,8 +482,8 @@ public class JendelaKantinFlow {
             setStatus(
                     "Penyimpanan gagal: " + exception.getMessage()
                     + (dimuatUlang
-                            ? " Tampilan dimuat ulang dari database."
-                            : " Tampilan gagal dimuat ulang."),
+                            ? ". Tampilan dimuat ulang dari database."
+                            : ". Tampilan gagal dimuat ulang."),
                     MERAH);
             return;
         }
@@ -352,19 +491,174 @@ public class JendelaKantinFlow {
         if (!muatUlang()) {
             return;
         }
-        kosongkanForm();
+        kosongkanFormPenerimaan();
         setStatus("Penerimaan berhasil: " + kode + ", " + jumlah + " "
                 + barang.getSatuan() + ".", HIJAU);
     }
 
-    private boolean muatUlang() {
+    private void keluarkanStokManual() {
+        BatchStok batch = batchTerpilih();
+        if (batch == null) {
+            setStatus("Pilih satu batch pada tabel terlebih dahulu.", MERAH);
+            return;
+        }
+
+        int jumlah;
         try {
-            barang = penyimpanan.muatBarang();
+            jumlah = Integer.parseInt(fieldJumlahKeluar.getText().trim());
+        } catch (NumberFormatException exception) {
+            setStatus("Jumlah harus berupa angka bulat.", MERAH);
+            return;
+        }
+
+        PengeluaranStok pengeluaran = new PengeluaranStok(LocalDate.now());
+        try {
+            pengeluaran.keluarkan(barang, batch, jumlah);
+        } catch (StokTidakCukupException exception) {
+            muatUlang();
+            setStatus(exception.getMessage(), MERAH);
+            return;
+        } catch (IllegalArgumentException exception) {
+            muatUlang();
+            setStatus("Pengeluaran gagal: " + exception.getMessage(), MERAH);
+            return;
+        }
+
+        try {
+            penyimpanan.simpanTransaksi(pengeluaran);
+        } catch (PenyimpananException exception) {
+            boolean dimuatUlang = muatUlang();
+            setStatus(
+                    "Penyimpanan gagal: " + exception.getMessage()
+                    + (dimuatUlang
+                            ? ". Tampilan dimuat ulang dari database."
+                            : ". Tampilan gagal dimuat ulang."),
+                    MERAH);
+            return;
+        }
+
+        String kode = batch.getKode();
+        if (!muatUlang()) {
+            return;
+        }
+        fieldJumlahKeluar.setText("");
+        setStatus("Pengeluaran berhasil: " + kode + ", " + jumlah + " "
+                + barang.getSatuan() + ".", HIJAU);
+    }
+
+    private void keluarkanStokFefo() {
+        int jumlah;
+        try {
+            jumlah = Integer.parseInt(fieldJumlahFefo.getText().trim());
+        } catch (NumberFormatException exception) {
+            setStatus("Jumlah harus berupa angka bulat.", MERAH);
+            return;
+        }
+
+        LocalDate tanggalPengeluaran;
+        try {
+            tanggalPengeluaran = LocalDate.parse(fieldTanggalFefo.getText().trim());
+        } catch (DateTimeParseException exception) {
+            setStatus("Format tanggal tidak valid. Gunakan yyyy-MM-dd.", MERAH);
+            return;
+        }
+
+        PengeluaranStok pengeluaran = new PengeluaranStok(tanggalPengeluaran);
+        try {
+            pengeluaran.keluarkanFefo(barang, jumlah, tanggalPengeluaran);
+        } catch (StokTidakCukupException exception) {
+            muatUlang();
+            setStatus(exception.getMessage(), MERAH);
+            return;
+        } catch (IllegalArgumentException exception) {
+            muatUlang();
+            setStatus("Pengeluaran FEFO gagal: " + exception.getMessage(), MERAH);
+            return;
+        }
+
+        try {
+            penyimpanan.simpanTransaksi(pengeluaran);
+        } catch (PenyimpananException exception) {
+            boolean dimuatUlang = muatUlang();
+            setStatus(
+                    "Penyimpanan gagal: " + exception.getMessage()
+                    + (dimuatUlang
+                            ? ". Tampilan dimuat ulang dari database."
+                            : ". Tampilan gagal dimuat ulang."),
+                    MERAH);
+            return;
+        }
+
+        String alokasi = formatAlokasi(pengeluaran);
+        if (!muatUlang()) {
+            return;
+        }
+        fieldJumlahFefo.setText("");
+        fieldTanggalFefo.setText(LocalDate.now().toString());
+        setStatus("Pengeluaran FEFO berhasil: " + alokasi + ". Saldo: "
+                + barang.hitungSaldo() + " " + barang.getSatuan() + ".", HIJAU);
+    }
+
+    private String formatAlokasi(PengeluaranStok pengeluaran) {
+        StringBuilder hasil = new StringBuilder();
+        for (RincianTransaksi rincian : pengeluaran.getRincian()) {
+            if (hasil.length() > 0) {
+                hasil.append(", ");
+            }
+            hasil.append(rincian.getBatch().getKode())
+                    .append(" ")
+                    .append(rincian.getJumlah())
+                    .append(" ")
+                    .append(barang.getSatuan());
+        }
+        return hasil.toString();
+    }
+
+    private BatchStok batchTerpilih() {
+        int baris = tabelBatch.getSelectedRow();
+        if (baris < 0) {
+            return null;
+        }
+        int barisModel = tabelBatch.convertRowIndexToModel(baris);
+        return barang.getDaftarBatch().get(barisModel);
+    }
+
+    private void perbaruiBatchDipilih() {
+        BatchStok batch = batchTerpilih();
+        if (batch == null) {
+            labelBatchDipilih.setText("Belum ada batch dipilih");
+        } else {
+            labelBatchDipilih.setText("Batch dipilih: " + batch.getKode()
+                    + " | sisa " + batch.getSisaJumlah() + " " + barang.getSatuan());
+        }
+    }
+
+    private boolean muatUlang() {
+        BatchStok batchDipilih = batchTerpilih();
+        String kodeDipilih = batchDipilih == null ? null : batchDipilih.getKode();
+        try {
+            Barang barangTerbaru = penyimpanan.muatBarang();
+            List<Transaksi> riwayatTerbaru = penyimpanan.muatRiwayat(barangTerbaru);
+            barang = barangTerbaru;
+            riwayat.clear();
+            riwayat.addAll(riwayatTerbaru);
             perbaruiTampilan();
+            if (kodeDipilih != null) {
+                pilihBatch(kodeDipilih);
+            }
             return true;
         } catch (PenyimpananException exception) {
             setStatus("Gagal memuat data: " + exception.getMessage(), MERAH);
             return false;
+        }
+    }
+
+    private void pilihBatch(String kode) {
+        for (int baris = 0; baris < modelBatch.getRowCount(); baris++) {
+            if (kode.equals(modelBatch.getValueAt(baris, 0))) {
+                tabelBatch.setRowSelectionInterval(baris, baris);
+                return;
+            }
         }
     }
 
@@ -378,16 +672,36 @@ public class JendelaKantinFlow {
                 batch.getTanggalKedaluwarsa().toString()
             });
         }
+        tabelBatch.clearSelection();
         labelSaldo.setText(barang.hitungSaldo() + " " + barang.getSatuan());
         labelJumlahBatch.setText(barang.jumlahBatch() + " batch");
+        perbaruiBatchDipilih();
+        perbaruiRiwayat();
     }
 
-    private void kosongkanForm() {
+    private void perbaruiRiwayat() {
+        modelRiwayat.setRowCount(0);
+        for (Transaksi transaksi : riwayat) {
+            String alasan = transaksi.getAlasan();
+            for (RincianTransaksi rincian : transaksi.getRincian()) {
+                modelRiwayat.addRow(new Object[]{
+                    transaksi.getTanggal().toString(),
+                    transaksi.getJenis(),
+                    rincian.getBatch().getKode(),
+                    rincian.getJumlah() + " " + barang.getSatuan(),
+                    alasan == null ? "" : alasan
+                });
+            }
+        }
+    }
+
+    private void kosongkanFormPenerimaan() {
         fieldKode.setText("");
         fieldJumlah.setText("");
         LocalDate hariIni = LocalDate.now();
         fieldTanggalMasuk.setText(hariIni.toString());
         fieldTanggalKedaluwarsa.setText(hariIni.plusMonths(1).toString());
+        fieldTanggalFefo.setText(hariIni.toString());
         fieldKode.requestFocusInWindow();
     }
 
