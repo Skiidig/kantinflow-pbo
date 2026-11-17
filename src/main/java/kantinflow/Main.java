@@ -3,9 +3,19 @@ package kantinflow;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
+        if (args.length > 0 && "demo".equalsIgnoreCase(args[0])) {
+            jalankanDemo();
+            return;
+        }
+
+        new MenuKonsol(new Scanner(System.in)).jalankan();
+    }
+
+    private static void jalankanDemo() {
         Barang susuKotak = new Barang("Susu Kotak", "kotak");
         List<Transaksi> riwayat = new ArrayList<>();
 

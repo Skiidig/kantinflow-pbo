@@ -1,6 +1,6 @@
 # Rancangan Stok Masuk dan Pengeluaran
 
-Status tahap ini adalah **diimplementasikan** untuk penerimaan stok dan pengeluaran dari satu batch. Data disimpan di memori. GUI, database, dan pemilihan batch otomatis berdasarkan kedaluwarsa belum termasuk.
+Status tahap ini adalah **diimplementasikan** untuk penerimaan stok, pengeluaran dari satu batch, dan menu konsol interaktif. Data disimpan di memori. GUI, database, dan pemilihan batch otomatis berdasarkan kedaluwarsa belum termasuk.
 
 ## Alur penerimaan
 
@@ -22,6 +22,17 @@ Petugas memilih satu batch, lalu menentukan jumlah yang dikeluarkan. Sistem memv
 
 `DetailTransaksi` menyimpan jumlah asli yang diterima. Setelah 2 kotak dikeluarkan, catatan penerimaan tetap 5 kotak, sedangkan sisa batch dan saldo berubah menjadi 3 kotak. `PengeluaranStok` menyimpan jumlah pengeluaran sebesar 2 kotak.
 
+## Menu konsol
+
+`Main` tanpa argumen menjalankan menu interaktif untuk satu barang Susu Kotak dengan stok awal 0. Pilihan menu:
+
+1. Terima stok
+2. Keluarkan stok dari batch yang dipilih
+3. Lihat saldo dan riwayat
+4. Keluar
+
+Penerimaan meminta kode batch, jumlah, tanggal masuk, dan tanggal kedaluwarsa. Tanggal memakai format `yyyy-MM-dd`. Jika jumlah bukan angka atau tanggal salah format, program menampilkan pesan dan kembali ke menu tanpa mengubah data. Pengeluaran menampilkan batch yang tersedia, lalu meminta kode batch dan jumlah; validasi domain tetap dijalankan. Demo empat skenario tetap tersedia dengan `java -cp out kantinflow.Main demo`.
+
 ## Hubungan antarkelas
 
 ```mermaid
@@ -33,8 +44,11 @@ classDiagram
     DetailTransaksi "1" --> "1" BatchStok : merujuk
     PengeluaranStok "0..*" --> "1" BatchStok : mengeluarkan
     PengeluaranStok ..> StokTidakCukupException : melempar
+    Main ..> MenuKonsol : menjalankan
     Main ..> StokTidakCukupException : menangkap
-    Main "1" --> "0..*" Transaksi : riwayat
+    MenuKonsol "1" --> "1" Barang : mengelola
+    MenuKonsol "1" --> "0..*" Transaksi : riwayat
+    MenuKonsol ..> StokTidakCukupException : menangkap
 
     class Transaksi {
         <<abstract>>
@@ -70,7 +84,12 @@ classDiagram
         -int jumlahDiterima
     }
     class Main {
+        +main() void
+    }
+    class MenuKonsol {
+        -Barang barang
         -List~Transaksi~ riwayat
+        +jalankan() void
     }
     class StokTidakCukupException {
         <<exception>>
@@ -94,7 +113,11 @@ Jalankan berurutan dengan barang Susu Kotak yang sama.
 
 ## Hasil Uji Demo
 
-Demo berhasil dikompilasi dengan `javac` dan dijalankan di konsol.
+Demo berhasil dikompilasi dengan `javac` dan dijalankan dengan perintah berikut.
+
+```powershell
+java -cp out kantinflow.Main demo
+```
 
 | Percobaan | Hasil aktual |
 | --- | --- |
@@ -138,6 +161,44 @@ Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak
 Saldo: 3 kotak
 Jumlah batch: 1
 Jumlah riwayat: 2
+```
+
+## Uji Menu Konsol
+
+Menu dijalankan dengan `java -cp out kantinflow.Main` dan diuji dengan urutan penerimaan 5 kotak, pengeluaran 2 kotak, percobaan pengeluaran 4 kotak, lalu melihat saldo dan riwayat.
+
+| Langkah | Masukan | Hasil aktual |
+| --- | --- | --- |
+| Pilih 1, terima stok | `SUSU-A`, `5`, `2026-11-17`, `2026-12-17` | Penerimaan berhasil; saldo 5 kotak, 1 batch, 1 riwayat |
+| Pilih 2, keluarkan stok | `SUSU-A`, `2` | Pengeluaran berhasil; saldo 3 kotak, 1 batch, 2 riwayat |
+| Pilih 2, keluarkan stok | `SUSU-A`, `4` | Pesan “Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak”; state tidak berubah |
+| Pilih 3, lihat saldo dan riwayat | - | Saldo 3 kotak, jumlah batch 1, jumlah riwayat 2 |
+| Pilih 4, keluar | - | Program selesai |
+
+Baris hasil aktual dari menu (header menu dan prompt yang berulang tidak ditampilkan ulang):
+
+```text
+Penerimaan berhasil: SUSU-A, 5 kotak. Saldo: 5 kotak
+Pengeluaran berhasil: SUSU-A, 2 kotak. Saldo: 3 kotak
+Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak
+Saldo: 3 kotak
+Jumlah batch: 1
+Jumlah riwayat: 2
+Riwayat transaksi:
+- Penerimaan SUSU-A: 5 kotak
+- Pengeluaran SUSU-A: 2 kotak
+Terima kasih. Program selesai.
+```
+
+Uji format salah juga dijalankan. Program menampilkan pesan berikut lalu kembali ke menu tanpa menambah batch atau riwayat:
+
+```text
+Jumlah harus berupa angka bulat.
+Format tanggal tidak valid. Gunakan yyyy-MM-dd.
+Saldo: 0 kotak
+Jumlah batch: 0
+Jumlah riwayat: 0
+Riwayat transaksi: (kosong)
 ```
 
 ## Acuan laporan
