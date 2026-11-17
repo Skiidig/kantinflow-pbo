@@ -72,7 +72,7 @@ public class Main {
             pengeluaranKedua.keluarkan(susuKotak, batchSusuA, 4);
             riwayat.add(pengeluaranKedua);
             System.out.println("Pengeluaran SUSU-A tersimpan");
-        } catch (IllegalArgumentException exception) {
+        } catch (StokTidakCukupException exception) {
             System.out.println(exception.getMessage());
         }
         cetakRingkasan(susuKotak, riwayat);

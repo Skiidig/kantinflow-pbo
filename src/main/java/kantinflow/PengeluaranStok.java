@@ -31,7 +31,10 @@ public class PengeluaranStok extends Transaksi {
             throw new IllegalArgumentException("Jumlah harus lebih dari 0");
         }
         if (batch.getSisaJumlah() < jumlah) {
-            throw new IllegalArgumentException("Stok tidak cukup");
+            throw new StokTidakCukupException(
+                    "Stok tidak cukup: diminta " + jumlah + " " + barang.getSatuan()
+                            + ", tersedia " + batch.getSisaJumlah() + " "
+                            + barang.getSatuan());
         }
 
         batch.kurangiSisa(jumlah);

@@ -8,7 +8,13 @@ Petugas mencatat satu batch Susu Kotak dengan jumlah 5 kotak. Sistem memvalidasi
 
 ## Alur pengeluaran
 
-Petugas memilih satu batch, lalu menentukan jumlah yang dikeluarkan. Sistem memvalidasi bahwa batch tersebut milik barang, jumlah lebih dari 0, dan sisa batch mencukupi. Hanya setelah semua validasi lolos, `BatchStok.kurangiSisa()` dipanggil dan transaksi pengeluaran dicatat ke riwayat. Jika validasi gagal, sisa batch dan riwayat tidak berubah.
+Petugas memilih satu batch, lalu menentukan jumlah yang dikeluarkan. Sistem memvalidasi bahwa batch tersebut milik barang, jumlah lebih dari 0, dan sisa batch mencukupi. Jumlah nol atau negatif ditolak dengan `IllegalArgumentException`. Jika jumlah melebihi sisa, alur melempar `StokTidakCukupException`. Hanya setelah semua validasi lolos, `BatchStok.kurangiSisa()` dipanggil dan transaksi pengeluaran dicatat ke riwayat. Jika validasi gagal, sisa batch dan riwayat tidak berubah.
+
+## Penanganan exception
+
+`PengeluaranStok.keluarkan()` melempar `StokTidakCukupException` saat jumlah yang diminta melebihi sisa batch. Exception dilempar sebelum `kurangiSisa()` dan sebelum objek pengeluaran dicatat, sehingga kegagalan tidak mengubah stok. Validasi jumlah `<= 0` tetap menggunakan `IllegalArgumentException`.
+
+`Main` menangkap `StokTidakCukupException` secara spesifik pada skenario 4 dan menampilkan pesan yang memuat jumlah diminta serta sisa tersedia. `IllegalArgumentException` pada skenario penerimaan tetap ditangani terpisah.
 
 ## Riwayat transaksi
 
@@ -26,6 +32,8 @@ classDiagram
     PenerimaanStok "1" *-- "1" DetailTransaksi : memuat
     DetailTransaksi "1" --> "1" BatchStok : merujuk
     PengeluaranStok "0..*" --> "1" BatchStok : mengeluarkan
+    PengeluaranStok ..> StokTidakCukupException : melempar
+    Main ..> StokTidakCukupException : menangkap
     Main "1" --> "0..*" Transaksi : riwayat
 
     class Transaksi {
@@ -64,6 +72,9 @@ classDiagram
     class Main {
         -List~Transaksi~ riwayat
     }
+    class StokTidakCukupException {
+        <<exception>>
+    }
 ```
 
 Satu barang dapat belum punya batch. Setiap batch dalam cakupan ini dibuat oleh satu detail penerimaan. `Barang` menghitung saldo dari jumlah sisa seluruh batch. `BatchStok` menjaga `sisaJumlah` tetap privat dan hanya mengubahnya melalui `kurangiSisa()`, yang menolak jumlah tidak positif atau jumlah yang melebihi sisa.
@@ -79,7 +90,7 @@ Jalankan berurutan dengan barang Susu Kotak yang sama.
 | Terima batch dari stok awal 0 | Kode `SUSU-A`, 5 kotak, tanggal masuk dan kedaluwarsa valid | Satu batch tercatat, saldo 5 kotak, satu catatan riwayat |
 | Tolak penerimaan berikutnya | Kode `SUSU-B`, 0 kotak, tanggal valid | Muncul pesan “Jumlah harus lebih dari 0”. Saldo tetap 5 kotak, batch dan riwayat masing-masing tetap satu |
 | Keluarkan dari batch terpilih | Batch `SUSU-A`, 2 kotak | Saldo 3 kotak, jumlah batch tetap 1, riwayat 2 catatan; penerimaan tetap 5 kotak dan pengeluaran 2 kotak |
-| Tolak pengeluaran melebihi sisa | Batch `SUSU-A`, 4 kotak | Muncul pesan “Stok tidak cukup”. Saldo tetap 3 kotak, batch tetap 1, riwayat tetap 2 catatan |
+| Tolak pengeluaran melebihi sisa | Batch `SUSU-A`, 4 kotak | `StokTidakCukupException` menampilkan pesan “Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak”. Saldo tetap 3 kotak, batch tetap 1, riwayat tetap 2 catatan |
 
 ## Hasil Uji Demo
 
@@ -90,7 +101,7 @@ Demo berhasil dikompilasi dengan `javac` dan dijalankan di konsol.
 | Terima 5 kotak Susu Kotak pada batch `SUSU-A` | Penerimaan berhasil. Saldo 5 kotak, 1 batch, 1 catatan riwayat. |
 | Coba terima 0 kotak pada batch `SUSU-B` | Muncul pesan “Jumlah harus lebih dari 0”. Saldo tetap 5 kotak, 1 batch, 1 catatan riwayat. |
 | Keluarkan 2 kotak dari batch `SUSU-A` | Pengeluaran berhasil. Saldo 3 kotak, 1 batch, 2 catatan riwayat; penerimaan tercatat 5 kotak dan pengeluaran 2 kotak. |
-| Coba keluarkan 4 kotak dari batch `SUSU-A` | Muncul pesan “Stok tidak cukup”. Saldo tetap 3 kotak, 1 batch, 2 catatan riwayat. |
+| Coba keluarkan 4 kotak dari batch `SUSU-A` | `StokTidakCukupException` menampilkan “Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak”. Saldo tetap 3 kotak, 1 batch, 2 catatan riwayat. |
 
 Output aktual:
 
@@ -123,7 +134,7 @@ Riwayat transaksi:
 - Pengeluaran SUSU-A: 2 kotak
 
 Skenario 4 - Coba keluarkan 4 kotak dari SUSU-A
-Stok tidak cukup
+Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak
 Saldo: 3 kotak
 Jumlah batch: 1
 Jumlah riwayat: 2
