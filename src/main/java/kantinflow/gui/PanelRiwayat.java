@@ -2,14 +2,17 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Dialog;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -55,6 +58,7 @@ public class PanelRiwayat extends PanelKantin {
     private final JButton tombolReset = Ui.sekunder("Reset");
     private final JButton tombolDetail = Ui.sekunder("Lihat Detail");
     private final JButton tombolEkspor = Ui.sekunder("Ekspor CSV");
+    private final JButton tombolPdf = Ui.sekunder("Ekspor PDF");
     private final JLabel pesanFilter = Ui.pesan();
     private final JLabel labelJumlah = Ui.keterangan(
             "0 transaksi · 0 rincian ditampilkan");
@@ -68,6 +72,10 @@ public class PanelRiwayat extends PanelKantin {
     private final List<BarisRiwayat> barisModel = new ArrayList<>();
     private int idBarangTerakhir = -1;
     private boolean mengekspor;
+    private String cariAktif = "";
+    private String jenisAktif = SEMUA;
+    private LocalDate dariAktif;
+    private LocalDate sampaiAktif;
 
     public PanelRiwayat(KonteksKantin konteks) {
         super(konteks, "Riwayat",
@@ -87,6 +95,13 @@ public class PanelRiwayat extends PanelKantin {
         java.awt.Dimension ukuranEkspor = tombolEkspor.getPreferredSize();
         tombolEkspor.setPreferredSize(new java.awt.Dimension(
                 ukuranEkspor.width, Ui.TINGGI_TOMBOL));
+        tombolPdf.setName("eksporPdf");
+        tombolPdf.setIcon(Ui.ikonAksi("pdf", 16, Ui.TEKS_LEMBUT));
+        tombolPdf.setIconTextGap(8);
+        tombolPdf.setPreferredSize(null);
+        java.awt.Dimension ukuranPdf = tombolPdf.getPreferredSize();
+        tombolPdf.setPreferredSize(new java.awt.Dimension(
+                ukuranPdf.width, Ui.TINGGI_TOMBOL));
         tabel.setName("tabelRiwayat");
         labelJumlah.setName("jumlahRiwayat");
         pesanFilter.setName("pesanFilterRiwayat");
@@ -101,11 +116,13 @@ public class PanelRiwayat extends PanelKantin {
         comboJenis.setPreferredSize(new java.awt.Dimension(180, Ui.TINGGI_INPUT));
         tombolDetail.setEnabled(false);
         tombolEkspor.setEnabled(false);
+        tombolPdf.setEnabled(false);
 
         tombolTerapkan.addActionListener(event -> terapkanFilter());
         tombolReset.addActionListener(event -> resetFilter());
         tombolDetail.addActionListener(event -> tampilkanDetail());
         tombolEkspor.addActionListener(event -> eksporCsv());
+        tombolPdf.addActionListener(event -> eksporPdf());
         fieldCari.addActionListener(event -> terapkanFilter());
         fieldDari.addActionListener(event -> terapkanFilter());
         fieldSampai.addActionListener(event -> terapkanFilter());
@@ -143,7 +160,7 @@ public class PanelRiwayat extends PanelKantin {
         aksi.setOpaque(false);
         aksi.add(tombolTerapkan);
         aksi.add(tombolReset);
-        JPanel isian = Ui.gridResponsif(3, Ui.AMBANG_FORM_SEMPIT,
+        JPanel isian = Ui.gridResponsif(3, Ui.AMBANG_FILTER_RIWAYAT,
                 Ui.field("Cari kode batch atau alasan", fieldCari),
                 Ui.field("Jenis transaksi", comboJenis),
                 Ui.field("Tanggal mulai (yyyy-MM-dd)", fieldDari),
@@ -167,6 +184,7 @@ public class PanelRiwayat extends PanelKantin {
                 java.awt.FlowLayout.RIGHT, 8, 0));
         kanan.setOpaque(false);
         kanan.add(tombolEkspor);
+        kanan.add(tombolPdf);
         kanan.add(tombolDetail);
         kepala.add(kanan, BorderLayout.EAST);
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
@@ -201,9 +219,13 @@ public class PanelRiwayat extends PanelKantin {
             return;
         }
 
-        String cari = fieldCari.getText() == null
-                ? "" : fieldCari.getText().trim().toLowerCase(Locale.ROOT);
-        String jenis = (String) comboJenis.getSelectedItem();
+        cariAktif = fieldCari.getText() == null
+                ? "" : fieldCari.getText().trim();
+        jenisAktif = (String) comboJenis.getSelectedItem();
+        dariAktif = dari;
+        sampaiAktif = sampai;
+        String cari = cariAktif.toLowerCase(Locale.ROOT);
+        String jenis = jenisAktif;
         List<BarisRiwayat> hasil = new ArrayList<>();
         Set<Transaksi> transaksiUnik = new LinkedHashSet<>();
 
@@ -260,6 +282,7 @@ public class PanelRiwayat extends PanelKantin {
 
     private void perbaruiTombolAksi() {
         tombolEkspor.setEnabled(!mengekspor && !barisModel.isEmpty());
+        tombolPdf.setEnabled(!mengekspor && !barisModel.isEmpty());
         tombolDetail.setEnabled(tabel.getSelectedRow() >= 0);
     }
 
@@ -267,24 +290,125 @@ public class PanelRiwayat extends PanelKantin {
         if (mengekspor) {
             return;
         }
-        List<RiwayatCsvExporter.Baris> snapshot = snapshotTampilan();
-        if (snapshot.isEmpty()) {
+        SnapshotTampilan snapshot = snapshotTampilan();
+        if (snapshot.baris().isEmpty()) {
             perbaruiTombolAksi();
             return;
         }
-
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Ekspor Riwayat ke CSV");
-        chooser.setAcceptAllFileFilterUsed(false);
-        chooser.setFileFilter(new FileNameExtensionFilter("CSV (*.csv)", "csv"));
-        chooser.setSelectedFile(new File(namaAwalEkspor()));
-        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+        Path tujuan = pilihTujuanEkspor("Ekspor Riwayat ke CSV", "csv",
+                "CSV (*.csv)", namaAwalEkspor("csv"));
+        if (tujuan == null) {
             return;
         }
-        Path tujuan = pathCsv(chooser.getSelectedFile().toPath());
-        if (Files.isDirectory(tujuan)) {
-            pesanFilter.setText("Pilih nama file CSV, bukan folder tujuan.");
+        mengekspor = true;
+        perbaruiTombolAksi();
+        konteks.tampilkanPesan("Menyimpan " + snapshot.baris().size()
+                + " rincian riwayat ke " + tujuan.getFileName() + "...", true);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                RiwayatCsvExporter.tulis(snapshot.baris(), tujuan);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    konteks.tampilkanPesan("Ekspor CSV berhasil: "
+                            + snapshot.baris().size() + " rincian ke "
+                            + tujuan + ".", true);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    tampilkanGagalEkspor("CSV", exception);
+                } catch (CancellationException exception) {
+                    tampilkanGagalEkspor("CSV", exception);
+                } catch (ExecutionException exception) {
+                    tampilkanGagalEkspor("CSV", exception.getCause());
+                } finally {
+                    mengekspor = false;
+                    perbaruiTombolAksi();
+                }
+            }
+        }.execute();
+    }
+
+    private void eksporPdf() {
+        if (mengekspor) {
             return;
+        }
+        SnapshotTampilan snapshot = snapshotTampilan();
+        if (snapshot.baris().isEmpty()) {
+            perbaruiTombolAksi();
+            return;
+        }
+        Path tujuan = pilihTujuanEkspor("Ekspor Riwayat ke PDF", "pdf",
+                "PDF (*.pdf)", namaAwalEkspor("pdf"));
+        if (tujuan == null) {
+            return;
+        }
+        RiwayatPdfExporter.Info info = new RiwayatPdfExporter.Info(
+                konteks.getBarangAktif().getNama(),
+                konteks.getBarangAktif().getSatuan(),
+                LocalDateTime.now(),
+                snapshot.cari(),
+                snapshot.jenis(),
+                snapshot.mulai(),
+                snapshot.akhir(),
+                snapshot.jumlahTransaksi(),
+                snapshot.baris());
+        mengekspor = true;
+        perbaruiTombolAksi();
+        konteks.tampilkanPesan("Menyimpan " + snapshot.baris().size()
+                + " rincian riwayat ke " + tujuan.getFileName() + "...", true);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                RiwayatPdfExporter.tulis(info, tujuan);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    konteks.tampilkanPesan("Ekspor PDF berhasil: "
+                            + snapshot.baris().size() + " rincian ke "
+                            + tujuan + ".", true);
+                    tawarkanBukaPdf(tujuan, snapshot.baris().size());
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    tampilkanGagalEkspor("PDF", exception);
+                } catch (CancellationException exception) {
+                    tampilkanGagalEkspor("PDF", exception);
+                } catch (ExecutionException exception) {
+                    tampilkanGagalEkspor("PDF", exception.getCause());
+                } finally {
+                    mengekspor = false;
+                    perbaruiTombolAksi();
+                }
+            }
+        }.execute();
+    }
+
+    private Path pilihTujuanEkspor(String judul, String ekstensi,
+            String deskripsiFilter, String namaAwal) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(judul);
+        chooser.setAcceptAllFileFilterUsed(false);
+        chooser.setFileFilter(new FileNameExtensionFilter(
+                deskripsiFilter, ekstensi));
+        chooser.setSelectedFile(new File(namaAwal));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return null;
+        }
+        Path tujuan = pathEkstensi(
+                chooser.getSelectedFile().toPath(), ekstensi);
+        if (Files.isDirectory(tujuan)) {
+            pesanFilter.setText("Pilih nama file "
+                    + ekstensi.toUpperCase(Locale.ROOT)
+                    + ", bukan folder tujuan.");
+            return null;
         }
         if (Files.exists(tujuan)) {
             int jawab = JOptionPane.showConfirmDialog(
@@ -294,50 +418,21 @@ public class PanelRiwayat extends PanelKantin {
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE);
             if (jawab != JOptionPane.YES_OPTION) {
-                return;
-            }
-        }
-
-        mengekspor = true;
-        perbaruiTombolAksi();
-        konteks.tampilkanPesan("Menyimpan " + snapshot.size()
-                + " rincian riwayat ke " + tujuan.getFileName() + "...", true);
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                RiwayatCsvExporter.tulis(snapshot, tujuan);
                 return null;
             }
-
-            @Override
-            protected void done() {
-                try {
-                    get();
-                    konteks.tampilkanPesan("Ekspor CSV berhasil: "
-                            + snapshot.size() + " rincian ke " + tujuan + ".",
-                            true);
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    tampilkanGagalEkspor(exception);
-                } catch (CancellationException exception) {
-                    tampilkanGagalEkspor(exception);
-                } catch (ExecutionException exception) {
-                    tampilkanGagalEkspor(exception.getCause());
-                } finally {
-                    mengekspor = false;
-                    perbaruiTombolAksi();
-                }
-            }
-        }.execute();
+        }
+        return tujuan;
     }
 
-    private List<RiwayatCsvExporter.Baris> snapshotTampilan() {
+    private SnapshotTampilan snapshotTampilan() {
         if (konteks.getBarangAktif() == null) {
-            return List.of();
+            return new SnapshotTampilan(List.of(), 0,
+                    cariAktif, jenisAktif, dariAktif, sampaiAktif);
         }
         String barang = konteks.getBarangAktif().getNama();
         String satuan = konteks.getBarangAktif().getSatuan();
         List<RiwayatCsvExporter.Baris> hasil = new ArrayList<>();
+        Set<Transaksi> unik = new LinkedHashSet<>();
         for (int tampilan = 0; tampilan < tabel.getRowCount(); tampilan++) {
             int modelIndex = tabel.convertRowIndexToModel(tampilan);
             if (modelIndex < 0 || modelIndex >= barisModel.size()) {
@@ -346,6 +441,7 @@ public class PanelRiwayat extends PanelKantin {
             BarisRiwayat baris = barisModel.get(modelIndex);
             Transaksi transaksi = baris.transaksi();
             RincianTransaksi rincian = baris.rincian();
+            unik.add(transaksi);
             hasil.add(new RiwayatCsvExporter.Baris(
                     barang,
                     satuan,
@@ -355,18 +451,19 @@ public class PanelRiwayat extends PanelKantin {
                     rincian.getJumlah(),
                     transaksi.getAlasan() == null ? "" : transaksi.getAlasan()));
         }
-        return List.copyOf(hasil);
+        return new SnapshotTampilan(List.copyOf(hasil), unik.size(),
+                cariAktif, jenisAktif, dariAktif, sampaiAktif);
     }
 
-    private String namaAwalEkspor() {
+    private String namaAwalEkspor(String ekstensi) {
         String nama = sanitasiNamaFile(konteks.getBarangAktif().getNama());
         return "kantinflow-riwayat-" + nama + "-"
-                + LocalDate.now() + ".csv";
+                + LocalDate.now() + "." + ekstensi;
     }
 
     private static String sanitasiNamaFile(String nama) {
         String hasil = nama == null ? "" : nama
-                .replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "-")
+                .replaceAll("[\\/:*?\"<>|\\p{Cntrl}]", "-")
                 .replaceAll("[. ]+$", "")
                 .trim();
         if (hasil.isEmpty()) {
@@ -378,19 +475,70 @@ public class PanelRiwayat extends PanelKantin {
         return hasil.isEmpty() ? "barang" : hasil;
     }
 
-    private Path pathCsv(Path target) {
+    private Path pathEkstensi(Path target, String ekstensi) {
         String nama = target.getFileName().toString();
-        if (!nama.toLowerCase(Locale.ROOT).endsWith(".csv")) {
-            return target.resolveSibling(nama + ".csv");
+        if (!nama.toLowerCase(Locale.ROOT).endsWith("." + ekstensi)) {
+            return target.resolveSibling(nama + "." + ekstensi);
         }
         return target;
     }
 
-    private void tampilkanGagalEkspor(Throwable penyebab) {
+    private void tawarkanBukaPdf(Path file, int jumlah) {
+        Object[] opsi = {"Buka PDF", "Tutup"};
+        int pilihan = JOptionPane.showOptionDialog(
+                this,
+                "PDF berhasil dibuat: " + jumlah + " rincian.\n" + file
+                + "\n\nBuka PDF dengan aplikasi default?",
+                "Ekspor PDF",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                opsi,
+                opsi[1]);
+        if (pilihan == 0) {
+            bukaPdf(file);
+        }
+    }
+
+    private void bukaPdf(Path file) {
+        if (!Desktop.isDesktopSupported()
+                || !Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PDF tersimpan di:\n" + file
+                    + "\n\nAplikasi pembaca PDF tidak tersedia. "
+                    + "Buka file tersebut secara manual.",
+                    "Ekspor PDF",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(file.toFile());
+        } catch (IOException | SecurityException exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PDF tersimpan di:\n" + file
+                    + "\n\nPDF tidak dapat dibuka otomatis: "
+                    + exception.getMessage(),
+                    "Ekspor PDF",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private record SnapshotTampilan(
+            List<RiwayatCsvExporter.Baris> baris,
+            int jumlahTransaksi,
+            String cari,
+            String jenis,
+            LocalDate mulai,
+            LocalDate akhir) {
+    }
+
+    private void tampilkanGagalEkspor(String format, Throwable penyebab) {
         String detail = penyebab == null || penyebab.getMessage() == null
                 || penyebab.getMessage().isBlank()
                         ? "penulisan file gagal" : penyebab.getMessage();
-        konteks.tampilkanPesan("Ekspor CSV gagal: " + detail
+        konteks.tampilkanPesan("Ekspor " + format + " gagal: " + detail
                 + ". File tujuan lama tidak diubah.", false);
     }
 

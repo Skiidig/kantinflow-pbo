@@ -173,6 +173,17 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
   membutuhkan escaping diberi kutip ganda.
 - Penulisan dilakukan ke file sementara di folder tujuan, lalu dipindahkan
   secara atomik; file lama tidak boleh rusak bila penulisan gagal.
+- Tombol **Ekspor PDF** berada di samping Ekspor CSV, memakai ikon `pdf.svg`
+  dan `Ui.sekunder`. Keduanya tetap terjangkau pada 960 × 640.
+- PDF memakai A4 landscape, margin, ringkasan filter, nama barang/satuan,
+  waktu, jumlah transaksi/rincian, tabel dengan header berulang, nomor
+  halaman, dan penjelasan rincian FEFO. Jangan menampilkan saldo hasil
+  penjumlahan kolom Jumlah.
+- PDF memakai Apache PDFBox dan font DejaVu Sans/Bold dari
+  `src/main/resources/kantinflow/fonts/`; lisensi font disertakan di folder
+  tersebut. Jangan memakai data identitas kampus atau logo tak terkonfigurasi.
+- Setelah ekspor PDF berhasil, tampilkan opsi **Buka PDF** dan **Tutup**;
+  jangan membuka otomatis.
 - Saat form transaksi berisi isian dan pengguna mengganti barang melalui
   sidebar atau tabel Barang, tampilkan konfirmasi. Jika pengguna memilih
   batal, kembalikan pilihan dropdown dan pertahankan isian. Jika setuju,

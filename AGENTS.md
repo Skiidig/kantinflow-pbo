@@ -22,14 +22,16 @@
   istilah UI yang sudah ada.
 - Ikon sidebar memakai SVG di `src/main/resources/kantinflow/icons/` melalui
   `Ui.ikonMenu(...)`; jangan memakai path absolut atau simbol teks/emoji.
-- Ekspor Riwayat memakai `RiwayatCsvExporter`; jangan menulis aturan CSV di
-  panel. Pertahankan UTF-8 BOM, CRLF, snapshot urutan view, dan penulisan
-  atomik.
+- Ekspor Riwayat memakai `RiwayatCsvExporter` dan `RiwayatPdfExporter`;
+  jangan menulis aturan CSV/PDF di panel. Pertahankan snapshot urutan view,
+  CSV UTF-8 BOM/CRLF, PDF A4 landscape, font DejaVu, header berulang, nomor
+  halaman, dan penulisan atomik.
 - Setelah mengubah GUI, jalankan `tests/SwingRiwayatHarness.java`,
   `tests/SwingActiveBarangHarness.java`, `tests/SwingEmptyBarangHarness.java`,
-  `tests/CsvExportHarness.java`, dan `tests/SwingExportHarness.java`; salin
-  resource ke `out`, dan uji peluncur dari folder kerja lain bila mengubah
-  `run-gui.cmd`.
+  `tests/CsvExportHarness.java`, `tests/SwingExportHarness.java`,
+  `tests/PdfExportHarness.java`, dan `tests/SwingPdfExportHarness.java`; salin
+  resource termasuk font PDF ke `out`, dan uji peluncur dari folder kerja lain
+  bila mengubah `run-gui.cmd`.
 - Untuk perubahan GUI, jalankan kompilasi, regression
   `tests/RegresiKantinFlow.java`, dan pemeriksaan tujuh halaman pada ukuran
   1366×768 serta 960×640.

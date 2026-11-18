@@ -167,6 +167,13 @@ Membatalkan pemilihan file atau konfirmasi timpa tidak membuat file dan tidak
 dianggap kegagalan. Data stok/riwayat tidak berubah karena ekspor hanya
 membaca.
 
+Untuk ekspor PDF, klik **Ekspor PDF** di samping Ekspor CSV. File awal memakai
+nama `kantinflow-riwayat-<nama-barang>-<tanggal-ekspor>.pdf`. PDF A4 landscape
+memuat ringkasan filter, jumlah transaksi/rincian, tabel dengan header berulang,
+dan nomor halaman. Setelah berhasil, pilih **Buka PDF** bila ingin membukanya;
+aplikasi tidak membuka file secara otomatis. Contoh file uji tersedia di
+`docs/bukti-gui/contoh-riwayat.pdf`.
+
 ## Ringkasan hasil demo
 
 | Pemeriksaan | Hasil |

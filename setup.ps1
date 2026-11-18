@@ -34,6 +34,34 @@ $dependencies = @(
         Jar      = 'jsvg-2.2.0.jar'
         Entry    = 'com/github/weisj/jsvg/SVGDocument.class'
         Url      = 'https://repo1.maven.org/maven2/com/github/weisj/jsvg/2.2.0/jsvg-2.2.0.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'Apache PDFBox'
+        Versi    = '3.0.8'
+        Jar      = 'pdfbox-3.0.8.jar'
+        Entry    = 'org/apache/pdfbox/pdmodel/PDDocument.class'
+        Url      = 'https://repo1.maven.org/maven2/org/apache/pdfbox/pdfbox/3.0.8/pdfbox-3.0.8.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'PDFBox IO'
+        Versi    = '3.0.8'
+        Jar      = 'pdfbox-io-3.0.8.jar'
+        Entry    = 'org/apache/pdfbox/io/RandomAccessRead.class'
+        Url      = 'https://repo1.maven.org/maven2/org/apache/pdfbox/pdfbox-io/3.0.8/pdfbox-io-3.0.8.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'FontBox'
+        Versi    = '3.0.8'
+        Jar      = 'fontbox-3.0.8.jar'
+        Entry    = 'org/apache/fontbox/ttf/TrueTypeFont.class'
+        Url      = 'https://repo1.maven.org/maven2/org/apache/pdfbox/fontbox/3.0.8/fontbox-3.0.8.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'Commons Logging'
+        Versi    = '1.4.0'
+        Jar      = 'commons-logging-1.4.0.jar'
+        Entry    = 'org/apache/commons/logging/Log.class'
+        Url      = 'https://repo1.maven.org/maven2/commons-logging/commons-logging/1.4.0/commons-logging-1.4.0.jar'
     }
 )
 

@@ -3,7 +3,7 @@
 Dokumen ini merangkum kode terbaru setelah pemeriksaan akhir. Fokusnya adalah
 struktur kelas, relasi data, penerapan PBO, penanganan exception, skema SQLite,
 hasil pengujian, dan batas aplikasi. GUI utama adalah Swing + FlatLaf dengan
-tujuh halaman; ikon SVG memakai FlatLaf Extras dan JSVG.
+tujuh halaman; ikon SVG memakai FlatLaf Extras/JSVG, PDF memakai Apache PDFBox 3.0.8 dan font DejaVu Sans.
 
 ## 1. Kelas dan tanggung jawab
 
@@ -32,6 +32,7 @@ tujuh halaman; ikon SVG memakai FlatLaf Extras dan JSVG.
 | `PanelPembuangan` | combo batch, jumlah, tanggal, alasan | `perbarui()` | Pembuangan batch. |
 | `PanelRiwayat` | tabel rincian, filter, detail, ekspor | `perbarui()` | Riwayat dengan pencarian/filter, jumlah transaksi/rincian, dialog detail, konteks barang, dan ekspor CSV. |
 | `RiwayatCsvExporter` | aturan CSV | `tulis()` | UTF-8 BOM, CRLF, escaping, proteksi formula, dan penulisan atomik. |
+| `RiwayatPdfExporter` | aturan PDF | `tulis()` | A4 landscape, PDFBox, wrapping, header berulang, nomor halaman, dan penulisan atomik. |
 | `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, layout responsif, dan pemuatan SVG dari classpath. |
 | `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
 
@@ -198,6 +199,7 @@ SEMUA_REGRESI_LULUS
 | Reopen | Barang aktif Susu tetap aktif setelah jendela ditutup dan dibuka kembali melalui preferensi UI sidecar. |
 | Ekspor CSV | Ekspor tanpa filter 6 rincian, filter FEFO 2, filter batch 1, urutan mengikuti sorting; text koma/kutip/baris baru, formula, BOM, CRLF, dan jumlah benar. |
 | Kegagalan ekspor | Target read-only gagal ditulis, file lama tetap `FILE-LAMA`, dan file sementara dibersihkan. Batal pilih/timpa tidak membuat file atau pesan gagal. |
+| Ekspor PDF | A4 842×595, teks/filter/jumlah benar, DejaVu Sans, 4 halaman uji dengan header berulang dan nomor halaman, baris sangat panjang terpecah tanpa loop. |
 | Ikon SVG | Tujuh menu memuat `FlatSVGIcon` 20×20 dari classpath; ikon aktif berwarna biru dan label teks tetap ada. |
 | Ukuran jendela | Default 1180×720, minimum 960×640; ketujuh halaman dapat dinavigasi pada 1366×768 dan 960×640, dengan scroll dan form adaptif. |
 | Demo lama | Saldo 5, 5, 3, 3 dan riwayat 1, 1, 2, 2. |
@@ -243,13 +245,16 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
 - GUI membutuhkan `flatlaf-3.8.jar`, `flatlaf-extras-3.8.jar`, dan
   `jsvg-2.2.0.jar` di `lib/`; setup menyiapkannya. Menjalankan `java` manual
   tanpa `lib/*` akan gagal memuat tema/ikon.
-- Filter, detail, dan ekspor CSV Riwayat tersedia; belum ada login atau grafik.
+- Filter, detail, ekspor CSV, dan ekspor PDF Riwayat tersedia; belum ada login atau grafik.
 - Barang aktif diingat sebagai preferensi UI sidecar `<database>.ui`; ini
   bukan tabel/skema domain dan tidak mengubah data stok pengguna.
 - Harness GUI ada di `tests/SwingRiwayatHarness.java`,
   `tests/SwingActiveBarangHarness.java`, `tests/SwingEmptyBarangHarness.java`,
-  `tests/CsvExportHarness.java`, dan `tests/SwingExportHarness.java`; semuanya
-  menggunakan database/folder uji terpisah.
+  `tests/CsvExportHarness.java`, `tests/SwingExportHarness.java`,
+  `tests/PdfExportHarness.java`, dan `tests/SwingPdfExportHarness.java`;
+  semuanya menggunakan database/folder uji terpisah.
+- Ekspor PDF memakai Apache PDFBox 3.0.8 (Apache-2.0) dan font DejaVu Sans
+  (lisensi di `src/main/resources/kantinflow/fonts/LICENSE-DejaVu.txt`).
 - Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
   tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
   tersebut agar tetap kompatibel dengan JDK lain.

@@ -50,13 +50,17 @@ if errorlevel 1 (
     echo         %FLATLAF_JAR%
     echo         %ROOT%lib\flatlaf-extras-3.8.jar
     echo         %ROOT%lib\jsvg-2.2.0.jar
+    echo         %ROOT%lib\pdfbox-3.0.8.jar
+    echo         %ROOT%lib\pdfbox-io-3.0.8.jar
+    echo         %ROOT%lib\fontbox-3.0.8.jar
+    echo         %ROOT%lib\commons-logging-1.4.0.jar
     echo.
     echo Jalankan setup.ps1 terlebih dahulu, misalnya:
     echo   powershell -ExecutionPolicy Bypass -File "%~dp0setup.ps1"
     goto :gagal
 )
 
-echo [OK] Java, javac, SQLite JDBC, FlatLaf, dan renderer SVG tersedia.
+echo [OK] Java, javac, SQLite JDBC, FlatLaf, renderer SVG, dan PDFBox tersedia.
 if defined KANTINFLOW_DB (
     echo      Database uji: %KANTINFLOW_DB%
 ) else (

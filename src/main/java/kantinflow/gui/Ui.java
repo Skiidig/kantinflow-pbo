@@ -67,6 +67,7 @@ final class Ui {
     static final int LEBAR_MINIMUM = 960;
     static final int TINGGI_MINIMUM = 640;
     static final int AMBANG_FORM_SEMPIT = 760;
+    static final int AMBANG_FILTER_RIWAYAT = 600;
     static final int LEBAR_FORM_KELUAR = 600;
     static final int LEBAR_KOMBO_BARANG = 230;
     static final int TINGGI_FORM_MANUAL = 260;

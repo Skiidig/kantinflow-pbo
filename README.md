@@ -26,11 +26,13 @@ Berkas yang paling menentukan perilaku aplikasi:
 - `tests/SwingActiveBarangHarness.java` — harness pemilih sidebar, konfirmasi form, konteks barang, dan reopen.
 - `tests/SwingEmptyBarangHarness.java` — harness kondisi tanpa barang dan penambahan barang pertama.
 - `tests/CsvExportHarness.java` — pemeriksaan format CSV dan kegagalan penulisan.
-- `tests/SwingExportHarness.java` — harness tombol ekspor, snapshot filter/sort, overwrite, dan pembatalan.
+- `tests/SwingExportHarness.java` — harness tombol ekspor CSV, snapshot filter/sort, overwrite, dan pembatalan.
+- `tests/PdfExportHarness.java` — pemeriksaan PDF, header berulang, halaman banyak, dan render halaman.
+- `tests/SwingPdfExportHarness.java` — harness tombol Ekspor PDF, chooser, overwrite, dan opsi Buka PDF.
 
 ## Persiapan lokal
 
-Pastikan `java -version` dan `javac -version` berjalan. Proyek diuji dengan JDK 25.0.5 dan memakai SQLite JDBC 3.54.1.0, FlatLaf 3.8, FlatLaf Extras 3.8, serta JSVG 2.2.0 untuk renderer ikon SVG.
+Pastikan `java -version` dan `javac -version` berjalan. Proyek diuji dengan JDK 25.0.5 dan memakai SQLite JDBC 3.54.1.0, FlatLaf 3.8, FlatLaf Extras 3.8, JSVG 2.2.0, serta Apache PDFBox 3.0.8 (Apache-2.0) untuk ekspor PDF. Font PDF memakai DejaVu Sans (lisensi disertakan di `src/main/resources/kantinflow/fonts/LICENSE-DejaVu.txt`).
 
 ### Menjalankan GUI sekali klik di Windows
 
@@ -46,11 +48,11 @@ Persiapan awal untuk teman kelompok:
 
 `run-gui.cmd` selalu bekerja dari folder tempat skrip berada, jadi tetap dapat dijalankan dari folder kerja lain atau lewat shortcut. Jika Java, `javac`, atau dependensi belum siap, skrip menampilkan petunjuk dan tidak melanjutkan kompilasi. Jika kompilasi atau peluncuran gagal, pesan kesalahan ditampilkan sebelum jendela ditutup.
 
-`setup.ps1` menyiapkan SQLite JDBC `3.54.1.0`, FlatLaf `3.8`, FlatLaf Extras `3.8`, dan JSVG `2.2.0` dari Maven Central. Jika JAR di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai dependensi siap pakai. Jika jalur HTTPS PowerShell gagal, skrip mencoba unduhan melalui Java sebelum melaporkan kegagalan.
+`setup.ps1` menyiapkan SQLite JDBC `3.54.1.0`, FlatLaf `3.8`, FlatLaf Extras `3.8`, JSVG `2.2.0`, Apache PDFBox `3.0.8`, PDFBox IO `3.0.8`, FontBox `3.0.8`, dan Commons Logging `1.4.0` dari Maven Central. Jika JAR di `lib/` sudah ada dan valid, file itu dipakai tanpa mengunduh ulang. Unduhan baru ditulis ke file sementara, diperiksa isinya, lalu dipindahkan ke nama akhir; file parsial atau rusak tidak dianggap sebagai dependensi siap pakai. Jika jalur HTTPS PowerShell gagal, skrip mencoba unduhan melalui Java sebelum melaporkan kegagalan.
 
 ### Memasang dependensi secara manual
 
-Cara termudah adalah `setup.ps1` di atas. Jika ingin manual, unduh keempat JAR ke folder `lib`:
+Cara termudah adalah `setup.ps1` di atas. Jika ingin manual, unduh kedelapan JAR ke folder `lib`:
 
 ```powershell
 New-Item -ItemType Directory -Force lib | Out-Null
@@ -66,9 +68,21 @@ Invoke-WebRequest `
 Invoke-WebRequest `
   -Uri "https://repo1.maven.org/maven2/com/github/weisj/jsvg/2.2.0/jsvg-2.2.0.jar" `
   -OutFile "lib/jsvg-2.2.0.jar"
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/org/apache/pdfbox/pdfbox/3.0.8/pdfbox-3.0.8.jar" `
+  -OutFile "lib/pdfbox-3.0.8.jar"
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/org/apache/pdfbox/pdfbox-io/3.0.8/pdfbox-io-3.0.8.jar" `
+  -OutFile "lib/pdfbox-io-3.0.8.jar"
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/org/apache/pdfbox/fontbox/3.0.8/fontbox-3.0.8.jar" `
+  -OutFile "lib/fontbox-3.0.8.jar"
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/commons-logging/commons-logging/1.4.0/commons-logging-1.4.0.jar" `
+  -OutFile "lib/commons-logging-1.4.0.jar"
 ```
 
-Alternatif: salin manual keempat JAR ke `lib/`. Seluruh kode Java berada di `src/main/java/kantinflow/`, dengan `kantinflow.Main` sebagai titik masuk. Ikon SVG berada di `src/main/resources/kantinflow/icons/`; `run-gui.cmd` menyalinnya ke `out/` agar terbaca dari classpath.
+Alternatif: salin manual kedelapan JAR ke `lib/`. Seluruh kode Java berada di `src/main/java/kantinflow/`, dengan `kantinflow.Main` sebagai titik masuk. Ikon SVG berada di `src/main/resources/kantinflow/icons/` dan font PDF berada di `src/main/resources/kantinflow/fonts/`; `run-gui.cmd` menyalin resource ke `out/` agar terbaca dari classpath.
 
 ### Kompilasi
 
@@ -91,11 +105,11 @@ Cara praktis di Windows adalah `run-gui.cmd` seperti di atas. Untuk menjalankan 
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar berisi brand KantinFlow, pemilih **Barang aktif** tepat di bawah brand, navigasi tujuh halaman berikon, dan footer status. Header hanya berisi judul serta deskripsi halaman. Dropdown mengikuti lebar sidebar, memakai tooltip nama lengkap, dan sidebar dapat digulir pada jendela pendek. Halaman **Ringkasan** menampilkan tanggal acuan stok layak, kartu stok fisik/layak/minimum, dan status kebutuhan restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dengan satuan di dekat jumlah dan daftar batch. **Stok Keluar** memisahkan mode Manual dan FEFO; sisa batch terpilih tampil dekat input jumlah. **Pemantauan** menampilkan tanggal, ringkasan stok, dan tabel status kedaluwarsa. **Pembuangan** menampilkan form dan ringkasan tindakan dengan tombol bahaya. **Riwayat** menampilkan tanggal, jenis, batch, jumlah, dan alasan, serta tombol **Ekspor CSV** untuk menyimpan rincian yang sedang tampil. Ekspor mengikuti filter dan urutan sorting, memakai UTF-8 BOM, dan menulis rincian dengan aman ke file tujuan.
+GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar berisi brand KantinFlow, pemilih **Barang aktif** tepat di bawah brand, navigasi tujuh halaman berikon, dan footer status. Header hanya berisi judul serta deskripsi halaman. Dropdown mengikuti lebar sidebar, memakai tooltip nama lengkap, dan sidebar dapat digulir pada jendela pendek. Halaman **Ringkasan** menampilkan tanggal acuan stok layak, kartu stok fisik/layak/minimum, dan status kebutuhan restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dengan satuan di dekat jumlah dan daftar batch. **Stok Keluar** memisahkan mode Manual dan FEFO; sisa batch terpilih tampil dekat input jumlah. **Pemantauan** menampilkan tanggal, ringkasan stok, dan tabel status kedaluwarsa. **Pembuangan** menampilkan form dan ringkasan tindakan dengan tombol bahaya. **Riwayat** menampilkan tanggal, jenis, batch, jumlah, dan alasan, serta tombol **Ekspor CSV** dan **Ekspor PDF** untuk menyimpan rincian yang sedang tampil. CSV memakai UTF-8 BOM; PDF memakai A4 landscape, header tabel berulang, nomor halaman, font DejaVu Sans yang tertanam, dan ringkasan filter. Keduanya mengikuti filter dan urutan sorting serta menulis ke file sementara sebelum dipindahkan.
 
 Tema memakai FlatLaf Light dengan latar `#F5F6F8`, kartu putih, aksen biru `#014BAA`, border tipis, tabel dengan angka rata kanan, serta status teks berwarna. Halaman memakai scroll dan layout responsif; jendela default 1180×720 dan minimum 960×640. Mengganti barang memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
 
-Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Riwayat](docs/bukti-gui/gui-flatlaf-riwayat.png), [Riwayat dengan filter](docs/bukti-gui/gui-flatlaf-riwayat-filter.png), [Detail FEFO](docs/bukti-gui/gui-flatlaf-riwayat-detail-fefo.png), [Ekspor CSV berhasil](docs/bukti-gui/gui-flatlaf-ekspor-csv.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
+Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Riwayat](docs/bukti-gui/gui-flatlaf-riwayat.png), [Riwayat dengan filter](docs/bukti-gui/gui-flatlaf-riwayat-filter.png), [Detail FEFO](docs/bukti-gui/gui-flatlaf-riwayat-detail-fefo.png), [Ekspor CSV berhasil](docs/bukti-gui/gui-flatlaf-ekspor-csv.png), [Ekspor PDF berhasil](docs/bukti-gui/gui-flatlaf-ekspor-pdf.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png). Contoh laporan PDF uji: [contoh-riwayat.pdf](docs/bukti-gui/contoh-riwayat.pdf).
 
 ### Database lokal setiap komputer
 
@@ -178,13 +192,15 @@ java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" RegresiKantinF
 Harness GUI menggunakan database uji terpisah dan dapat dijalankan dengan:
 
 ```powershell
-javac -cp "out;lib/*" -d tests-out tests/SwingRiwayatHarness.java tests/SwingActiveBarangHarness.java tests/SwingEmptyBarangHarness.java tests/CsvExportHarness.java tests/SwingExportHarness.java
-java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingExportHarness
+javac -cp "out;lib/*" -d tests-out tests/SwingRiwayatHarness.java tests/SwingActiveBarangHarness.java tests/SwingEmptyBarangHarness.java tests/CsvExportHarness.java tests/SwingExportHarness.java tests/PdfExportHarness.java tests/SwingPdfExportHarness.java
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" CsvExportHarness
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingExportHarness
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" PdfExportHarness
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingPdfExportHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingRiwayatHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingActiveBarangHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingEmptyBarangHarness
 ```
 
 Resource ikon disalin oleh `run-gui.cmd`. Jika mengompilasi manual, salin juga
-`src/main/resources/*` ke `out/` sebelum menjalankan GUI.
+`src/main/resources/*` ke `out/` sebelum menjalankan GUI. Font DejaVu dan lisensinya ikut tersalin ke `out/kantinflow/fonts/`.
