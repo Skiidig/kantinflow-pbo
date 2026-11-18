@@ -3,7 +3,9 @@
 Dokumen ini merangkum kode terbaru setelah pemeriksaan akhir. Fokusnya adalah
 struktur kelas, relasi data, penerapan PBO, penanganan exception, skema SQLite,
 hasil pengujian, dan batas aplikasi. GUI utama adalah Swing + FlatLaf dengan
-tujuh halaman; ikon SVG memakai FlatLaf Extras/JSVG, PDF memakai Apache PDFBox 3.0.8 dan font DejaVu Sans.
+tujuh halaman; dashboard Ringkasan memakai komponen visual reusable, XChart,
+FlatLaf Inter, dan tema terang/gelap. Ikon SVG memakai FlatLaf Extras/JSVG,
+PDF memakai Apache PDFBox 3.0.8 dan font DejaVu Sans.
 
 ## 1. Kelas dan tanggung jawab
 
@@ -22,10 +24,10 @@ tujuh halaman; ikon SVG memakai FlatLaf Extras/JSVG, PDF memakai Apache PDFBox 3
 | `PenyimpananSQLite` | `koneksi` | `muatSemuaBarang()`, `muatBarang(id)`, `simpanBarang()`, `muatRiwayat()`, `simpanTransaksi()`, `simpanStokMinimum()` | Semua akses JDBC dan transaksi SQLite. |
 | `MenuKonsol` | `barang`, `daftarBarang`, `riwayat`, `scanner`, `penyimpanan` | `jalankan()`, aksi menu | Antarmuka konsol dan barang aktif. |
 | `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar dengan pemilih barang, konfirmasi form, CardLayout, status, dan koordinasi panel. |
-| `KonteksKantin` | kontrak `Barang`, `Transaksi`, tanggal pemantauan | getter, simpan, tambah, ganti, pesan | Batas antara panel halaman dan shell. |
+| `KonteksKantin` | kontrak `Barang`, `Transaksi`, tanggal pemantauan | getter, simpan, tambah, ganti, simpan minimum target, pesan | Batas antara panel halaman dan shell; minimum dapat ditujukan ke barang terpilih tanpa mengganti barang aktif. |
 | `PanelKantin` | `konteks` | `perbarui()` | Dasar halaman dengan header konsisten. |
-| `PanelRingkasan` | label stok/status, field tanggal | `perbarui()` | Ringkasan fisik, layak, minimum, status restok. |
-| `PanelBarang` | tabel barang, form tambah, field minimum | `perbarui()` | Daftar barang, tambah barang, minimum. |
+| `PanelRingkasan` | empat StatCard, tabel semua barang, peringatan, grafik | `perbarui()` | Dashboard stok, peringatan kedaluwarsa, badge status, dan grafik XChart. |
+| `PanelBarang` | pencarian, tabel empat kolom, dialog tambah/minimum, aksi | `perbarui()`, dialog, filter/sort | Daftar barang, pemilihan baris, penanda aktif, validasi dialog, dan minimum barang terpilih. |
 | `PanelStokMasuk` | field penerimaan, tabel batch | `perbarui()` | Penerimaan dan daftar batch. |
 | `PanelStokKeluar` | combo batch, field manual/FEFO | `perbarui()` | Pengeluaran manual dan FEFO. |
 | `PanelPemantauan` | tanggal, tabel status | `perbarui()` | Pemantauan kedaluwarsa. |
@@ -33,8 +35,13 @@ tujuh halaman; ikon SVG memakai FlatLaf Extras/JSVG, PDF memakai Apache PDFBox 3
 | `PanelRiwayat` | tabel rincian, filter, detail, ekspor | `perbarui()` | Riwayat dengan pencarian/filter, jumlah transaksi/rincian, dialog detail, konteks barang, dan ekspor CSV. |
 | `RiwayatCsvExporter` | aturan CSV | `tulis()` | UTF-8 BOM, CRLF, escaping, proteksi formula, dan penulisan atomik. |
 | `RiwayatPdfExporter` | aturan PDF | `tulis()` | A4 landscape, PDFBox, wrapping, header berulang, nomor halaman, dan penulisan atomik. |
-| `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, layout responsif, dan pemuatan SVG dari classpath. |
-| `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
+| `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, layout responsif, metrik font/skala, dialog, dan pemuatan SVG dari classpath. |
+| `Tema` | preferensi gelap, custom defaults, palet | `pasang()`, `terapkan()` | Tema terang/gelap FlatLaf, Inter, dan persistensi preferensi. |
+| `CardPanel`/`StatCard` | arc, padding, ikon/angka/status | konstruktor | Kartu dashboard reusable. |
+| `Badge`/`BadgeRenderer` | teks, warna semantik | `status()`, renderer tabel | Pill status/jenis konsisten. |
+| `EmptyState` | ikon, judul, deskripsi, aksi | konstruktor | Empty state tabel/kartu. |
+| `Notifikasi` | toast singleton | sukses/gagal/peringatan | Notifikasi menggantikan teks footer utama. |
+| `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang tema FlatLaf terang/gelap. |
 
 ## 2. Relasi aktual
 
@@ -193,8 +200,14 @@ SEMUA_REGRESI_LULUS
 | GUI FlatLaf baru | Tambah Roti/minimum 5; terima ROTI-A 5 dan ROTI-B 7; manual 2; manual 4 ditolak; FEFO 8 menghasilkan A=0/B=2; batch ROTI-EXP; pemantauan 2 batch; buang 1; 7 rincian riwayat; reopen saldo 3/minimum 5/7 rincian. |
 | Pencarian/filter Riwayat | Pencarian `rusak`/`ROTI-exp` tidak membedakan huruf besar-kecil; filter jenis, tanggal inklusif, gabungan, rentang tidak valid, empty state, reset, dan pembersihan saat pindah barang lulus. |
 | Detail FEFO | FEFO A=5/B=7, keluar 8: satu transaksi, dua rincian A=5/B=3; memilih baris A atau B membuka dialog dua rincian; setelah sorting dan filter batch tetap lengkap. |
-| Pemilih sidebar | Satu dropdown barang aktif berada di sidebar; nama panjang memakai tooltip dan lebar 207 px; konteks lima halaman diperbarui saat barang berubah. |
+| Pemilih sidebar | Satu dropdown barang aktif berada di sidebar; nama panjang memakai tooltip; konteks lima halaman diperbarui saat barang berubah. |
 | Konfirmasi barang | Form Stok Masuk berisi kode; konfirmasi batal mempertahankan Roti dan isian; konfirmasi setuju memindahkan ke Susu dan membersihkan form. Reload setelah simpan tidak memunculkan konfirmasi. |
+| Halaman Barang | Pencarian tidak membedakan huruf besar/kecil; klik baris tidak mengganti aktif; aksi setelah filter/sort mengenai barang yang benar; empty state dan penanda aktif terlihat. |
+| Dialog Tambah Barang | Susu Kotak/kotak, Ompreng/buah, dan Lainnya/porsi ditambahkan; satuan `20` ditolak; Batal tidak menambah; barang baru saldo 0 dan tanpa transaksi. |
+| Dialog Minimum | 0, 5, dan input berspasi diterima; kosong/abc/-1/1.5/di luar int ditolak; error hilang setelah diperbaiki menjadi 0; minimum barang nonaktif tidak mengganti barang aktif; nilai bertahan setelah reopen. |
+| Layout/skala Barang | Kontrol dan dialog lulus pada 1366×768 dan 960×640; simulasi HiDPI 125% dan 150% dengan `-Dsun.java2d.uiScale` tidak memotong label atau melampaui area layar. |
+| Dashboard visual | 4 StatCard, grafik XChart, peringatan, tabel semua barang dengan badge, EmptyState, hover, dan toast. |
+| Tema | Light/Dark screenshot pada 1366×768 dan 1000×650; preferensi gelap tertulis dan dipulihkan setelah reopen. |
 | Tanpa barang | Database tanpa barang membuka halaman Barang dengan dropdown nonaktif dan pesan sidebar; barang pertama dapat ditambahkan dan langsung menjadi aktif. |
 | Reopen | Barang aktif Susu tetap aktif setelah jendela ditutup dan dibuka kembali melalui preferensi UI sidecar. |
 | Ekspor CSV | Ekspor tanpa filter 6 rincian, filter FEFO 2, filter batch 1, urutan mengikuti sorting; text koma/kutip/baris baru, formula, BOM, CRLF, dan jumlah benar. |
@@ -245,7 +258,7 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
 - GUI membutuhkan `flatlaf-3.8.jar`, `flatlaf-extras-3.8.jar`, dan
   `jsvg-2.2.0.jar` di `lib/`; setup menyiapkannya. Menjalankan `java` manual
   tanpa `lib/*` akan gagal memuat tema/ikon.
-- Filter, detail, ekspor CSV, dan ekspor PDF Riwayat tersedia; belum ada login atau grafik.
+- Filter, detail, ekspor CSV/PDF, dashboard XChart, dan tema gelap tersedia; belum ada login.
 - Barang aktif diingat sebagai preferensi UI sidecar `<database>.ui`; ini
   bukan tabel/skema domain dan tidak mengubah data stok pengguna.
 - Harness GUI ada di `tests/SwingRiwayatHarness.java`,
@@ -253,8 +266,13 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
   `tests/CsvExportHarness.java`, `tests/SwingExportHarness.java`,
   `tests/PdfExportHarness.java`, dan `tests/SwingPdfExportHarness.java`;
   semuanya menggunakan database/folder uji terpisah.
+- Dashboard memakai FlatLaf Inter Fonts 3.19, XChart 3.8.8, dan Swing Toast
+  Notifications 1.0.4 (JAR lokal).
 - Ekspor PDF memakai Apache PDFBox 3.0.8 (Apache-2.0) dan font DejaVu Sans
   (lisensi di `src/main/resources/kantinflow/fonts/LICENSE-DejaVu.txt`).
+- Barang belum memiliki API ubah nama/satuan; halaman Barang sengaja tidak
+  menampilkan tombol Edit. Perubahan identitas harus dirancang terpisah agar
+  batch/riwayat lama tetap konsisten.
 - Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
   tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
   tersebut agar tetap kompatibel dengan JDK lain.

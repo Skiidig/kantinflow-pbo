@@ -36,6 +36,27 @@ $dependencies = @(
         Url      = 'https://repo1.maven.org/maven2/com/github/weisj/jsvg/2.2.0/jsvg-2.2.0.jar'
     },
     [pscustomobject]@{
+        Nama     = 'FlatLaf Inter Fonts'
+        Versi    = '3.19'
+        Jar      = 'flatlaf-fonts-inter-3.19.jar'
+        Entry    = 'com/formdev/flatlaf/fonts/inter/FlatInterFont.class'
+        Url      = 'https://repo1.maven.org/maven2/com/formdev/flatlaf-fonts-inter/3.19/flatlaf-fonts-inter-3.19.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'Swing Toast Notifications'
+        Versi    = '1.0.4'
+        Jar      = 'swing-toast-notifications-1.0.4.jar'
+        Entry    = 'raven/toast/Notifications.class'
+        Url      = 'https://raw.githubusercontent.com/DJ-Raven/swing-toast-notifications/main/library/swing-toast-notifications-1.0.4.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'XChart'
+        Versi    = '3.8.8'
+        Jar      = 'xchart-3.8.8.jar'
+        Entry    = 'org/knowm/xchart/XChartPanel.class'
+        Url      = 'https://repo1.maven.org/maven2/org/knowm/xchart/xchart/3.8.8/xchart-3.8.8.jar'
+    },
+    [pscustomobject]@{
         Nama     = 'Apache PDFBox'
         Versi    = '3.0.8'
         Jar      = 'pdfbox-3.0.8.jar'

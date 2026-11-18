@@ -29,13 +29,16 @@ public class PanelStokMasuk extends PanelKantin {
     private final JButton tombolSimpan = Ui.utama("Simpan Penerimaan");
     private final JLabel satuanJumlah = new JLabel("satuan");
     private final JLabel pesanValidasi = Ui.pesan();
-    private final JLabel kosong = Ui.kosong("Belum ada batch untuk barang ini.");
+    private final EmptyState kosong = new EmptyState(
+            "package", "Belum ada batch",
+            "Batch baru akan muncul di sini setelah penerimaan pertama.");
     private final JLabel infoBarang = Ui.keterangan(" ");
     private int idBarangTerakhir = -1;
     private String tanggalMasukAwal;
     private String tanggalKedaluwarsaAwal;
     private final DefaultTableModel model = Ui.model(
-            "Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa");
+            "Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa",
+            "Status");
     private final JTable tabel = Ui.tabel(model);
 
     public PanelStokMasuk(KonteksKantin konteks) {
@@ -47,9 +50,13 @@ public class PanelStokMasuk extends PanelKantin {
         fieldTanggalMasuk.setName("tanggalMasuk");
         fieldTanggalKedaluwarsa.setName("tanggalKedaluwarsa");
         tombolSimpan.setName("tombolSimpan");
+        tombolSimpan.setIcon(Ui.ikonAksi("stock-in", 16, java.awt.Color.WHITE));
+        tombolSimpan.setIconTextGap(7);
         tabel.setName("tabelBatch");
         tombolSimpan.addActionListener(event -> simpan());
+        kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
+        Ui.pasangBadge(tabel, 4);
         aturTanggalAwal();
         bangunIsi();
     }
@@ -66,7 +73,7 @@ public class PanelStokMasuk extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel form = Ui.kartu("Form Penerimaan");
+        JPanel form = Ui.kartu("Form Penerimaan", "stock-in");
         JPanel jumlahBaris = new JPanel(new BorderLayout(8, 0));
         jumlahBaris.setOpaque(false);
         jumlahBaris.add(fieldJumlah, BorderLayout.CENTER);
@@ -98,7 +105,7 @@ public class PanelStokMasuk extends PanelKantin {
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
 
-        JPanel daftar = Ui.kartu("Batch Barang Aktif");
+        JPanel daftar = Ui.kartu("Batch Barang Aktif", "package");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
         daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_STOK_MASUK),
@@ -179,7 +186,8 @@ public class PanelStokMasuk extends PanelKantin {
                 batch.getSisaJumlah() + " "
                 + konteks.getBarangAktif().getSatuan(),
                 batch.getTanggalMasuk().toString(),
-                batch.getTanggalKedaluwarsa().toString()
+                batch.getTanggalKedaluwarsa().toString(),
+                batch.statusPada(LocalDate.now()).getLabel()
             });
         }
         kosong.setVisible(model.getRowCount() == 0);

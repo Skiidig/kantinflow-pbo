@@ -37,8 +37,9 @@ public class PanelPemantauan extends PanelKantin {
     private final JTable tabel = Ui.tabel(model);
     private final JLabel labelInfo = Ui.keterangan(
             "Belum ada tanggal pemeriksaan.");
-    private final JLabel kosong = Ui.kosong(
-            "Belum ada batch bersisa yang dapat dipantau.");
+    private final EmptyState kosong = new EmptyState(
+            "alert-triangle", "Belum ada batch bersisa",
+            "Batch yang dapat dipantau akan muncul di sini.");
     private final JLabel infoBarang = Ui.keterangan(" ");
     private int idBarangTerakhir = -1;
 
@@ -49,32 +50,11 @@ public class PanelPemantauan extends PanelKantin {
         infoBarang.setName("konteksPemantauan");
         tombolPeriksa.setName("tombolPeriksa");
         tabel.setName("tabelPemantauan");
+        kosong.setName("kosongPemantauan");
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 1);
-        tabel.getColumnModel().getColumn(3).setCellRenderer(
-                new DefaultTableCellRenderer() {
-                    @Override
-                    public java.awt.Component getTableCellRendererComponent(
-                            JTable table, Object value, boolean isSelected,
-                            boolean hasFocus, int row, int column) {
-                        java.awt.Component c = super.getTableCellRendererComponent(
-                                table, value, isSelected, hasFocus, row, column);
-                        setHorizontalAlignment(SwingConstants.LEFT);
-                        setBorder(new EmptyBorder(0, Ui.PADDING_SEL_TABEL, 0, Ui.PADDING_SEL_TABEL));
-                        if (!isSelected) {
-                            String status = value == null ? "" : value.toString();
-                            if (StatusKedaluwarsa.KEDALUWARSA.getLabel().equals(status)) {
-                                setForeground(Ui.MERAH);
-                            } else if (StatusKedaluwarsa.SEGERA_KEDALUWARSA.getLabel()
-                                    .equals(status)) {
-                                setForeground(Ui.KUNING);
-                            } else {
-                                setForeground(Ui.HIJAU);
-                            }
-                        }
-                        return c;
-                    }
-                });
+        Ui.pasangBadge(tabel, 3);
+
         bangunIsi();
     }
 
@@ -82,7 +62,7 @@ public class PanelPemantauan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel kontrol = Ui.kartu("Tanggal pemeriksaan");
+        JPanel kontrol = Ui.kartu("Tanggal pemeriksaan", "monitor");
         JPanel baris = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         baris.setOpaque(false);
         baris.add(fieldTanggal);
@@ -98,7 +78,7 @@ public class PanelPemantauan extends PanelKantin {
         kontrolIsi.add(labelInfo, BorderLayout.SOUTH);
         kontrol.add(kontrolIsi, BorderLayout.CENTER);
 
-        JPanel nilai = Ui.kartu("Ringkasan stok");
+        JPanel nilai = Ui.kartu("Ringkasan stok", "chart-column");
         JPanel nilaiBaris = new JPanel(new GridLayout(1, 4, 16, 0));
         nilaiBaris.setOpaque(false);
         nilaiBaris.add(nilaiKecil("Stok fisik", labelFisik,
@@ -111,7 +91,7 @@ public class PanelPemantauan extends PanelKantin {
                 "Perlu restok / Cukup"));
         nilai.add(nilaiBaris, BorderLayout.CENTER);
 
-        JPanel daftar = Ui.kartu("Status Batch");
+        JPanel daftar = Ui.kartu("Status Batch", "alert-triangle");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
         daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN),

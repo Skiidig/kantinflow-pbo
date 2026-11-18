@@ -62,7 +62,8 @@ public class PanelRiwayat extends PanelKantin {
     private final JLabel pesanFilter = Ui.pesan();
     private final JLabel labelJumlah = Ui.keterangan(
             "0 transaksi · 0 rincian ditampilkan");
-    private final JLabel kosong = Ui.kosong(
+    private final EmptyState kosong = new EmptyState(
+            "history", "Belum ada riwayat",
             "Belum ada transaksi untuk barang aktif ini.");
     private final JLabel infoBarang = Ui.keterangan(" ");
     private final DefaultTableModel model = Ui.model(
@@ -91,17 +92,9 @@ public class PanelRiwayat extends PanelKantin {
         tombolEkspor.setName("eksporRiwayat");
         tombolEkspor.setIcon(Ui.ikonAksi("export", 16, Ui.TEKS_LEMBUT));
         tombolEkspor.setIconTextGap(8);
-        tombolEkspor.setPreferredSize(null);
-        java.awt.Dimension ukuranEkspor = tombolEkspor.getPreferredSize();
-        tombolEkspor.setPreferredSize(new java.awt.Dimension(
-                ukuranEkspor.width, Ui.TINGGI_TOMBOL));
         tombolPdf.setName("eksporPdf");
         tombolPdf.setIcon(Ui.ikonAksi("pdf", 16, Ui.TEKS_LEMBUT));
         tombolPdf.setIconTextGap(8);
-        tombolPdf.setPreferredSize(null);
-        java.awt.Dimension ukuranPdf = tombolPdf.getPreferredSize();
-        tombolPdf.setPreferredSize(new java.awt.Dimension(
-                ukuranPdf.width, Ui.TINGGI_TOMBOL));
         tabel.setName("tabelRiwayat");
         labelJumlah.setName("jumlahRiwayat");
         pesanFilter.setName("pesanFilterRiwayat");
@@ -113,7 +106,8 @@ public class PanelRiwayat extends PanelKantin {
         comboJenis.addItem(FEFO);
         comboJenis.addItem("Pembuangan");
         comboJenis.setSelectedIndex(0);
-        comboJenis.setPreferredSize(new java.awt.Dimension(180, Ui.TINGGI_INPUT));
+        comboJenis.setPreferredSize(new java.awt.Dimension(
+                Ui.skala(180), comboJenis.getPreferredSize().height));
         tombolDetail.setEnabled(false);
         tombolEkspor.setEnabled(false);
         tombolPdf.setEnabled(false);
@@ -142,6 +136,7 @@ public class PanelRiwayat extends PanelKantin {
             }
         });
         Ui.rataKanan(tabel, 3);
+        Ui.pasangBadge(tabel, 1);
         tabel.getColumnModel().getColumn(0).setPreferredWidth(90);
         tabel.getColumnModel().getColumn(1).setPreferredWidth(120);
         tabel.getColumnModel().getColumn(2).setPreferredWidth(95);
@@ -154,7 +149,7 @@ public class PanelRiwayat extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 12));
         isi.setOpaque(false);
 
-        JPanel filter = Ui.kartu("Filter riwayat");
+        JPanel filter = Ui.kartu("Filter riwayat", "search");
         JPanel aksi = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 8, 0));
         aksi.setOpaque(false);
@@ -272,7 +267,9 @@ public class PanelRiwayat extends PanelKantin {
                 + hasil.size() + " rincian ditampilkan");
         boolean adaRiwayat = !konteks.getRiwayat().isEmpty();
         if (hasil.isEmpty()) {
-            kosong.setText(adaRiwayat
+            kosong.setTitle(adaRiwayat
+                    ? "Tidak ada hasil filter" : "Belum ada riwayat");
+            kosong.setDescription(adaRiwayat
                     ? "Tidak ada riwayat yang cocok dengan filter."
                     : "Belum ada transaksi untuk barang aktif ini.");
         }

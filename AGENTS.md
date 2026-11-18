@@ -26,14 +26,22 @@
   jangan menulis aturan CSV/PDF di panel. Pertahankan snapshot urutan view,
   CSV UTF-8 BOM/CRLF, PDF A4 landscape, font DejaVu, header berulang, nomor
   halaman, dan penulisan atomik.
+- Halaman Barang memakai `SwingBarangHarness`: klik baris hanya memilih,
+  aksi memakai view→model, dan dialog tambah/minimum tidak boleh mengganti
+  barang aktif secara diam-diam.
 - Setelah mengubah GUI, jalankan `tests/SwingRiwayatHarness.java`,
   `tests/SwingActiveBarangHarness.java`, `tests/SwingEmptyBarangHarness.java`,
-  `tests/CsvExportHarness.java`, `tests/SwingExportHarness.java`,
-  `tests/PdfExportHarness.java`, dan `tests/SwingPdfExportHarness.java`; salin
+  `tests/SwingBarangHarness.java`, `tests/CsvExportHarness.java`,
+  `tests/SwingExportHarness.java`, `tests/PdfExportHarness.java`,
+  `tests/SwingPdfExportHarness.java`, dan `tests/VisualThemeHarness.java`;
+  salin
   resource termasuk font PDF ke `out`, dan uji peluncur dari folder kerja lain
   bila mengubah `run-gui.cmd`.
 - Untuk perubahan GUI, jalankan kompilasi, regression
-  `tests/RegresiKantinFlow.java`, dan pemeriksaan tujuh halaman pada ukuran
-  1366×768 serta 960×640.
+  `tests/RegresiKantinFlow.java`, `tests/VisualThemeHarness.java`, dan
+  pemeriksaan tujuh halaman pada ukuran 1366×768 serta 960×640.
+- Tema visual memakai `KantinFlow.properties`, Inter, `Tema`, `CardPanel`,
+  `StatCard`, `Badge`, `EmptyState`, dan `Notifikasi`; jangan menduplikasi
+  warna/tipe kartu di panel.
 - Jangan mengubah domain, skema SQLite, aturan stok, atau alur konsol hanya
   untuk menyesuaikan tampilan. Perubahan perilaku harus terpisah dan diuji.

@@ -45,6 +45,8 @@ public class PanelPembuangan extends PanelKantin {
         fieldTanggal.setName("tanggalBuang");
         fieldAlasan.setName("alasanBuang");
         tombolBuang.setName("tombolBuang");
+        tombolBuang.setIcon(Ui.ikonAksi("trash", 16, java.awt.Color.WHITE));
+        tombolBuang.setIconTextGap(7);
         tanggalAwal = LocalDate.now().toString();
         fieldTanggal.setText(tanggalAwal);
         comboBatch.setRenderer(new DefaultListCellRenderer() {
@@ -70,7 +72,7 @@ public class PanelPembuangan extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel form = Ui.kartu("Form Pembuangan");
+        JPanel form = Ui.kartu("Form Pembuangan", "trash");
         JPanel isian = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Batch *", comboBatch),
                 Ui.field("Jumlah *", fieldJumlah),
@@ -92,7 +94,7 @@ public class PanelPembuangan extends PanelKantin {
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
 
-        JPanel tindakan = Ui.kartu("Ringkasan tindakan");
+        JPanel tindakan = Ui.kartu("Ringkasan tindakan", "alert-triangle");
         JPanel tindakanIsi = new JPanel(new BorderLayout(0, 6));
         tindakanIsi.setOpaque(false);
         ringkasan.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
@@ -152,6 +154,14 @@ public class PanelPembuangan extends PanelKantin {
         if (fieldAlasan.getText().trim().isEmpty()) {
             pesanValidasi.setText("Alasan pembuangan wajib diisi.");
             fieldAlasan.requestFocusInWindow();
+            return;
+        }
+
+        if (!DialogKonfirmasi.tampilkan(this, "Buang stok kedaluwarsa",
+                "Batch " + batch.getKode() + " sebanyak " + jumlah + " "
+                + konteks.getBarangAktif().getSatuan() + " akan dibuang. "
+                + "Tindakan ini mengurangi sisa batch dan tercatat di riwayat.",
+                "Buang Stok")) {
             return;
         }
 

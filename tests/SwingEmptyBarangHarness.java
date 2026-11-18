@@ -1,5 +1,6 @@
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -9,6 +10,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JDialog;
+import javax.swing.JComboBox;
+import javax.swing.Timer;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -67,13 +71,26 @@ public class SwingEmptyBarangHarness {
                 page("PanelBarang") != null && page("PanelBarang").isShowing(),
                 "page");
 
-        ((JTextField) find(frame.getContentPane(), "namaBarangBaru"))
-                .setText("Barang Baru");
-        ((JTextField) find(frame.getContentPane(), "satuanBarangBaru"))
-                .setText("pcs");
-        SwingUtilities.invokeAndWait(() -> ((JButton) find(
-                frame.getContentPane(), "tombolTambahBarang")).doClick());
-        Thread.sleep(300);
+        SwingUtilities.invokeAndWait(() -> {
+            Timer timer = new Timer(80, event -> {
+                for (Window window : Window.getWindows()) {
+                    if (window instanceof JDialog dialog && dialog.isShowing()
+                            && "dialogTambahBarang".equals(dialog.getName())) {
+                        ((JTextField) find(dialog.getContentPane(),
+                                "namaBarangBaru")).setText("Barang Baru");
+                        ((JComboBox<?>) find(dialog.getContentPane(),
+                                "satuanBarangBaru")).setSelectedItem("kotak");
+                        ((JButton) find(dialog.getContentPane(),
+                                "simpanTambahBarang")).doClick();
+                        ((Timer) event.getSource()).stop();
+                    }
+                }
+            });
+            timer.start();
+            ((JButton) find(frame.getContentPane(),
+                    "tombolTambahBarang")).doClick();
+        });
+        Thread.sleep(400);
         Barang aktif = aplikasi[0].getBarangAktif();
         check("TAMBAH_PERTAMA_AKTIF",
                 aktif != null && "Barang Baru".equals(aktif.getNama()),

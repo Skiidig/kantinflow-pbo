@@ -38,15 +38,17 @@ lebih dahulu. Data pada `data/kantinflow.db` milik pengguna tidak tersentuh.
 
 ## 3. Tambahkan Roti
 
-Buka halaman **Barang**, bagian **Tambah Barang**, lalu isi:
+Buka halaman **Barang**, lalu klik **+ Tambah Barang**. Di dialog modal, isi:
 
 - Nama barang: `Roti`
 - Satuan: `bungkus`
 
-Klik **Tambah Barang**.
+Klik **Tambah Barang** di dialog. Jika memilih `Lainnya`, isi satuan khusus
+pada field yang muncul. Satuan kosong atau hanya angka ditolak.
 
-**Hasil yang diharapkan:** Roti menjadi barang aktif, saldo `0 bungkus`, dan
-pilihan barang aktif menampilkan `Roti (bungkus)`.
+**Hasil yang diharapkan:** Roti menjadi barang aktif bila belum ada barang
+aktif, saldo `0 bungkus`, dan pilihan barang aktif menampilkan
+`Roti (bungkus)`. Tidak ada transaksi penerimaan otomatis.
 
 ## 4. Terima dua batch
 
@@ -101,9 +103,17 @@ Stok layak tidak cukup: diminta 5 bungkus, tersedia 4 bungkus
 
 Saldo tetap `4 bungkus`, `ROTI-B` tetap `4`, dan riwayat tidak bertambah.
 
-## 7. Periksa pemantauan dan stok minimum
+## 7. Periksa dashboard, pemantauan, dan stok minimum
 
-Buka halaman **Barang**, isi stok minimum `5`, lalu klik **Simpan Minimum**.
+Buka **Ringkasan** untuk melihat empat kartu statistik, peringatan batch
+kedaluwarsa, tabel semua barang dengan badge status, dan grafik stok fisik.
+Gunakan tombol **Mode gelap/Mode terang** di sidebar untuk mencoba tema; pilihan
+disimpan dan dipulihkan saat aplikasi dibuka kembali.
+
+Buka halaman **Barang**, pilih baris **Roti**, lalu klik **Atur Minimum**.
+Isi stok minimum `5` pada dialog, lalu klik **Simpan Minimum**. Nilai `0`
+adalah nilai sah dan berarti peringatan restok muncul saat stok layak sudah
+habis atau kurang. Mengatur minimum tidak mengganti barang aktif.
 Kemudian buka halaman **Pemantauan**:
 
 1. Isi tanggal pengecekan `2026-11-18`.
@@ -141,7 +151,7 @@ Pilih **Roti** pada pemilih barang aktif di sidebar.
 - Saldo Roti tetap `4 bungkus`.
 - `ROTI-A` tetap `0`, `ROTI-B` tetap `4`.
 - Riwayat tetap memuat dua penerimaan dan rincian FEFO A/B.
-- Stok minimum Roti tetap `5 bungkus` di field minimum.
+- Stok minimum Roti tetap `5 bungkus` pada tabel Barang dan dialog minimum.
 - Setelah tanggal `2026-11-18` diperiksa lagi, status kembali **Perlu restok**;
   hasil pemeriksaan tanggal tidak disimpan sebagai transaksi.
 

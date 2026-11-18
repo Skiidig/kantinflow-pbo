@@ -11,19 +11,20 @@ atau padding baru langsung di panel kecuali benar-benar diperlukan.
 
 | Peran | Nilai | Pemakaian |
 |---|---|---|
-| Latar aplikasi | `#F5F6F8` | area halaman dan viewport scroll |
+| Latar aplikasi | `#F4F6FA` | area halaman dan viewport scroll |
 | Permukaan | `#FFFFFF` | sidebar, kartu, header, status bar |
-| Border | `#E2E5EA` | kartu, tabel, header, sidebar |
-| Border kuat | `#CFD5DE` | tombol sekunder dan fokus |
-| Teks utama | `#20242C` | judul, nilai, isi tabel |
-| Teks sekunder | `#606978` | label bantuan, header tabel, keterangan |
-| Biru utama | `#014BAA` | tombol utama, aksen, navigasi aktif |
-| Biru hover | `#013E8C` | hover kontrol biru |
-| Biru lembut | `#E9EFF8` | latar navigasi aktif dan baris terpilih |
-| Sukses | `#0F7A4D` | status cukup/aman dan pesan berhasil |
-| Bahaya | `#B42318` | error, status perlu restok, tindakan pembuangan |
-| Peringatan | `#8A5A00` | status segera kedaluwarsa |
-| Hover netral | `#F8F3F0` | hover navigasi yang tidak aktif |
+| Border | `#E2E8F0` | kartu, tabel, header, sidebar |
+| Border kuat | `#CBD5E1` | tombol sekunder dan fokus |
+| Teks utama | `#0F172A` | judul, nilai, isi tabel |
+| Teks sekunder | `#64748B` | label bantuan, header tabel, keterangan |
+| Biru utama | `#1D4ED8` | tombol utama, aksen, navigasi aktif |
+| Biru hover | `#1E40AF` | hover kontrol biru |
+| Biru lembut | `#DBEAFE` | latar navigasi aktif dan baris terpilih |
+| Sukses | `#16A34A` | status cukup/aman dan pesan berhasil |
+| Bahaya | `#DC2626` | error, status perlu restok, tindakan pembuangan |
+| Peringatan | `#D97706` | status segera kedaluwarsa |
+| Oranye | `#EA580C` | pembuangan dan kategori khusus |
+| Hover netral | `#EEF2FF` | hover baris/navigasi yang tidak aktif |
 
 Warna status selalu disertai teks: `Perlu restok`, `Cukup`, `Aman`,
 `Segera kedaluwarsa`, `Kedaluwarsa`, atau pesan validasi yang eksplisit.
@@ -57,7 +58,7 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 | Ukuran minimum | 960 × 640 |
 | Padding halaman | 22 px atas/bawah, 24 px kiri/kanan |
 | Padding kartu | 16 px atas/bawah, 18 px kiri/kanan |
-| Jarak internal kartu | 10 px |
+| Jarak internal kartu / padding | 20 px |
 | Jarak grid form | 16 px |
 | Tinggi input | 34 px |
 | Tinggi tombol | 36 px |
@@ -119,6 +120,31 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
   konsisten.
 - Jangan membuat kartu untuk elemen kecil; grupkan kontrol dalam satu kartu.
 
+### CardPanel, StatCard, Badge, dan EmptyState
+
+- `CardPanel` adalah permukaan kartu reusable: arc 16, border tipis, padding 20.
+- `StatCard` menampilkan ikon dalam lingkaran berwarna, angka besar, label, dan
+  strip status. Ringkasan memakai empat StatCard.
+- `Badge` adalah pill status/jenis. Gunakan `Badge.status(teks)` atau
+  `Ui.pasangBadge(tabel, kolom...)` agar warna konsisten.
+- `EmptyState` menampilkan ikon besar, judul, deskripsi, dan aksi opsional.
+  Gunakan saat tabel/kartu tidak memiliki data.
+- Tabel memakai `TabelKantin` dari `Ui.tabel`; hover baris memakai
+  `Ui.HOVER`, bukan warna baru.
+
+### Tema dan notifikasi
+
+- Sumber tema ada di `src/main/resources/kantinflow/KantinFlow.properties`;
+  panggil `FlatLaf.registerCustomDefaultsSource("kantinflow")` sebelum setup.
+- Font antarmuka adalah Inter (`FlatInterFont`), bukan font sistem.
+- Tombol mode gelap/terang berada di sidebar; preferensi disimpan di
+  `data/kantinflow-tema.properties`. Jangan mengubah preferensi DPI Windows.
+- Pesan hasil memakai `Notifikasi`/swing-toast-notifications; status footer
+  tidak lagi menjadi tempat pesan utama. Status aksesibilitas tetap disimpan
+  secara tersembunyi untuk harness.
+- Animasi halaman memakai fade 150 ms; indikator sidebar bergeser dengan
+  interpolasi pendek. Jangan menambah animasi yang menutupi interaksi lama.
+
 ### Formulir
 
 - Gunakan `Ui.field(label, komponen, labelPesan)`.
@@ -138,10 +164,42 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 - Gunakan `Ui.model(...)`, `Ui.tabel(model)`, dan `Ui.scrollTabel(tabel, tinggi)`.
 - Tinggi tabel per halaman memakai konstanta `Ui.TINGGI_TABEL_*`.
 - Angka rata kanan dengan `Ui.rataKanan(tabel, indeksKolom...)`.
-- Header memakai latar halaman, teks sekunder, dan tinggi 38 px.
+- Header memakai latar halaman dan teks sekunder; tingginya mengikuti
+  metrik font dengan minimum 44 px.
 - Baris terpilih memakai `Ui.AKSEN_LEMBUT`; jangan memilih warna baru.
 - Sediakan `Ui.kosong("...")` dan tampilkan hanya saat model kosong.
 - Gunakan `yyyy-MM-dd` untuk tanggal dan sertakan satuan pada jumlah.
+
+### Halaman Barang
+
+- Urutan halaman: petunjuk singkat, pencarian + tombol `+ Tambah Barang`,
+  tabel `Nama`, `Satuan`, `Stok fisik`, `Stok minimum`, lalu kartu
+  **Aksi Barang**.
+- Klik baris hanya memilih baris. Jangan mengganti barang aktif dari
+  listener seleksi.
+- `Jadikan Barang Aktif` wajib memakai mekanisme `konteks.gantiBarang` yang
+  sudah ada, termasuk konfirmasi isian transaksi belum disimpan.
+- `Atur Minimum` membuka dialog untuk barang yang dipilih, bukan selalu
+  barang aktif. Simpan minimum tidak boleh mengganti barang aktif.
+- Tandai barang aktif dengan label teks dan penanda baris; jangan hanya
+  mengandalkan warna.
+- Cari nama barang tanpa membedakan huruf besar/kecil. Aksi harus memakai
+  `convertRowIndexToModel` setelah filter/sort.
+- Bedakan empty state belum ada barang dan pencarian tanpa hasil.
+- Form tambah berada di dialog modal, bukan kartu permanen. Nama barang,
+  pilihan satuan (`buah`, `kotak`, `bungkus`, `botol`, `kaleng`, `Lainnya`),
+  dan input satuan khusus bila memilih `Lainnya`.
+- Tolak satuan kosong atau hanya angka dengan pesan yang menyebut jenis
+  hitungan. Jangan mengubah satuan barang lama otomatis.
+- Barang baru selalu dimulai tanpa stok/batch; arahkan pengguna ke Stok Masuk.
+- Dialog minimum menampilkan nama/satuan, nilai awal yang ada, dan `0` sebagai
+  nilai sah. Normalisasi whitespace sebelum parsing; tolak kosong, pecahan,
+  nonangka, negatif, dan di luar rentang int dengan pesan dekat field.
+- Dialog memakai `pack()`, dibatasi area layar yang dapat digunakan, dan
+  memiliki scroll vertikal bila perlu. Fokus awal di field pertama; Escape
+  membatalkan; Enter memakai default button dialog saja.
+- Nama/satuan barang yang sudah tersimpan belum memiliki API ubah. Jangan
+  menambahkan tombol Edit yang tidak berfungsi.
 
 ### Toolbar filter dan dialog detail
 
@@ -204,21 +262,38 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 
 ### 1366 × 768
 
-- Sidebar 240 px; area konten luas.
+- Sidebar mengikuti metrik dan skala; area konten luas.
 - Form dua kolom bila lebarnya ≥ 760 px.
 - Kartu Ringkasan tersusun 2 × 2.
-- Barang menampilkan daftar dan dua form; Stok Masuk menampilkan form dan
-  tabel; Stok Keluar memakai tab Manual/FEFO.
+- Barang menampilkan petunjuk, pencarian, tabel, dan area aksi terpilih;
+  Stok Masuk menampilkan form dan tabel; Stok Keluar memakai tab Manual/FEFO.
 - Halaman tetap berada di dalam `JScrollPane`; konten panjang dapat digulir.
 
 ### 960 × 640
 
 - Panel mengimplementasikan `Scrollable` dan mengikuti lebar viewport.
 - Grid form berubah menjadi satu kolom pada lebar < 760 px.
-- Sidebar tetap 240 px; sidebar memiliki scroll vertikal bila diperlukan.
-- Dropdown barang aktif dan seluruh menu tetap terjangkau.
+- Sidebar tetap dapat digulir; dropdown barang aktif dan seluruh menu tetap
+  terjangkau.
 - Tombol dan field tetap berada dalam alur layout, bukan posisi absolut.
+- Tombol aksi Barang harus terbaca penuh; tabel memakai scroll vertikal bila
+  daftar panjang.
 - Tabel yang lebih lebar dapat digulir di dalam `JScrollPane` tabel.
+- Dialog tidak boleh melampaui area layar; isi dialog dapat digulir.
+
+### Skala Windows 100%, 125%, dan 150%
+
+- Jangan mengunci tinggi tombol/input ke piksel yang lebih kecil dari metrik
+  font. Gunakan `Ui.skala`, padding FlatLaf, dan tinggi tabel yang diturunkan
+  dari `FontMetrics`.
+- Label tombol utama harus tetap utuh; jika ruang sempit, susun ulang atau
+  biarkan halaman menggulir, bukan memotong teks.
+- Dialog diuji dengan `pack()` dan batas `getMaximumWindowBounds()`.
+- Pengujian skala dilakukan dengan properti proses
+  `-Dsun.java2d.uiScale=1.25`/`1.5` (simulasi HiDPI), bukan dengan mengubah
+  konfigurasi DPI Windows pengguna.
+- Hasil simulasi tidak menggantikan uji monitor fisik; catat skala mana yang
+  benar-benar diuji.
 
 ## 4. Membuat panel baru
 

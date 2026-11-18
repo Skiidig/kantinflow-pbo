@@ -50,6 +50,8 @@ public class PanelStokKeluar extends PanelKantin {
         fieldJumlahFefo.setName("jumlahFefo");
         fieldTanggalFefo.setName("tanggalFefo");
         tombolFefo.setName("tombolFefo");
+        tombolFefo.setIcon(Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
+        tombolFefo.setIconTextGap(7);
         comboBatch.setRenderer(new DefaultListCellRenderer() {
             @Override
             public java.awt.Component getListCellRendererComponent(
@@ -76,7 +78,7 @@ public class PanelStokKeluar extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel manual = Ui.kartu("Pengeluaran Manual");
+        JPanel manual = Ui.kartu("Pengeluaran Manual", "stock-out");
         JPanel manualIsi = new JPanel();
         manualIsi.setOpaque(false);
         manualIsi.setLayout(new javax.swing.BoxLayout(
@@ -95,7 +97,7 @@ public class PanelStokKeluar extends PanelKantin {
         manualIsi.add(aksiManual);
         manual.add(manualIsi, BorderLayout.CENTER);
 
-        JPanel fefo = Ui.kartu("Pengeluaran FEFO");
+        JPanel fefo = Ui.kartu("Pengeluaran FEFO", "stock-out");
         JPanel fefoIsi = new JPanel();
         fefoIsi.setOpaque(false);
         fefoIsi.setLayout(new javax.swing.BoxLayout(
@@ -122,14 +124,16 @@ public class PanelStokKeluar extends PanelKantin {
         manualWrap.setOpaque(true);
         manualWrap.setBackground(Ui.KARTU);
         manual.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
-        manual.setPreferredSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Ui.TINGGI_FORM_MANUAL));
+        manual.setPreferredSize(new java.awt.Dimension(
+                Ui.skala(Ui.LEBAR_FORM_KELUAR), Ui.skala(Ui.TINGGI_FORM_MANUAL)));
         manualWrap.add(manual);
         JPanel fefoWrap = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 0, 0));
         fefoWrap.setOpaque(true);
         fefoWrap.setBackground(Ui.KARTU);
         fefo.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
-        fefo.setPreferredSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Ui.TINGGI_FORM_FEFO));
+        fefo.setPreferredSize(new java.awt.Dimension(
+                Ui.skala(Ui.LEBAR_FORM_KELUAR), Ui.skala(Ui.TINGGI_FORM_FEFO)));
         fefoWrap.add(fefo);
 
         JTabbedPane mode = new JTabbedPane();

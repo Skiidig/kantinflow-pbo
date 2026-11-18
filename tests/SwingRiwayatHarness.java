@@ -92,10 +92,14 @@ public class SwingRiwayatHarness {
         reset();
         cari("zzz");
         terapkan();
-        JLabel kosong = (JLabel) find(frame.getContentPane(), "kosongRiwayat");
-        check("TANPA_HASIL", rows() == 0 && kosong.isVisible()
-                && kosong.getText().contains("Tidak ada riwayat"),
-                rows() + " " + kosong.getText());
+        Component kosongKomponen = find(frame.getContentPane(), "kosongRiwayat");
+        String teksKosong = kosongKomponen instanceof kantinflow.gui.EmptyState kosong
+                ? kosong.getText()
+                : (kosongKomponen instanceof JLabel label ? label.getText() : "");
+        check("TANPA_HASIL", rows() == 0 && kosongKomponen != null
+                && kosongKomponen.isVisible()
+                && teksKosong.contains("Tidak ada riwayat"),
+                rows() + " " + teksKosong);
 
         reset();
         pilihJenis("Pembuangan");

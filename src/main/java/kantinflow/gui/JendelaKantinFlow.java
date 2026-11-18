@@ -1,5 +1,6 @@
 package kantinflow.gui;
 
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -7,8 +8,11 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -31,6 +35,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -43,6 +48,9 @@ import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.JComponent;
 import javax.swing.border.EmptyBorder;
 
 import kantinflow.Barang;
@@ -69,16 +77,21 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private JLabel judulHalaman;
     private JLabel keteranganHalaman;
     private JLabel labelBarangKosong;
+    private JPanel indikatorNav;
+    private JPanel pembungkusNav;
+    private String halamanAktif = "ringkasan";
     private Barang barang;
     private LocalDate tanggalPemantauan;
     private boolean menggantiBarang;
     private boolean sudahDitutup;
+    private final FadeOverlay fade = new FadeOverlay();
 
     public JendelaKantinFlow(PenyimpananSQLite penyimpanan) {
         super("KantinFlow");
         if (penyimpanan == null) {
             throw new IllegalArgumentException("Penyimpanan wajib diisi");
         }
+        Tema.pasang();
         this.penyimpanan = penyimpanan;
         this.daftarBarang = new ArrayList<>(penyimpanan.muatSemuaBarang());
         this.barang = pilihBarangAwal();
@@ -97,7 +110,10 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         setSize(Ui.LEBAR_JENDELA, Ui.TINGGI_JENDELA);
         setLocationRelativeTo(null);
 
+        setGlassPane(fade);
+        fade.setVisible(false);
         bangunTampilan();
+        Notifikasi.pasang(this);
         perbaruiComboBarang();
         perbaruiSemua();
         if (barang == null) {
@@ -119,7 +135,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private JPanel buatSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Ui.KARTU);
-        sidebar.setPreferredSize(new Dimension(Ui.LEBAR_SIDEBAR, 0));
+        sidebar.setPreferredSize(new Dimension(Ui.skala(Ui.LEBAR_SIDEBAR), 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Ui.GARIS));
 
         JPanel isi = new SidebarIsi();
@@ -136,8 +152,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         merekMark.setForeground(Color.WHITE);
         merekMark.setFont(Ui.font(Font.BOLD, Ui.FONT_KECIL));
         merekMark.setHorizontalAlignment(SwingConstants.CENTER);
-        merekMark.setPreferredSize(new Dimension(32, 32));
-        merekMark.setMaximumSize(new Dimension(32, 32));
+        merekMark.setPreferredSize(new Dimension(Ui.skala(32), Ui.skala(32)));
+        merekMark.setMaximumSize(new Dimension(Ui.skala(32), Ui.skala(32)));
         merekMark.setBorder(new EmptyBorder(2, 0, 2, 0));
         merekBaris.add(merekMark);
         merekBaris.add(Box.createHorizontalStrut(10));
@@ -210,7 +226,31 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             nav.add(Box.createVerticalStrut(3));
         }
         nav.setAlignmentX(Component.LEFT_ALIGNMENT);
-        isi.add(nav);
+        pembungkusNav = new JPanel(null);
+        pembungkusNav.setOpaque(false);
+        pembungkusNav.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pembungkusNav.add(nav);
+        indikatorNav = new JPanel();
+        indikatorNav.setBackground(Ui.AKSEN);
+        indikatorNav.setOpaque(true);
+        pembungkusNav.add(indikatorNav);
+        pembungkusNav.setPreferredSize(new Dimension(0,
+                nav.getPreferredSize().height));
+        pembungkusNav.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                nav.getPreferredSize().height));
+        isi.add(pembungkusNav);
+        isi.add(Box.createVerticalStrut(12));
+
+        JButton tema = Ui.sekunder(Tema.gelap() ? "Mode terang" : "Mode gelap");
+        tema.setName("tombolTema");
+        tema.setIcon(Ui.ikonAksi(Tema.gelap() ? "sun" : "moon", 16,
+                Ui.TEKS_LEMBUT));
+        tema.setIconTextGap(8);
+        tema.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tema.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                tema.getPreferredSize().height));
+        tema.addActionListener(event -> gantiTema());
+        isi.add(tema);
 
         JScrollPane scroll = new JScrollPane(isi,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -221,11 +261,29 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         scroll.getViewport().setBackground(Ui.KARTU);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        JLabel footer = new JLabel("SQLite lokal · FlatLaf 3.8");
+        JLabel footer = new JLabel("KantinFlow · v1.0");
         footer.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
         footer.setForeground(Ui.TEKS_LEMBUT);
         footer.setBorder(new EmptyBorder(10, 16, 14, 16));
 
+        pembungkusNav.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent event) {
+                int lebar = pembungkusNav.getWidth();
+                int tinggi = pembungkusNav.getHeight();
+                nav.setBounds(0, 0, lebar, tinggi);
+                if (indikatorNav.getWidth() <= 0) {
+                    indikatorNav.setBounds(0, 0, Ui.skala(3), Ui.skala(30));
+                }
+                geserIndikator();
+            }
+        });
+        isi.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent event) {
+                geserIndikator();
+            }
+        });
         sidebar.add(scroll, BorderLayout.CENTER);
         sidebar.add(footer, BorderLayout.SOUTH);
         return sidebar;
@@ -240,10 +298,12 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         comboBarang.setName("barangAktif");
         comboBarang.setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
-        comboBarang.setMaximumSize(new Dimension(Integer.MAX_VALUE, Ui.TINGGI_INPUT));
-        comboBarang.setPreferredSize(new Dimension(Ui.LEBAR_SIDEBAR - 32,
-                Ui.TINGGI_INPUT));
-        comboBarang.setMinimumSize(new Dimension(80, Ui.TINGGI_INPUT));
+        comboBarang.setMaximumSize(new Dimension(Integer.MAX_VALUE,
+                comboBarang.getPreferredSize().height));
+        comboBarang.setPreferredSize(new Dimension(
+                Ui.skala(Ui.LEBAR_SIDEBAR - 32),
+                comboBarang.getPreferredSize().height));
+        comboBarang.setMinimumSize(new Dimension(Ui.skala(80), 0));
         comboBarang.setAlignmentX(Component.LEFT_ALIGNMENT);
         comboBarang.addActionListener(event -> {
             if (!menggantiBarang) {
@@ -332,12 +392,24 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         status.setBackground(Ui.KARTU);
         status.setForeground(Ui.TEKS);
         status.setRows(2);
+        status.setVisible(false);
+
+        JPanel kaki = new JPanel(new BorderLayout(12, 0));
+        kaki.setBackground(Ui.KARTU);
+        kaki.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Ui.GARIS),
+                new EmptyBorder(8, 26, 8, 26)));
+        JLabel versi = new JLabel("KantinFlow · antarmuka persediaan");
+        versi.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
+        versi.setForeground(Ui.TEKS_LEMBUT);
+        kaki.add(versi, BorderLayout.WEST);
+        kaki.add(status, BorderLayout.EAST);
 
         JPanel konten = new JPanel(new BorderLayout());
         konten.setBackground(Ui.LATAR);
         konten.add(buatHeader(), BorderLayout.NORTH);
         konten.add(kartu, BorderLayout.CENTER);
-        konten.add(status, BorderLayout.SOUTH);
+        konten.add(kaki, BorderLayout.SOUTH);
         return konten;
     }
 
@@ -382,15 +454,80 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                 keteranganHalaman.setText(halaman.getKeterangan());
             }
         }
+        halamanAktif = kunci;
         cardLayout.show(kartu, kunci);
         JToggleButton tombol = tombolNavigasi.get(kunci);
         if (tombol != null) {
             tombol.setSelected(true);
         }
+        geserIndikator();
+        fade.mulai();
+    }
+
+    private void geserIndikator() {
+        if (indikatorNav == null || pembungkusNav == null) {
+            return;
+        }
+        JToggleButton tombol = tombolNavigasi.get(halamanAktif);
+        if (tombol == null) {
+            return;
+        }
+        int target = tombol.getY() + Math.max(0,
+                (tombol.getHeight() - Ui.skala(30)) / 2);
+        int awal = indikatorNav.getY();
+        indikatorNav.setBounds(0, awal, Ui.skala(3), Ui.skala(30));
+        final int[] langkah = {0};
+        final int jumlah = 8;
+        Timer timer = new Timer(15, event -> {
+            langkah[0]++;
+            double t = Math.min(1.0, langkah[0] / (double) jumlah);
+            int y = (int) Math.round(awal + (target - awal) * t);
+            indikatorNav.setBounds(0, y, Ui.skala(3), Ui.skala(30));
+            indikatorNav.repaint();
+            if (langkah[0] >= jumlah) {
+                ((Timer) event.getSource()).stop();
+            }
+        });
+        timer.start();
+    }
+
+    private void gantiTema() {
+        if (adaIsianTransaksiBelumDisimpan()
+                && !DialogKonfirmasi.tampilkan(this, "Ganti tema",
+                        "Formulir transaksi masih berisi isian. Mengganti tema "
+                        + "akan membangun ulang tampilan dan membuang isian "
+                        + "formulir. Lanjutkan?",
+                        "Ganti tema")) {
+            Notifikasi.peringatan("Perubahan tema dibatalkan.");
+            return;
+        }
+        Tema.terapkan(!Tema.gelap());
+        bangunUlangTampilan();
+        tampilkanPesan(Tema.gelap()
+                ? "Mode gelap diaktifkan." : "Mode terang diaktifkan.", true);
+    }
+
+    private void bangunUlangTampilan() {
+        String halaman = halamanAktif;
+        panel.clear();
+        tombolNavigasi.clear();
+        grupNavigasi.clearSelection();
+        kartu.removeAll();
+        getContentPane().removeAll();
+        setGlassPane(fade);
+        fade.setVisible(false);
+        bangunTampilan();
+        Notifikasi.pasang(this);
+        perbaruiComboBarang();
+        perbaruiSemua();
+        tampilkanHalaman(halaman == null ? "ringkasan" : halaman);
+        revalidate();
+        repaint();
     }
 
     public void tampilkan() {
         setVisible(true);
+        SwingUtilities.invokeLater(this::geserIndikator);
     }
 
     public JFrame getFrame() {
@@ -462,13 +599,19 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         try {
             Barang baru = penyimpanan.simpanBarang(new Barang(nama, satuan));
             daftarBarang.add(baru);
-            this.barang = baru;
-            this.riwayat.clear();
-            this.riwayat.addAll(penyimpanan.muatRiwayat(baru));
-            this.tanggalPemantauan = null;
-            perbaruiComboBarang();
-            perbaruiSemua();
-            simpanPreferensiBarang();
+            if (barang == null) {
+                this.barang = baru;
+                this.riwayat.clear();
+                this.riwayat.addAll(penyimpanan.muatRiwayat(baru));
+                this.tanggalPemantauan = null;
+                perbaruiComboBarang();
+                perbaruiSemua();
+                simpanPreferensiBarang();
+            } else {
+                // Menambah barang tidak mengubah konteks barang aktif yang sudah dipilih.
+                perbaruiComboBarang();
+                perbaruiSemua();
+            }
             tampilkanHalaman("barang");
             tampilkanPesan("Barang ditambahkan: " + baru.getNama()
                     + " (" + baru.getSatuan() + ").", true);
@@ -481,8 +624,13 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     @Override
     public boolean simpanStokMinimum(int minimum) {
-        if (barang == null) {
-            tampilkanPesan("Belum ada barang aktif. Tambahkan barang terlebih dahulu.", false);
+        return simpanStokMinimum(barang, minimum);
+    }
+
+    @Override
+    public boolean simpanStokMinimum(Barang target, int minimum) {
+        if (target == null) {
+            tampilkanPesan("Pilih barang yang akan diatur minimumnya terlebih dahulu.", false);
             return false;
         }
         if (minimum < 0) {
@@ -490,11 +638,15 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             return false;
         }
         try {
-            penyimpanan.simpanStokMinimum(barang, minimum);
-            barang.setStokMinimum(minimum);
+            penyimpanan.simpanStokMinimum(target, minimum);
+            target.setStokMinimum(minimum);
+            if (barang != null && barang.getId() == target.getId()
+                    && barang != target) {
+                barang.setStokMinimum(minimum);
+            }
             perbaruiSemua();
-            tampilkanPesan("Stok minimum " + barang.getNama() + " disimpan: "
-                    + minimum + " " + barang.getSatuan() + ".", true);
+            tampilkanPesan("Stok minimum " + target.getNama() + " disimpan: "
+                    + minimum + " " + target.getSatuan() + ".", true);
             return true;
         } catch (IllegalArgumentException | PenyimpananException exception) {
             tampilkanPesan("Gagal menyimpan stok minimum: "
@@ -557,6 +709,11 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         status.setText(pesan);
         status.setForeground(sukses ? Ui.HIJAU : Ui.MERAH);
         status.setCaretPosition(0);
+        if (sukses) {
+            Notifikasi.sukses(pesan);
+        } else {
+            Notifikasi.gagal(pesan);
+        }
     }
 
     private Barang pilihBarangAwal() {
@@ -709,6 +866,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         status.setText(pesan);
         status.setForeground(Ui.TEKS);
         status.setCaretPosition(0);
+        Notifikasi.info(pesan);
     }
 
     private void gantiReferensiBarang(Barang baru) {
@@ -719,6 +877,50 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             }
         }
         daftarBarang.add(baru);
+    }
+
+    private final class FadeOverlay extends JPanel {
+        private float alpha;
+        private final Timer timer;
+
+        private FadeOverlay() {
+            setOpaque(false);
+            setFocusable(false);
+            timer = new Timer(15, event -> {
+                alpha -= 0.1f;
+                if (alpha <= 0f) {
+                    alpha = 0f;
+                    setVisible(false);
+                    ((Timer) event.getSource()).stop();
+                }
+                repaint();
+            });
+        }
+
+        private void mulai() {
+            if (!isDisplayable()) {
+                return;
+            }
+            alpha = 1f;
+            setVisible(true);
+            timer.restart();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            if (alpha <= 0f) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setComposite(AlphaComposite.getInstance(
+                        AlphaComposite.SRC_OVER, Math.max(0f, alpha)));
+                g2.setColor(Ui.LATAR);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     private static final class SidebarIsi extends JPanel implements Scrollable {

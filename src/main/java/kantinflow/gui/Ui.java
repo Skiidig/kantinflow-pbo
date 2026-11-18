@@ -32,34 +32,38 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.util.UIScale;
 
 /**
  * Komponen dan token visual bersama untuk tujuh halaman Swing/FlatLaf.
  */
 final class Ui {
-    static final Color LATAR = new Color(0xF5F6F8);
-    static final Color KARTU = Color.WHITE;
-    static final Color GARIS = new Color(0xE2E5EA);
-    static final Color GARIS_KUAT = new Color(0xCFD5DE);
-    static final Color AKSEN = new Color(0x014BAA);
-    static final Color AKSEN_GELAP = new Color(0x013E8C);
-    static final Color AKSEN_LEMBUT = new Color(0xE9EFF8);
-    static final Color TEKS = new Color(0x20242C);
-    static final Color TEKS_LEMBUT = new Color(0x606978);
-    static final Color HIJAU = new Color(0x0F7A4D);
-    static final Color HIJAU_LEMBUT = new Color(0xEAF5EF);
-    static final Color MERAH = new Color(0xB42318);
-    static final Color MERAH_LEMBUT = new Color(0xFDECEA);
-    static final Color KUNING = new Color(0x8A5A00);
-    static final Color KUNING_LEMBUT = new Color(0xFFF4D6);
-    static final Color HOVER = new Color(0xF8F3F0);
+    static Color LATAR = new Color(0xF4F6FA);
+    static Color KARTU = Color.WHITE;
+    static Color GARIS = new Color(0xE2E8F0);
+    static Color GARIS_KUAT = new Color(0xCBD5E1);
+    static Color AKSEN = new Color(0x1D4ED8);
+    static Color AKSEN_GELAP = new Color(0x1E40AF);
+    static Color AKSEN_LEMBUT = new Color(0xDBEAFE);
+    static Color TEKS = new Color(0x0F172A);
+    static Color TEKS_LEMBUT = new Color(0x64748B);
+    static Color HIJAU = new Color(0x16A34A);
+    static Color HIJAU_LEMBUT = new Color(0xDCFCE7);
+    static Color MERAH = new Color(0xDC2626);
+    static Color MERAH_LEMBUT = new Color(0xFEE2E2);
+    static Color KUNING = new Color(0xD97706);
+    static Color KUNING_LEMBUT = new Color(0xFEF3C7);
+    static Color ORANYE = new Color(0xEA580C);
+    static Color ORANYE_LEMBUT = new Color(0xFFEDD5);
+    static Color NETRAL_LEMBUT = new Color(0xF1F5F9);
+    static Color HOVER = new Color(0xEEF2FF);
 
-    static final int RADIUS_KARTU = 12;
-    static final int RADIUS_KONTROL = 8;
+    static final int RADIUS_KARTU = 16;
+    static final int RADIUS_KONTROL = 10;
     static final int TINGGI_INPUT = 34;
     static final int TINGGI_TOMBOL = 36;
-    static final int TINGGI_BARIS_TABEL = 36;
-    static final int TINGGI_HEADER_TABEL = 38;
+    static final int TINGGI_BARIS_TABEL = 40;
+    static final int TINGGI_HEADER_TABEL = 44;
     static final int PADDING_SEL_TABEL = 12;
     static final int LEBAR_SIDEBAR = 240;
     static final int LEBAR_JENDELA = 1180;
@@ -77,9 +81,9 @@ final class Ui {
     static final int TINGGI_TABEL_PEMANTAUAN = 240;
     static final int TINGGI_TABEL_RIWAYAT = 300;
     static final int TINGGI_TABEL_DEFAULT = 230;
-    static final Insets PADDING_HALAMAN = new Insets(22, 24, 22, 24);
-    static final Insets PADDING_KARTU = new Insets(16, 18, 16, 18);
-    static final int GAP_KARTU = 10;
+    static final Insets PADDING_HALAMAN = new Insets(24, 24, 24, 24);
+    static final Insets PADDING_KARTU = new Insets(20, 20, 20, 20);
+    static final int GAP_KARTU = 16;
     static final int GAP_FORM = 16;
     static final float FONT_JUDUL = 24f;
     static final float FONT_KARTU = 16f;
@@ -98,6 +102,54 @@ final class Ui {
     private Ui() {
     }
 
+    static void pakaiTema(boolean gelap) {
+        if (gelap) {
+            LATAR = new Color(0x0F172A);
+            KARTU = new Color(0x111827);
+            GARIS = new Color(0x1F2937);
+            GARIS_KUAT = new Color(0x334155);
+            AKSEN = new Color(0x1D4ED8);
+            AKSEN_GELAP = new Color(0x1E40AF);
+            AKSEN_LEMBUT = new Color(0x1E3A8A);
+            TEKS = new Color(0xF8FAFC);
+            TEKS_LEMBUT = new Color(0x94A3B8);
+            HIJAU = new Color(0x4ADE80);
+            HIJAU_LEMBUT = new Color(0x052E16);
+            MERAH = new Color(0xF87171);
+            MERAH_LEMBUT = new Color(0x450A0A);
+            KUNING = new Color(0xFBBF24);
+            KUNING_LEMBUT = new Color(0x451A03);
+            ORANYE = new Color(0xFB923C);
+            ORANYE_LEMBUT = new Color(0x431407);
+            NETRAL_LEMBUT = new Color(0x1E293B);
+            HOVER = new Color(0x1E293B);
+        } else {
+            LATAR = new Color(0xF4F6FA);
+            KARTU = Color.WHITE;
+            GARIS = new Color(0xE2E8F0);
+            GARIS_KUAT = new Color(0xCBD5E1);
+            AKSEN = new Color(0x1D4ED8);
+            AKSEN_GELAP = new Color(0x1E40AF);
+            AKSEN_LEMBUT = new Color(0xDBEAFE);
+            TEKS = new Color(0x0F172A);
+            TEKS_LEMBUT = new Color(0x64748B);
+            HIJAU = new Color(0x16A34A);
+            HIJAU_LEMBUT = new Color(0xDCFCE7);
+            MERAH = new Color(0xDC2626);
+            MERAH_LEMBUT = new Color(0xFEE2E2);
+            KUNING = new Color(0xD97706);
+            KUNING_LEMBUT = new Color(0xFEF3C7);
+            ORANYE = new Color(0xEA580C);
+            ORANYE_LEMBUT = new Color(0xFFEDD5);
+            NETRAL_LEMBUT = new Color(0xF1F5F9);
+            HOVER = new Color(0xEEF2FF);
+        }
+    }
+
+    static int skala(int nilai) {
+        return UIScale.scale(nilai);
+    }
+
     static Font font(int gaya, float ukuran) {
         Font dasar = javax.swing.UIManager.getFont("Label.font");
         String nama = dasar == null ? "Segoe UI" : dasar.getName();
@@ -105,6 +157,7 @@ final class Ui {
     }
 
     static Icon ikonMenu(String kunci, int ukuran, Color warna) {
+        ukuran = skala(ukuran);
         String nama = switch (kunci) {
             case "ringkasan" -> "dashboard";
             case "barang" -> "package";
@@ -156,6 +209,8 @@ final class Ui {
         JLabel label = new JLabel(teks);
         label.setFont(font(Font.PLAIN, FONT_CATATAN));
         label.setForeground(TEKS_LEMBUT);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setHorizontalAlignment(SwingConstants.LEFT);
         return label;
     }
 
@@ -163,6 +218,8 @@ final class Ui {
         JLabel label = new JLabel(teks);
         label.setFont(font(Font.BOLD, FONT_LABEL));
         label.setForeground(TEKS_LEMBUT);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setHorizontalAlignment(SwingConstants.LEFT);
         return label;
     }
 
@@ -170,6 +227,8 @@ final class Ui {
         JLabel label = new JLabel(" ");
         label.setFont(font(Font.PLAIN, FONT_KECIL));
         label.setForeground(MERAH);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setHorizontalAlignment(SwingConstants.LEFT);
         return label;
     }
 
@@ -190,25 +249,33 @@ final class Ui {
     }
 
     static JPanel kartu() {
-        KartuPanel panel = new KartuPanel(new BorderLayout(0, GAP_KARTU));
-        panel.setBorder(new EmptyBorder(PADDING_KARTU));
-        return panel;
+        return new CardPanel(new BorderLayout(0, skala(GAP_KARTU)));
     }
 
     static JPanel kartu(String judul) {
+        return kartu(judul, null);
+    }
+
+    static JPanel kartu(String judul, String ikon) {
         JPanel panel = kartu();
+        JPanel kepala = new JPanel(new BorderLayout(8, 0));
+        kepala.setOpaque(false);
+        if (ikon != null) {
+            JLabel gambar = new JLabel(ikonAksi(ikon, 18, AKSEN));
+            gambar.setBorder(new EmptyBorder(0, 0, 0, 2));
+            kepala.add(gambar, BorderLayout.WEST);
+        }
         JLabel label = new JLabel(judul);
         label.setFont(font(Font.BOLD, FONT_KARTU));
         label.setForeground(TEKS);
-        panel.add(label, BorderLayout.NORTH);
+        kepala.add(label, BorderLayout.CENTER);
+        panel.add(kepala, BorderLayout.NORTH);
         return panel;
     }
 
     static JTextField field(int kolom) {
         JTextField field = new JTextField(kolom);
         field.setFont(font(Font.PLAIN, FONT_BODY));
-        field.setPreferredSize(new Dimension(field.getPreferredSize().width,
-                TINGGI_INPUT));
         field.putClientProperty("JTextField.placeholderText", "");
         return field;
     }
@@ -218,12 +285,20 @@ final class Ui {
         tombol.setFont(font(Font.BOLD, FONT_BUTTON));
         tombol.setBackground(AKSEN);
         tombol.setForeground(Color.WHITE);
-        tombol.setBorder(new EmptyBorder(0, 16, 0, 16));
-        tombol.setPreferredSize(new Dimension(tombol.getPreferredSize().width,
-                TINGGI_TOMBOL));
+        tombol.setBorder(new EmptyBorder(skala(9), skala(16),
+                skala(9), skala(16)));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
         tombol.putClientProperty("JButton.buttonType", "roundRect");
+        tombol.addPropertyChangeListener("enabled", event -> {
+            if (tombol.isEnabled()) {
+                tombol.setBackground(AKSEN);
+                tombol.setForeground(Color.WHITE);
+            } else {
+                tombol.setBackground(GARIS_KUAT);
+                tombol.setForeground(TEKS_LEMBUT);
+            }
+        });
         return tombol;
     }
 
@@ -234,9 +309,7 @@ final class Ui {
         tombol.setForeground(TEKS);
         tombol.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(GARIS_KUAT),
-                new EmptyBorder(0, 14, 0, 14)));
-        tombol.setPreferredSize(new Dimension(tombol.getPreferredSize().width,
-                TINGGI_TOMBOL));
+                new EmptyBorder(skala(8), skala(14), skala(8), skala(14))));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
         tombol.putClientProperty("JButton.buttonType", "roundRect");
@@ -248,9 +321,8 @@ final class Ui {
         tombol.setFont(font(Font.BOLD, FONT_BUTTON));
         tombol.setBackground(MERAH);
         tombol.setForeground(Color.WHITE);
-        tombol.setBorder(new EmptyBorder(0, 16, 0, 16));
-        tombol.setPreferredSize(new Dimension(tombol.getPreferredSize().width,
-                TINGGI_TOMBOL));
+        tombol.setBorder(new EmptyBorder(skala(9), skala(16),
+                skala(9), skala(16)));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
         tombol.putClientProperty("JButton.buttonType", "roundRect");
@@ -269,7 +341,6 @@ final class Ui {
     static <T> JComboBox<T> combo() {
         JComboBox<T> combo = new JComboBox<>();
         combo.setFont(font(Font.PLAIN, FONT_BODY));
-        combo.setPreferredSize(new Dimension(220, TINGGI_INPUT));
         return combo;
     }
 
@@ -296,7 +367,7 @@ final class Ui {
         JScrollPane scroll = new JScrollPane(tabel);
         scroll.setBorder(BorderFactory.createLineBorder(GARIS));
         scroll.getViewport().setBackground(KARTU);
-        scroll.setPreferredSize(new Dimension(600, tinggi));
+        scroll.setPreferredSize(new Dimension(600, skala(tinggi)));
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         return scroll;
     }
@@ -327,7 +398,8 @@ final class Ui {
     static JPanel gridResponsif(int kolomLebar, int ambang, Component... komponen) {
         JPanel panel = new JPanel(new GridLayout(
                 Math.max(1, (komponen.length + kolomLebar - 1) / kolomLebar),
-                Math.min(kolomLebar, komponen.length), GAP_FORM, GAP_FORM));
+                Math.min(kolomLebar, komponen.length),
+                skala(GAP_FORM), skala(GAP_FORM)));
         panel.setOpaque(false);
         for (Component item : komponen) {
             panel.add(item);
@@ -346,7 +418,8 @@ final class Ui {
                 int kolom = sempit ? 1 : Math.min(kolomLebar, komponen.length);
                 int baris = Math.max(1,
                         (komponen.length + kolom - 1) / kolom);
-                panel.setLayout(new GridLayout(baris, kolom, GAP_FORM, GAP_FORM));
+                panel.setLayout(new GridLayout(baris, kolom,
+                        skala(GAP_FORM), skala(GAP_FORM)));
                 panel.revalidate();
                 panel.repaint();
             }
@@ -364,9 +437,12 @@ final class Ui {
     }
 
     static JTable tabel(DefaultTableModel model) {
-        JTable tabel = new JTable(model);
+        JTable tabel = new TabelKantin(model);
         tabel.setFont(font(Font.PLAIN, FONT_BODY));
-        tabel.setRowHeight(TINGGI_BARIS_TABEL);
+        int tinggiBaris = Math.max(skala(TINGGI_BARIS_TABEL),
+                tabel.getFontMetrics(tabel.getFont()).getHeight()
+                + skala(10));
+        tabel.setRowHeight(tinggiBaris);
         tabel.setFillsViewportHeight(true);
         tabel.setShowVerticalLines(false);
         tabel.setShowHorizontalLines(true);
@@ -378,8 +454,11 @@ final class Ui {
         tabel.getTableHeader().setFont(font(Font.BOLD, FONT_LABEL));
         tabel.getTableHeader().setForeground(TEKS_LEMBUT);
         tabel.getTableHeader().setBackground(LATAR);
+        int tinggiHeader = Math.max(skala(TINGGI_HEADER_TABEL),
+                tabel.getFontMetrics(tabel.getFont()).getHeight()
+                + skala(14));
         tabel.getTableHeader().setPreferredSize(
-                new Dimension(0, TINGGI_HEADER_TABEL));
+                new Dimension(0, tinggiHeader));
         DefaultTableCellRenderer cell = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(
@@ -387,12 +466,28 @@ final class Ui {
                     boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
-                setBorder(new EmptyBorder(0, PADDING_SEL_TABEL, 0, PADDING_SEL_TABEL));
+                setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
+                    0, skala(PADDING_SEL_TABEL)));
+                int hover = table instanceof TabelKantin
+                        ? ((TabelKantin) table).getBarisHover() : -1;
+                if (!isSelected) {
+                    setBackground(row == hover ? HOVER : KARTU);
+                }
                 return this;
             }
         };
         tabel.setDefaultRenderer(Object.class, cell);
         return tabel;
+    }
+
+    static void pasangBadge(JTable tabel, int... kolom) {
+        BadgeRenderer renderer = new BadgeRenderer();
+        for (int index : kolom) {
+            if (index >= 0 && index < tabel.getColumnModel().getColumnCount()) {
+                tabel.getColumnModel().getColumn(index)
+                        .setCellRenderer(renderer);
+            }
+        }
     }
 
     static void rataKanan(JTable tabel, int... kolom) {
@@ -403,8 +498,14 @@ final class Ui {
                     boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
-                setBorder(new EmptyBorder(0, PADDING_SEL_TABEL, 0, PADDING_SEL_TABEL));
+                setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
+                    0, skala(PADDING_SEL_TABEL)));
                 setHorizontalAlignment(SwingConstants.RIGHT);
+                int hover = table instanceof TabelKantin
+                        ? ((TabelKantin) table).getBarisHover() : -1;
+                if (!isSelected) {
+                    setBackground(row == hover ? HOVER : KARTU);
+                }
                 return this;
             }
         };
@@ -412,34 +513,6 @@ final class Ui {
             if (index >= 0 && index < tabel.getColumnModel().getColumnCount()) {
                 tabel.getColumnModel().getColumn(index).setCellRenderer(renderer);
             }
-        }
-    }
-
-    private static final class KartuPanel extends JPanel {
-        private static final int ARC = RADIUS_KARTU;
-
-        private KartuPanel(LayoutManager layout) {
-            super(layout);
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            try {
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(KARTU);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1,
-                        ARC, ARC);
-                g2.setColor(GARIS);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1,
-                        ARC, ARC);
-            } finally {
-                g2.dispose();
-            }
-            super.paintComponent(graphics);
         }
     }
 }

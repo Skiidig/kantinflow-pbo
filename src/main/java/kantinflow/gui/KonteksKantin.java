@@ -27,6 +27,8 @@ public interface KonteksKantin {
 
     boolean simpanStokMinimum(int minimum);
 
+    boolean simpanStokMinimum(Barang barang, int minimum);
+
     void gantiBarang(Barang barang);
 
     boolean muatUlang();
