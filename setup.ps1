@@ -20,6 +20,20 @@ $dependencies = @(
         Jar      = 'flatlaf-3.8.jar'
         Entry    = 'com/formdev/flatlaf/FlatLightLaf.class'
         Url      = 'https://repo1.maven.org/maven2/com/formdev/flatlaf/3.8/flatlaf-3.8.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'FlatLaf Extras'
+        Versi    = '3.8'
+        Jar      = 'flatlaf-extras-3.8.jar'
+        Entry    = 'com/formdev/flatlaf/extras/FlatSVGIcon.class'
+        Url      = 'https://repo1.maven.org/maven2/com/formdev/flatlaf-extras/3.8/flatlaf-extras-3.8.jar'
+    },
+    [pscustomobject]@{
+        Nama     = 'JSVG'
+        Versi    = '2.2.0'
+        Jar      = 'jsvg-2.2.0.jar'
+        Entry    = 'com/github/weisj/jsvg/SVGDocument.class'
+        Url      = 'https://repo1.maven.org/maven2/com/github/weisj/jsvg/2.2.0/jsvg-2.2.0.jar'
     }
 )
 

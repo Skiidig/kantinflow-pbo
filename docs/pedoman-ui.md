@@ -75,20 +75,41 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 - Latar putih, lebar 240 px, border kanan `Ui.GARIS`.
 - Brand: kotak biru `KF` 32 × 32, nama **KantinFlow**, subjudul
   **Manajemen Persediaan**.
-- Navigasi berikon teks sederhana; satu halaman aktif.
+- Di bawah brand, sebelum menu, ada label **Barang aktif** dan dropdown
+  barang aktif. Dropdown mengikuti lebar sidebar, bukan header.
+- Dropdown menampilkan `Nama (satuan)`, memiliki tooltip nama lengkap, dan
+  tidak boleh memperlebar sidebar. Bila nama panjang, teks dipotong oleh
+  lebar kontrol; tooltip tetap menampilkan nama lengkap.
+- Sidebar memakai `JScrollPane`; dropdown dan tujuh menu tetap dapat
+  dijangkau pada 960 × 640. Jangan membuat dropdown kedua di header/panel.
+- Navigasi memakai ikon SVG outline dari `src/main/resources/kantinflow/icons/`
+  dengan ukuran 20 px; label teks tetap tampil di samping ikon.
+- Satu halaman aktif; ikon dan label berubah biru saat aktif, netral saat biasa.
 - Halaman aktif memakai latar `Ui.AKSEN_LEMBUT`, teks `Ui.AKSEN`, dan garis
   aksen kiri 3 px.
 - Hover halaman tidak aktif memakai `Ui.HOVER`.
 - Footer menampilkan `SQLite lokal · FlatLaf 3.8`.
+- Saat belum ada barang, dropdown dinonaktifkan, tampilkan pesan singkat
+  untuk membuka halaman Barang, dan halaman aktif diarahkan ke Barang.
 
 ### Header
 
 - Latar putih dengan border bawah.
-- Kiri: eyebrow, judul halaman 24 px, deskripsi singkat.
-- Kanan: label **Barang aktif** dan `JComboBox` selebar 230 px; pilihan
-  menampilkan `Nama (satuan)`.
+- Hanya berisi eyebrow, judul halaman 24 px, dan deskripsi singkat.
+- Pemilih barang aktif berada di sidebar; **jangan** menambahkan dropdown
+  barang kedua di header atau panel halaman.
 - Judul dan deskripsi berasal dari `PanelKantin.getJudul()` dan
   `getKeterangan()`; jangan menduplikasi judul di dalam panel.
+
+### Konteks barang per halaman
+
+- Halaman Stok Masuk, Stok Keluar, Pemantauan, Pembuangan, dan Riwayat
+  menampilkan keterangan singkat di dekat area kerja, misalnya
+  `Penerimaan untuk Roti · bungkus`.
+- Keterangan diperbarui oleh `perbarui()` saat barang berubah.
+- Halaman Barang tetap menampilkan seluruh barang dan form tambah/minimum.
+- Jangan membawa pilihan batch, hasil alokasi, detail transaksi, filter
+  Riwayat, atau pesan sukses barang lama ke barang baru.
 
 ### Kartu
 
@@ -122,6 +143,29 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 - Sediakan `Ui.kosong("...")` dan tampilkan hanya saat model kosong.
 - Gunakan `yyyy-MM-dd` untuk tanggal dan sertakan satuan pada jumlah.
 
+### Toolbar filter dan dialog detail
+
+- Toolbar Riwayat memakai `Ui.kartu("Filter riwayat")`, `Ui.field(...)`,
+  `Ui.utama("Terapkan Filter")`, dan `Ui.sekunder("Reset")`.
+- Pencarian kode batch/alasan tidak membedakan huruf besar/kecil.
+- Filter jenis dan tanggal bekerja bersama; tanggal memakai `yyyy-MM-dd` dan
+  rentang inklusif. Tanggal mulai setelah tanggal akhir ditolak lewat
+  `Ui.pesan()` dekat filter.
+- Status jumlah memakai format `X transaksi · Y rincian ditampilkan`; satu
+  transaksi FEFO tetap satu transaksi walau memiliki beberapa rincian.
+- Dialog detail memakai `Ui.kartu`, `Ui.tabel`, dan `Ui.scrollTabel`; judul
+  dialog `Detail Transaksi`.
+- Tabel utama boleh berisi baris per rincian, tetapi dialog harus memakai
+  objek transaksi asal agar rincian FEFO lengkap. Jangan menggabungkan
+  transaksi berdasarkan tanggal/jenis.
+- Sediakan empty state berbeda untuk belum ada riwayat dan tidak ada hasil
+  filter.
+- Saat form transaksi berisi isian dan pengguna mengganti barang melalui
+  sidebar atau tabel Barang, tampilkan konfirmasi. Jika pengguna memilih
+  batal, kembalikan pilihan dropdown dan pertahankan isian. Jika setuju,
+  form dibersihkan. Reload internal setelah simpan tidak boleh memunculkan
+  konfirmasi.
+
 ### Pesan dan status
 
 - Error field: `Ui.pesan()` berwarna `Ui.MERAH`, 11 px.
@@ -147,7 +191,8 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 
 - Panel mengimplementasikan `Scrollable` dan mengikuti lebar viewport.
 - Grid form berubah menjadi satu kolom pada lebar < 760 px.
-- Sidebar tetap 240 px; konten dapat digulir vertikal.
+- Sidebar tetap 240 px; sidebar memiliki scroll vertikal bila diperlukan.
+- Dropdown barang aktif dan seluruh menu tetap terjangkau.
 - Tombol dan field tetap berada dalam alur layout, bukan posisi absolut.
 - Tabel yang lebih lebar dapat digulir di dalam `JScrollPane` tabel.
 

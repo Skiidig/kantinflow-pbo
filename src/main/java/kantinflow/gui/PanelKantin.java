@@ -60,5 +60,13 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
         return false;
     }
 
+    /**
+     * True bila ada isian formulir yang belum disimpan. Dipakai shell untuk
+     * meminta konfirmasi sebelum mengganti barang aktif.
+     */
+    public boolean adaIsianBelumDisimpan() {
+        return false;
+    }
+
     public abstract void perbarui();
 }

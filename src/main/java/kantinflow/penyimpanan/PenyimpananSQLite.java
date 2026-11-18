@@ -32,12 +32,14 @@ import kantinflow.Transaksi;
  */
 public class PenyimpananSQLite implements AutoCloseable {
     private final Connection koneksi;
+    private final String lokasiDatabase;
 
     public PenyimpananSQLite(String lokasiDatabase) {
         if (lokasiDatabase == null || lokasiDatabase.isBlank()) {
             throw new IllegalArgumentException("Lokasi database wajib diisi");
         }
 
+        this.lokasiDatabase = lokasiDatabase;
         try {
             if (!":memory:".equals(lokasiDatabase)) {
                 Path file = Paths.get(lokasiDatabase).toAbsolutePath();
@@ -61,6 +63,10 @@ public class PenyimpananSQLite implements AutoCloseable {
                     "Gagal membuka database: " + lokasiDatabase,
                     exception);
         }
+    }
+
+    public String getLokasiDatabase() {
+        return lokasiDatabase;
     }
 
     /**

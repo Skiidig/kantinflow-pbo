@@ -15,8 +15,10 @@ import java.awt.LayoutManager;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.net.URL;
 
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -28,6 +30,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 /**
  * Komponen dan token visual bersama untuk tujuh halaman Swing/FlatLaf.
@@ -97,6 +101,43 @@ final class Ui {
         Font dasar = javax.swing.UIManager.getFont("Label.font");
         String nama = dasar == null ? "Segoe UI" : dasar.getName();
         return new Font(nama, gaya, Math.max(10, Math.round(ukuran)));
+    }
+
+    static Icon ikonMenu(String kunci, int ukuran, Color warna) {
+        String nama = switch (kunci) {
+            case "ringkasan" -> "dashboard";
+            case "barang" -> "package";
+            case "stok-masuk" -> "stock-in";
+            case "stok-keluar" -> "stock-out";
+            case "pemantauan" -> "monitor";
+            case "pembuangan" -> "trash";
+            case "riwayat" -> "history";
+            default -> null;
+        };
+        return nama == null ? null : ikon(nama, ukuran, warna);
+    }
+
+    private static Icon ikon(String nama, int ukuran, Color warna) {
+        try {
+            URL url = Ui.class.getResource(
+                    "/kantinflow/icons/" + nama + ".svg");
+            if (url == null) {
+                return null;
+            }
+            FlatSVGIcon svg = new FlatSVGIcon(url);
+            if (!svg.hasFound()) {
+                return null;
+            }
+            FlatSVGIcon hasil = svg.derive(ukuran, ukuran);
+            if (warna != null) {
+                hasil.setColorFilter(new FlatSVGIcon.ColorFilter(c -> new Color(
+                        warna.getRed(), warna.getGreen(), warna.getBlue(),
+                        c.getAlpha())));
+            }
+            return hasil;
+        } catch (RuntimeException | LinkageError exception) {
+            return null;
+        }
     }
 
     static JLabel judul(String teks) {

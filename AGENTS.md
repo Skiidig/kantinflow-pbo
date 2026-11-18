@@ -12,8 +12,20 @@
   kontrol utama, konten/tabel, lalu pesan hasil atau status.
 - Daftarkan panel baru di `JendelaKantinFlow` dan gunakan kembali
   `Ui.gridResponsif`, `Ui.field`, `Ui.scrollTabel`, serta `Ui.rataKanan`.
+- Pemilih barang aktif hanya berada di sidebar; header tidak memiliki
+  dropdown barang. Panel yang membutuhkan konteks menampilkan nama/satuan
+  barang aktif melalui `perbarui()`.
+- Jika form transaksi berubah, gunakan `PanelKantin.adaIsianBelumDisimpan()`
+  agar shell meminta konfirmasi sebelum mengganti barang; reload internal
+  tidak boleh meminta konfirmasi.
 - Pertahankan `setName(...)` komponen yang dipakai harness/pengujian dan
   istilah UI yang sudah ada.
+- Ikon sidebar memakai SVG di `src/main/resources/kantinflow/icons/` melalui
+  `Ui.ikonMenu(...)`; jangan memakai path absolut atau simbol teks/emoji.
+- Setelah mengubah GUI, jalankan `tests/SwingRiwayatHarness.java`,
+  `tests/SwingActiveBarangHarness.java`, dan
+  `tests/SwingEmptyBarangHarness.java`; salin resource ke `out`, dan uji
+  peluncur dari folder kerja lain bila mengubah `run-gui.cmd`.
 - Untuk perubahan GUI, jalankan kompilasi, regression
   `tests/RegresiKantinFlow.java`, dan pemeriksaan tujuh halaman pada ukuran
   1366×768 serta 960×640.

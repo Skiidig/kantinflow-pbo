@@ -32,16 +32,21 @@ public class PanelPembuangan extends PanelKantin {
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel ringkasan = Ui.kosong(
             "Pilih batch untuk melihat ringkasan tindakan.");
+    private final JLabel infoBarang = Ui.keterangan(" ");
+    private int idBarangTerakhir = -1;
+    private String tanggalAwal;
 
     public PanelPembuangan(KonteksKantin konteks) {
         super(konteks, "Pembuangan",
                 "Buang batch kedaluwarsa dengan alasan.");
         comboBatch.setName("batchBuang");
+        infoBarang.setName("konteksPembuangan");
         fieldJumlah.setName("jumlahBuang");
         fieldTanggal.setName("tanggalBuang");
         fieldAlasan.setName("alasanBuang");
         tombolBuang.setName("tombolBuang");
-        fieldTanggal.setText(LocalDate.now().toString());
+        tanggalAwal = LocalDate.now().toString();
+        fieldTanggal.setText(tanggalAwal);
         comboBatch.setRenderer(new DefaultListCellRenderer() {
             @Override
             public java.awt.Component getListCellRendererComponent(
@@ -75,6 +80,9 @@ public class PanelPembuangan extends PanelKantin {
         formIsi.setOpaque(false);
         formIsi.setLayout(new javax.swing.BoxLayout(
                 formIsi, javax.swing.BoxLayout.Y_AXIS));
+        infoBarang.setAlignmentX(LEFT_ALIGNMENT);
+        infoBarang.setBorder(new EmptyBorder(0, 0, 6, 0));
+        formIsi.add(infoBarang);
         formIsi.add(isian);
         formIsi.add(javax.swing.Box.createVerticalStrut(6));
         formIsi.add(pesanValidasi);
@@ -165,7 +173,8 @@ public class PanelPembuangan extends PanelKantin {
                 + ". Alasan: " + pembuangan.getAlasan() + ".")) {
             fieldJumlah.setText("");
             fieldAlasan.setText("");
-            fieldTanggal.setText(LocalDate.now().toString());
+            tanggalAwal = LocalDate.now().toString();
+            fieldTanggal.setText(tanggalAwal);
             pesanValidasi.setText(" ");
         } else {
             pesanValidasi.setText("Pembuangan gagal disimpan. Lihat status.");
@@ -174,6 +183,17 @@ public class PanelPembuangan extends PanelKantin {
 
     @Override
     public void perbarui() {
+        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
+            idBarangTerakhir = konteks.getBarangAktif().getId();
+            fieldJumlah.setText("");
+            fieldAlasan.setText("");
+            tanggalAwal = LocalDate.now().toString();
+            fieldTanggal.setText(tanggalAwal);
+            pesanValidasi.setText(" ");
+        }
+        infoBarang.setText("Pembuangan untuk "
+                + konteks.getBarangAktif().getNama() + " · "
+                + konteks.getBarangAktif().getSatuan());
         String kodeTerpilih = comboBatch.getItemCount() == 0
                 ? null
                 : ((BatchStok) comboBatch.getSelectedItem()).getKode();
@@ -193,5 +213,12 @@ public class PanelPembuangan extends PanelKantin {
         }
         tombolBuang.setEnabled(comboBatch.getItemCount() > 0);
         perbaruiRingkasan();
+    }
+
+    @Override
+    public boolean adaIsianBelumDisimpan() {
+        return !fieldJumlah.getText().trim().isEmpty()
+                || !fieldAlasan.getText().trim().isEmpty()
+                || !fieldTanggal.getText().equals(tanggalAwal);
     }
 }

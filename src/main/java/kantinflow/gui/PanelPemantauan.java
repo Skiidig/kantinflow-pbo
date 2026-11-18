@@ -39,11 +39,14 @@ public class PanelPemantauan extends PanelKantin {
             "Belum ada tanggal pemeriksaan.");
     private final JLabel kosong = Ui.kosong(
             "Belum ada batch bersisa yang dapat dipantau.");
+    private final JLabel infoBarang = Ui.keterangan(" ");
+    private int idBarangTerakhir = -1;
 
     public PanelPemantauan(KonteksKantin konteks) {
         super(konteks, "Pemantauan",
                 "Periksa status kedaluwarsa batch aktif.");
         fieldTanggal.setName("tanggalPemantauan");
+        infoBarang.setName("konteksPemantauan");
         tombolPeriksa.setName("tombolPeriksa");
         tabel.setName("tabelPemantauan");
         tombolPeriksa.addActionListener(event -> periksa());
@@ -86,7 +89,11 @@ public class PanelPemantauan extends PanelKantin {
         baris.add(tombolPeriksa);
         JPanel kontrolIsi = new JPanel(new BorderLayout(0, 5));
         kontrolIsi.setOpaque(false);
-        kontrolIsi.add(baris, BorderLayout.NORTH);
+        JPanel kontrolAtas = new JPanel(new BorderLayout(0, 4));
+        kontrolAtas.setOpaque(false);
+        kontrolAtas.add(infoBarang, BorderLayout.NORTH);
+        kontrolAtas.add(baris, BorderLayout.CENTER);
+        kontrolIsi.add(kontrolAtas, BorderLayout.NORTH);
         kontrolIsi.add(pesanValidasi, BorderLayout.CENTER);
         kontrolIsi.add(labelInfo, BorderLayout.SOUTH);
         kontrol.add(kontrolIsi, BorderLayout.CENTER);
@@ -160,6 +167,14 @@ public class PanelPemantauan extends PanelKantin {
 
     @Override
     public void perbarui() {
+        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
+            idBarangTerakhir = konteks.getBarangAktif().getId();
+            fieldTanggal.setText("");
+            pesanValidasi.setText(" ");
+        }
+        infoBarang.setText("Pemantauan untuk "
+                + konteks.getBarangAktif().getNama() + " · "
+                + konteks.getBarangAktif().getSatuan());
         LocalDate tanggal = konteks.getTanggalPemantauan();
         if (tanggal == null) {
             if (fieldTanggal.getText().isBlank()) {

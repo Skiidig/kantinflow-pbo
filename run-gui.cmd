@@ -48,13 +48,15 @@ if errorlevel 1 (
     echo         File yang diharapkan:
     echo         %SQLITE_JAR%
     echo         %FLATLAF_JAR%
+    echo         %ROOT%lib\flatlaf-extras-3.8.jar
+    echo         %ROOT%lib\jsvg-2.2.0.jar
     echo.
     echo Jalankan setup.ps1 terlebih dahulu, misalnya:
     echo   powershell -ExecutionPolicy Bypass -File "%~dp0setup.ps1"
     goto :gagal
 )
 
-echo [OK] Java, javac, SQLite JDBC, dan FlatLaf tersedia.
+echo [OK] Java, javac, SQLite JDBC, FlatLaf, dan renderer SVG tersedia.
 if defined KANTINFLOW_DB (
     echo      Database uji: %KANTINFLOW_DB%
 ) else (
@@ -87,6 +89,13 @@ if errorlevel 1 (
     echo.
     echo [GAGAL] Kompilasi Java gagal. Baca pesan javac di atas.
     goto :gagal
+)
+
+if exist "%ROOT%src\main\resources\*" (
+    xcopy "%ROOT%src\main\resources\*" "%OUT%\" /E /I /Y >nul 2>&1
+    if errorlevel 1 (
+        echo [PERINGATAN] Resource ikon gagal disalin; navigasi tetap memakai label teks.
+    )
 )
 
 echo [OK] Kompilasi berhasil. Membuka GUI KantinFlow...

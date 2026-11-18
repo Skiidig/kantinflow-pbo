@@ -3,7 +3,7 @@
 Dokumen ini merangkum kode terbaru setelah pemeriksaan akhir. Fokusnya adalah
 struktur kelas, relasi data, penerapan PBO, penanganan exception, skema SQLite,
 hasil pengujian, dan batas aplikasi. GUI utama adalah Swing + FlatLaf dengan
-tujuh halaman; tanpa dependensi GUI tambahan.
+tujuh halaman; ikon SVG memakai FlatLaf Extras dan JSVG.
 
 ## 1. Kelas dan tanggung jawab
 
@@ -21,7 +21,7 @@ tujuh halaman; tanpa dependensi GUI tambahan.
 | `StatusKedaluwarsa` | `label` | `getLabel()` | Enum `KEDALUWARSA`, `SEGERA_KEDALUWARSA`, `AMAN`. |
 | `PenyimpananSQLite` | `koneksi` | `muatSemuaBarang()`, `muatBarang(id)`, `simpanBarang()`, `muatRiwayat()`, `simpanTransaksi()`, `simpanStokMinimum()` | Semua akses JDBC dan transaksi SQLite. |
 | `MenuKonsol` | `barang`, `daftarBarang`, `riwayat`, `scanner`, `penyimpanan` | `jalankan()`, aksi menu | Antarmuka konsol dan barang aktif. |
-| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar, pemilih barang, CardLayout, status, dan koordinasi panel. |
+| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar dengan pemilih barang, konfirmasi form, CardLayout, status, dan koordinasi panel. |
 | `KonteksKantin` | kontrak `Barang`, `Transaksi`, tanggal pemantauan | getter, simpan, tambah, ganti, pesan | Batas antara panel halaman dan shell. |
 | `PanelKantin` | `konteks` | `perbarui()` | Dasar halaman dengan header konsisten. |
 | `PanelRingkasan` | label stok/status, field tanggal | `perbarui()` | Ringkasan fisik, layak, minimum, status restok. |
@@ -30,8 +30,8 @@ tujuh halaman; tanpa dependensi GUI tambahan.
 | `PanelStokKeluar` | combo batch, field manual/FEFO | `perbarui()` | Pengeluaran manual dan FEFO. |
 | `PanelPemantauan` | tanggal, tabel status | `perbarui()` | Pemantauan kedaluwarsa. |
 | `PanelPembuangan` | combo batch, jumlah, tanggal, alasan | `perbarui()` | Pembuangan batch. |
-| `PanelRiwayat` | tabel rincian | `perbarui()` | Riwayat lengkap barang aktif. |
-| `Ui` | token warna, font, kartu, tombol, tabel | helper tampilan | Konsistensi visual FlatLaf: latar terang, kartu, nav, tabel, dan status. |
+| `PanelRiwayat` | tabel rincian, filter, detail | `perbarui()` | Riwayat dengan pencarian/filter, jumlah transaksi/rincian, dialog detail, dan konteks barang. |
+| `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, layout responsif, dan pemuatan SVG dari classpath. |
 | `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
 
 ## 2. Relasi aktual
@@ -189,6 +189,13 @@ SEMUA_REGRESI_LULUS
 | FEFO sebelum tanggal masuk di konsol | Pesan sama; stok/riwayat tidak berubah. |
 | Panduan demo setelah perbaikan | FEFO 8 menghasilkan A=0/B=4; FEFO 5 ditolak; minimum 5 menghasilkan `Perlu restok`; reopen mempertahankan saldo 4, minimum 5, dan 4 baris riwayat. |
 | GUI FlatLaf baru | Tambah Roti/minimum 5; terima ROTI-A 5 dan ROTI-B 7; manual 2; manual 4 ditolak; FEFO 8 menghasilkan A=0/B=2; batch ROTI-EXP; pemantauan 2 batch; buang 1; 7 rincian riwayat; reopen saldo 3/minimum 5/7 rincian. |
+| Pencarian/filter Riwayat | Pencarian `rusak`/`ROTI-exp` tidak membedakan huruf besar-kecil; filter jenis, tanggal inklusif, gabungan, rentang tidak valid, empty state, reset, dan pembersihan saat pindah barang lulus. |
+| Detail FEFO | FEFO A=5/B=7, keluar 8: satu transaksi, dua rincian A=5/B=3; memilih baris A atau B membuka dialog dua rincian; setelah sorting dan filter batch tetap lengkap. |
+| Pemilih sidebar | Satu dropdown barang aktif berada di sidebar; nama panjang memakai tooltip dan lebar 207 px; konteks lima halaman diperbarui saat barang berubah. |
+| Konfirmasi barang | Form Stok Masuk berisi kode; konfirmasi batal mempertahankan Roti dan isian; konfirmasi setuju memindahkan ke Susu dan membersihkan form. Reload setelah simpan tidak memunculkan konfirmasi. |
+| Tanpa barang | Database tanpa barang membuka halaman Barang dengan dropdown nonaktif dan pesan sidebar; barang pertama dapat ditambahkan dan langsung menjadi aktif. |
+| Reopen | Barang aktif Susu tetap aktif setelah jendela ditutup dan dibuka kembali melalui preferensi UI sidecar. |
+| Ikon SVG | Tujuh menu memuat `FlatSVGIcon` 20×20 dari classpath; ikon aktif berwarna biru dan label teks tetap ada. |
 | Ukuran jendela | Default 1180×720, minimum 960×640; ketujuh halaman dapat dinavigasi pada 1366×768 dan 960×640, dengan scroll dan form adaptif. |
 | Demo lama | Saldo 5, 5, 3, 3 dan riwayat 1, 1, 2, 2. |
 
@@ -230,9 +237,16 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
   sedangkan alur GUI diuji dengan harness Swing.
 - Migrasi saat ini hanya penambahan kolom `stok_minimum`; perubahan skema
   berikutnya perlu strategi versi/migrasi tersendiri.
-- GUI membutuhkan `flatlaf-3.8.jar` di `lib/`; setup menyiapkannya, tetapi
-  menjalankan `java` manual tanpa `lib/*` akan gagal memuat tema.
-- Filter riwayat, pencarian, dan fitur tambahan belum disediakan.
+- GUI membutuhkan `flatlaf-3.8.jar`, `flatlaf-extras-3.8.jar`, dan
+  `jsvg-2.2.0.jar` di `lib/`; setup menyiapkannya. Menjalankan `java` manual
+  tanpa `lib/*` akan gagal memuat tema/ikon.
+- Filter dan detail Riwayat tersedia; belum ada ekspor, login, atau grafik.
+- Barang aktif diingat sebagai preferensi UI sidecar `<database>.ui`; ini
+  bukan tabel/skema domain dan tidak mengubah data stok pengguna.
+- Harness GUI ada di `tests/SwingRiwayatHarness.java`,
+  `tests/SwingActiveBarangHarness.java`, dan
+  `tests/SwingEmptyBarangHarness.java`; semuanya menggunakan database uji
+  terpisah.
 - Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
   tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
   tersebut agar tetap kompatibel dengan JDK lain.

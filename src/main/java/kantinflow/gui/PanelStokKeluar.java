@@ -36,12 +36,15 @@ public class PanelStokKeluar extends PanelKantin {
     private final JLabel pesanFefo = Ui.pesan();
     private final JLabel hasilAlokasi = Ui.kosong(
             "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+    private final JLabel infoBarang = Ui.keterangan(" ");
     private int idBarangTerakhir = -1;
+    private String tanggalFefoAwal;
 
     public PanelStokKeluar(KonteksKantin konteks) {
         super(konteks, "Stok Keluar",
                 "Keluarkan stok manual atau dengan FEFO.");
         comboBatch.setName("batchManual");
+        infoBarang.setName("konteksStokKeluar");
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
         fieldJumlahFefo.setName("jumlahFefo");
@@ -67,7 +70,8 @@ public class PanelStokKeluar extends PanelKantin {
         comboBatch.addActionListener(event -> perbaruiSisa());
         tombolManual.addActionListener(event -> keluarkanManual());
         tombolFefo.addActionListener(event -> keluarkanFefo());
-        fieldTanggalFefo.setText(LocalDate.now().toString());
+        tanggalFefoAwal = LocalDate.now().toString();
+        fieldTanggalFefo.setText(tanggalFefoAwal);
         bangunIsi();
     }
 
@@ -135,8 +139,10 @@ public class PanelStokKeluar extends PanelKantin {
         mode.addTab("Manual", manualWrap);
         mode.addTab("FEFO", fefoWrap);
 
-        JPanel isi = new JPanel(new BorderLayout(0, 0));
+        JPanel isi = new JPanel(new BorderLayout(0, 8));
         isi.setOpaque(false);
+        infoBarang.setBorder(new EmptyBorder(0, 0, 2, 0));
+        isi.add(infoBarang, BorderLayout.NORTH);
         isi.add(mode, BorderLayout.CENTER);
         add(isi, BorderLayout.CENTER);
     }
@@ -258,11 +264,16 @@ public class PanelStokKeluar extends PanelKantin {
             idBarangTerakhir = konteks.getBarangAktif().getId();
             fieldJumlahManual.setText("");
             fieldJumlahFefo.setText("");
+            tanggalFefoAwal = LocalDate.now().toString();
+            fieldTanggalFefo.setText(tanggalFefoAwal);
             pesanManual.setText(" ");
             pesanFefo.setText(" ");
             hasilAlokasi.setText(
                     "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
         }
+        infoBarang.setText("Pengeluaran untuk "
+                + konteks.getBarangAktif().getNama() + " · "
+                + konteks.getBarangAktif().getSatuan());
         String kodeTerpilih = comboBatch.getItemCount() == 0
                 ? null
                 : ((BatchStok) comboBatch.getSelectedItem()).getKode();
@@ -281,5 +292,12 @@ public class PanelStokKeluar extends PanelKantin {
             }
         }
         perbaruiSisa();
+    }
+
+    @Override
+    public boolean adaIsianBelumDisimpan() {
+        return !fieldJumlahManual.getText().trim().isEmpty()
+                || !fieldJumlahFefo.getText().trim().isEmpty()
+                || !fieldTanggalFefo.getText().equals(tanggalFefoAwal);
     }
 }

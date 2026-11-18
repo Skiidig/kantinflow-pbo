@@ -56,8 +56,14 @@ public class PanelBarang extends PanelKantin {
                 int baris = tabel.getSelectedRow();
                 if (baris >= 0 && baris < urutanBarang.size()) {
                     Barang dipilih = urutanBarang.get(baris);
-                    if (dipilih.getId() != konteks.getBarangAktif().getId()) {
+                    Barang aktif = konteks.getBarangAktif();
+                    if (aktif == null || dipilih.getId() != aktif.getId()) {
                         konteks.gantiBarang(dipilih);
+                        if (konteks.getBarangAktif() == null
+                                || konteks.getBarangAktif().getId()
+                                != dipilih.getId()) {
+                            perbarui();
+                        }
                     }
                 }
             }
@@ -155,6 +161,10 @@ public class PanelBarang extends PanelKantin {
 
     private void simpanMinimum() {
         pesanMinimum.setText(" ");
+        if (konteks.getBarangAktif() == null) {
+            pesanMinimum.setText("Belum ada barang aktif.");
+            return;
+        }
         try {
             int minimum = Integer.parseInt(fieldMinimum.getText().trim());
             if (minimum < 0) {
@@ -181,6 +191,7 @@ public class PanelBarang extends PanelKantin {
             urutanBarang.addAll(konteks.getDaftarBarang());
             model.setRowCount(0);
             int barisAktif = -1;
+            Barang aktif = konteks.getBarangAktif();
             for (int i = 0; i < urutanBarang.size(); i++) {
                 Barang barang = urutanBarang.get(i);
                 model.addRow(new Object[]{
@@ -189,7 +200,7 @@ public class PanelBarang extends PanelKantin {
                     barang.getStokMinimum() + " " + barang.getSatuan(),
                     barang.hitungSaldo() + " " + barang.getSatuan()
                 });
-                if (barang.getId() == konteks.getBarangAktif().getId()) {
+                if (aktif != null && barang.getId() == aktif.getId()) {
                     barisAktif = i;
                 }
             }
@@ -197,11 +208,19 @@ public class PanelBarang extends PanelKantin {
             if (barisAktif >= 0) {
                 tabel.setRowSelectionInterval(barisAktif, barisAktif);
             }
-            labelMinimumAktif.setText("Barang aktif: "
-                    + konteks.getBarangAktif().getNama()
-                    + " (" + konteks.getBarangAktif().getSatuan() + ")");
-            fieldMinimum.setText(String.valueOf(
-                    konteks.getBarangAktif().getStokMinimum()));
+            if (aktif == null) {
+                labelMinimumAktif.setText("Belum ada barang aktif.");
+                fieldMinimum.setText("");
+                fieldMinimum.setEnabled(false);
+                tombolMinimum.setEnabled(false);
+            } else {
+                labelMinimumAktif.setText("Barang aktif: "
+                        + aktif.getNama()
+                        + " (" + aktif.getSatuan() + ")");
+                fieldMinimum.setText(String.valueOf(aktif.getStokMinimum()));
+                fieldMinimum.setEnabled(true);
+                tombolMinimum.setEnabled(true);
+            }
             kosong.setVisible(model.getRowCount() == 0);
         } finally {
             memperbaruiTabel = false;

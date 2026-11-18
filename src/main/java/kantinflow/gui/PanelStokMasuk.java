@@ -30,6 +30,10 @@ public class PanelStokMasuk extends PanelKantin {
     private final JLabel satuanJumlah = new JLabel("satuan");
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel kosong = Ui.kosong("Belum ada batch untuk barang ini.");
+    private final JLabel infoBarang = Ui.keterangan(" ");
+    private int idBarangTerakhir = -1;
+    private String tanggalMasukAwal;
+    private String tanggalKedaluwarsaAwal;
     private final DefaultTableModel model = Ui.model(
             "Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa");
     private final JTable tabel = Ui.tabel(model);
@@ -38,6 +42,7 @@ public class PanelStokMasuk extends PanelKantin {
         super(konteks, "Stok Masuk",
                 "Terima batch baru untuk barang aktif.");
         fieldKode.setName("kodeBatch");
+        infoBarang.setName("konteksStokMasuk");
         fieldJumlah.setName("jumlah");
         fieldTanggalMasuk.setName("tanggalMasuk");
         fieldTanggalKedaluwarsa.setName("tanggalKedaluwarsa");
@@ -51,8 +56,10 @@ public class PanelStokMasuk extends PanelKantin {
 
     private void aturTanggalAwal() {
         LocalDate hariIni = LocalDate.now();
-        fieldTanggalMasuk.setText(hariIni.toString());
-        fieldTanggalKedaluwarsa.setText(hariIni.plusMonths(1).toString());
+        tanggalMasukAwal = hariIni.toString();
+        tanggalKedaluwarsaAwal = hariIni.plusMonths(1).toString();
+        fieldTanggalMasuk.setText(tanggalMasukAwal);
+        fieldTanggalKedaluwarsa.setText(tanggalKedaluwarsaAwal);
     }
 
     private void bangunIsi() {
@@ -76,6 +83,9 @@ public class PanelStokMasuk extends PanelKantin {
         JPanel formIsi = new JPanel();
         formIsi.setOpaque(false);
         formIsi.setLayout(new BoxLayout(formIsi, BoxLayout.Y_AXIS));
+        infoBarang.setAlignmentX(LEFT_ALIGNMENT);
+        infoBarang.setBorder(new EmptyBorder(0, 0, 6, 0));
+        formIsi.add(infoBarang);
         isian.setAlignmentX(LEFT_ALIGNMENT);
         formIsi.add(isian);
         formIsi.add(javax.swing.Box.createVerticalStrut(6));
@@ -151,6 +161,16 @@ public class PanelStokMasuk extends PanelKantin {
 
     @Override
     public void perbarui() {
+        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
+            idBarangTerakhir = konteks.getBarangAktif().getId();
+            fieldKode.setText("");
+            fieldJumlah.setText("");
+            pesanValidasi.setText(" ");
+            aturTanggalAwal();
+        }
+        infoBarang.setText("Penerimaan untuk "
+                + konteks.getBarangAktif().getNama() + " · "
+                + konteks.getBarangAktif().getSatuan());
         satuanJumlah.setText(konteks.getBarangAktif().getSatuan());
         model.setRowCount(0);
         for (kantinflow.BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
@@ -163,5 +183,14 @@ public class PanelStokMasuk extends PanelKantin {
             });
         }
         kosong.setVisible(model.getRowCount() == 0);
+    }
+
+    @Override
+    public boolean adaIsianBelumDisimpan() {
+        return !fieldKode.getText().trim().isEmpty()
+                || !fieldJumlah.getText().trim().isEmpty()
+                || !fieldTanggalMasuk.getText().equals(tanggalMasukAwal)
+                || !fieldTanggalKedaluwarsa.getText()
+                        .equals(tanggalKedaluwarsaAwal);
     }
 }
