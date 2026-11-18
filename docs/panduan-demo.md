@@ -145,6 +145,28 @@ Pilih **Roti** pada pemilih barang aktif di sidebar.
 - Setelah tanggal `2026-11-18` diperiksa lagi, status kembali **Perlu restok**;
   hasil pemeriksaan tanggal tidak disimpan sebagai transaksi.
 
+## 9. Ekspor CSV
+
+Buka halaman **Riwayat**. Untuk mencoba filter dan ekspor:
+
+1. Isi pencarian atau pilih jenis/tanggal, lalu klik **Terapkan Filter**.
+2. Biarkan kolom tanggal kosong jika ingin seluruh riwayat barang aktif.
+3. Klik **Ekspor CSV** di area aksi tabel.
+4. Pilih nama dan folder, lalu setujui. Jika file sudah ada, konfirmasi
+   penimpaan.
+5. Buka file CSV di Excel atau editor teks. File memakai UTF-8 BOM, header
+   `Barang,Satuan,Tanggal transaksi,Jenis transaksi,Kode batch,Jumlah,Alasan`,
+   dan urutan baris sesuai tabel saat tombol ditekan.
+
+Jika memakai FEFO dua batch, ekspor tanpa filter batch berisi dua baris
+rincian. Setelah filter batch hanya menyisakan satu baris, ekspor juga hanya
+berisi satu rincian; dialog **Lihat Detail** tetap menampilkan transaksi FEFO
+lengkap.
+
+Membatalkan pemilihan file atau konfirmasi timpa tidak membuat file dan tidak
+dianggap kegagalan. Data stok/riwayat tidak berubah karena ekspor hanya
+membaca.
+
 ## Ringkasan hasil demo
 
 | Pemeriksaan | Hasil |

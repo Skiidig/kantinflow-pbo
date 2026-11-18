@@ -117,6 +117,10 @@ final class Ui {
         return nama == null ? null : ikon(nama, ukuran, warna);
     }
 
+    static Icon ikonAksi(String nama, int ukuran, Color warna) {
+        return ikon(nama, ukuran, warna);
+    }
+
     private static Icon ikon(String nama, int ukuran, Color warna) {
         try {
             URL url = Ui.class.getResource(

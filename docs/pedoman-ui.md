@@ -160,6 +160,19 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
   transaksi berdasarkan tanggal/jenis.
 - Sediakan empty state berbeda untuk belum ada riwayat dan tidak ada hasil
   filter.
+- Tombol **Ekspor CSV** berada di area aksi tabel Riwayat, memakai ikon
+  `export.svg` dan `Ui.sekunder`. Tombol nonaktif bila tidak ada rincian.
+- Ekspor mengambil snapshot urutan tampilan tabel (termasuk sorting) saat
+  tombol ditekan. Filter batch yang menyisakan satu rincian FEFO hanya
+  mengekspor rincian tersebut; dialog detail tetap lengkap.
+- CSV memakai header `Barang,Satuan,Tanggal transaksi,Jenis transaksi,
+  Kode batch,Jumlah,Alasan`, UTF-8 BOM, CRLF, jumlah bilangan bulat, dan
+  alasan kosong sebagai sel kosong.
+- Nilai teks yang diawali `=`, `+`, `-`, atau `@` diberi apostrof di awal
+  untuk mencegah eksekusi formula spreadsheet. Semua nilai teks yang
+  membutuhkan escaping diberi kutip ganda.
+- Penulisan dilakukan ke file sementara di folder tujuan, lalu dipindahkan
+  secara atomik; file lama tidak boleh rusak bila penulisan gagal.
 - Saat form transaksi berisi isian dan pengguna mengganti barang melalui
   sidebar atau tabel Barang, tampilkan konfirmasi. Jika pengguna memilih
   batal, kembalikan pilihan dropdown dan pertahankan isian. Jika setuju,

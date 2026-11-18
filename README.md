@@ -25,6 +25,8 @@ Berkas yang paling menentukan perilaku aplikasi:
 - `tests/SwingRiwayatHarness.java` — harness Swing untuk pencarian/filter/detail Riwayat dan pemeriksaan dua ukuran.
 - `tests/SwingActiveBarangHarness.java` — harness pemilih sidebar, konfirmasi form, konteks barang, dan reopen.
 - `tests/SwingEmptyBarangHarness.java` — harness kondisi tanpa barang dan penambahan barang pertama.
+- `tests/CsvExportHarness.java` — pemeriksaan format CSV dan kegagalan penulisan.
+- `tests/SwingExportHarness.java` — harness tombol ekspor, snapshot filter/sort, overwrite, dan pembatalan.
 
 ## Persiapan lokal
 
@@ -89,11 +91,11 @@ Cara praktis di Windows adalah `run-gui.cmd` seperti di atas. Untuk menjalankan 
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar berisi brand KantinFlow, pemilih **Barang aktif** tepat di bawah brand, navigasi tujuh halaman berikon, dan footer status. Header hanya berisi judul serta deskripsi halaman. Dropdown mengikuti lebar sidebar, memakai tooltip nama lengkap, dan sidebar dapat digulir pada jendela pendek. Halaman **Ringkasan** menampilkan tanggal acuan stok layak, kartu stok fisik/layak/minimum, dan status kebutuhan restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dengan satuan di dekat jumlah dan daftar batch. **Stok Keluar** memisahkan mode Manual dan FEFO; sisa batch terpilih tampil dekat input jumlah. **Pemantauan** menampilkan tanggal, ringkasan stok, dan tabel status kedaluwarsa. **Pembuangan** menampilkan form dan ringkasan tindakan dengan tombol bahaya. **Riwayat** menampilkan tanggal, jenis, batch, jumlah, dan alasan.
+GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar berisi brand KantinFlow, pemilih **Barang aktif** tepat di bawah brand, navigasi tujuh halaman berikon, dan footer status. Header hanya berisi judul serta deskripsi halaman. Dropdown mengikuti lebar sidebar, memakai tooltip nama lengkap, dan sidebar dapat digulir pada jendela pendek. Halaman **Ringkasan** menampilkan tanggal acuan stok layak, kartu stok fisik/layak/minimum, dan status kebutuhan restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dengan satuan di dekat jumlah dan daftar batch. **Stok Keluar** memisahkan mode Manual dan FEFO; sisa batch terpilih tampil dekat input jumlah. **Pemantauan** menampilkan tanggal, ringkasan stok, dan tabel status kedaluwarsa. **Pembuangan** menampilkan form dan ringkasan tindakan dengan tombol bahaya. **Riwayat** menampilkan tanggal, jenis, batch, jumlah, dan alasan, serta tombol **Ekspor CSV** untuk menyimpan rincian yang sedang tampil. Ekspor mengikuti filter dan urutan sorting, memakai UTF-8 BOM, dan menulis rincian dengan aman ke file tujuan.
 
 Tema memakai FlatLaf Light dengan latar `#F5F6F8`, kartu putih, aksen biru `#014BAA`, border tipis, tabel dengan angka rata kanan, serta status teks berwarna. Halaman memakai scroll dan layout responsif; jendela default 1180×720 dan minimum 960×640. Mengganti barang memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
 
-Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Riwayat](docs/bukti-gui/gui-flatlaf-riwayat.png), [Riwayat dengan filter](docs/bukti-gui/gui-flatlaf-riwayat-filter.png), [Detail FEFO](docs/bukti-gui/gui-flatlaf-riwayat-detail-fefo.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
+Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Riwayat](docs/bukti-gui/gui-flatlaf-riwayat.png), [Riwayat dengan filter](docs/bukti-gui/gui-flatlaf-riwayat-filter.png), [Detail FEFO](docs/bukti-gui/gui-flatlaf-riwayat-detail-fefo.png), [Ekspor CSV berhasil](docs/bukti-gui/gui-flatlaf-ekspor-csv.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
 
 ### Database lokal setiap komputer
 
@@ -176,7 +178,9 @@ java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" RegresiKantinF
 Harness GUI menggunakan database uji terpisah dan dapat dijalankan dengan:
 
 ```powershell
-javac -cp "out;lib/*" -d tests-out tests/SwingRiwayatHarness.java tests/SwingActiveBarangHarness.java tests/SwingEmptyBarangHarness.java
+javac -cp "out;lib/*" -d tests-out tests/SwingRiwayatHarness.java tests/SwingActiveBarangHarness.java tests/SwingEmptyBarangHarness.java tests/CsvExportHarness.java tests/SwingExportHarness.java
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingExportHarness
+java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" CsvExportHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingRiwayatHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingActiveBarangHarness
 java --enable-native-access=ALL-UNNAMED -cp "tests-out;out;lib/*" SwingEmptyBarangHarness
