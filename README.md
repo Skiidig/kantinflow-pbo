@@ -80,11 +80,11 @@ Cara praktis di Windows adalah `run-gui.cmd` seperti di atas. Untuk menjalankan 
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar di kiri berisi pemilih barang aktif dan navigasi tujuh halaman; pemilih barang selalu terlihat. Halaman **Ringkasan** menampilkan stok fisik, stok layak pada tanggal pengecekan, minimum, dan status restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dan daftar batch. **Stok Keluar** menyediakan pengeluaran manual (dengan sisa batch terpilih) dan FEFO. **Pemantauan** menampilkan status kedaluwarsa, **Pembuangan** menangani pembuangan, dan **Riwayat** menampilkan seluruh rincian transaksi barang aktif.
+GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar berisi brand KantinFlow, navigasi tujuh halaman berikon, dan footer status; header berisi judul halaman serta pemilih barang aktif. Halaman **Ringkasan** menampilkan tanggal acuan stok layak, kartu stok fisik/layak/minimum, dan status kebutuhan restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dengan satuan di dekat jumlah dan daftar batch. **Stok Keluar** memisahkan mode Manual dan FEFO; sisa batch terpilih tampil dekat input jumlah. **Pemantauan** menampilkan tanggal, ringkasan stok, dan tabel status kedaluwarsa. **Pembuangan** menampilkan form dan ringkasan tindakan dengan tombol bahaya. **Riwayat** menampilkan tanggal, jenis, batch, jumlah, dan alasan.
 
-Tema memakai FlatLaf Light. Halaman yang tinggi dapat di-scroll; jendela default 1180×700 dan minimum 900×600 sehingga tetap nyaman pada layar 1366×768. Mengganti barang akan memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama. Tidak ada dependensi GUI tambahan pada jalur ini.
+Tema memakai FlatLaf Light dengan latar `#F5F6F8`, kartu putih, aksen biru `#014BAA`, border tipis, tabel dengan angka rata kanan, serta status teks berwarna. Halaman memakai scroll dan layout responsif; jendela default 1180×720 dan minimum 960×640. Mengganti barang memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
 
-Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
+Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Riwayat](docs/bukti-gui/gui-flatlaf-riwayat.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
 
 ### Database lokal setiap komputer
 

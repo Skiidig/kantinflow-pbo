@@ -31,7 +31,7 @@ tujuh halaman; tanpa dependensi GUI tambahan.
 | `PanelPemantauan` | tanggal, tabel status | `perbarui()` | Pemantauan kedaluwarsa. |
 | `PanelPembuangan` | combo batch, jumlah, tanggal, alasan | `perbarui()` | Pembuangan batch. |
 | `PanelRiwayat` | tabel rincian | `perbarui()` | Riwayat lengkap barang aktif. |
-| `Ui` | warna, font, komponen | helper tampilan | Konsistensi visual FlatLaf. |
+| `Ui` | token warna, font, kartu, tombol, tabel | helper tampilan | Konsistensi visual FlatLaf: latar terang, kartu, nav, tabel, dan status. |
 | `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang `FlatLightLaf`. |
 
 ## 2. Relasi aktual
@@ -188,8 +188,8 @@ SEMUA_REGRESI_LULUS
 | FEFO sebelum tanggal masuk di Swing | `Pengeluaran FEFO gagal: Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch B1`; stok/riwayat tidak berubah. |
 | FEFO sebelum tanggal masuk di konsol | Pesan sama; stok/riwayat tidak berubah. |
 | Panduan demo setelah perbaikan | FEFO 8 menghasilkan A=0/B=4; FEFO 5 ditolak; minimum 5 menghasilkan `Perlu restok`; reopen mempertahankan saldo 4, minimum 5, dan 4 baris riwayat. |
-| GUI FlatLaf baru | Tambah Roti, pindah barang, terima 2 batch, manual 2, tolak manual 4, FEFO lintas batch, tolak FEFO 3, monitoring, minimum, pembuangan, reopen, dan navigasi tujuh halaman berhasil. |
-| Ukuran jendela | Default 1180×700 dan diperkecil 960×640; seluruh halaman dapat dinavigasi dan halaman memakai scroll. |
+| GUI FlatLaf baru | Tambah Roti/minimum 5; terima ROTI-A 5 dan ROTI-B 7; manual 2; manual 4 ditolak; FEFO 8 menghasilkan A=0/B=2; batch ROTI-EXP; pemantauan 2 batch; buang 1; 7 rincian riwayat; reopen saldo 3/minimum 5/7 rincian. |
+| Ukuran jendela | Default 1180×720, minimum 960×640; ketujuh halaman dapat dinavigasi pada 1366×768 dan 960×640, dengan scroll dan form adaptif. |
 | Demo lama | Saldo 5, 5, 3, 3 dan riwayat 1, 1, 2, 2. |
 
 ### Pemeriksaan penyimpanan

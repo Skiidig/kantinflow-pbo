@@ -12,7 +12,9 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 
 import kantinflow.BatchStok;
 import kantinflow.PengeluaranStok;
@@ -30,10 +32,15 @@ public class PanelStokKeluar extends PanelKantin {
     private final JTextField fieldJumlahFefo = Ui.field(8);
     private final JTextField fieldTanggalFefo = Ui.field(12);
     private final JButton tombolFefo = Ui.utama("Keluarkan FEFO");
+    private final JLabel pesanManual = Ui.pesan();
+    private final JLabel pesanFefo = Ui.pesan();
+    private final JLabel hasilAlokasi = Ui.kosong(
+            "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+    private int idBarangTerakhir = -1;
 
     public PanelStokKeluar(KonteksKantin konteks) {
         super(konteks, "Stok Keluar",
-                "Pilih batch secara manual atau biarkan FEFO memilih batch paling cepat kedaluwarsa.");
+                "Keluarkan stok manual atau dengan FEFO.");
         comboBatch.setName("batchManual");
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
@@ -66,44 +73,71 @@ public class PanelStokKeluar extends PanelKantin {
 
     private void bangunIsi() {
         JPanel manual = Ui.kartu("Pengeluaran Manual");
-        JPanel manualIsi = new JPanel(new BorderLayout(0, 10));
+        JPanel manualIsi = new JPanel();
         manualIsi.setOpaque(false);
-        manualIsi.add(Ui.field("Batch", comboBatch), BorderLayout.NORTH);
+        manualIsi.setLayout(new javax.swing.BoxLayout(
+                manualIsi, javax.swing.BoxLayout.Y_AXIS));
+        manualIsi.add(Ui.field("Batch *", comboBatch));
         labelSisa.setName("sisaBatch");
         labelSisa.setFont(Ui.font(Font.BOLD, 12f));
         labelSisa.setForeground(Ui.AKSEN);
-        manualIsi.add(labelSisa, BorderLayout.CENTER);
-        JPanel manualAksi = new JPanel(new BorderLayout(8, 6));
-        manualAksi.setOpaque(false);
-        manualAksi.add(Ui.field("Jumlah", fieldJumlahManual), BorderLayout.NORTH);
-        manualAksi.add(tombolManual, BorderLayout.SOUTH);
-        manualIsi.add(manualAksi, BorderLayout.SOUTH);
+        labelSisa.setBorder(new EmptyBorder(8, 0, 8, 0));
+        manualIsi.add(labelSisa);
+        manualIsi.add(Ui.field("Jumlah *", fieldJumlahManual, pesanManual));
+        manualIsi.add(javax.swing.Box.createVerticalStrut(6));
+        JPanel aksiManual = new JPanel(new BorderLayout());
+        aksiManual.setOpaque(false);
+        aksiManual.add(tombolManual, BorderLayout.EAST);
+        manualIsi.add(aksiManual);
         manual.add(manualIsi, BorderLayout.CENTER);
 
         JPanel fefo = Ui.kartu("Pengeluaran FEFO");
-        JPanel fefoIsi = new JPanel(new BorderLayout(0, 10));
+        JPanel fefoIsi = new JPanel();
         fefoIsi.setOpaque(false);
-        JPanel fefoField = new JPanel(new GridLayout(2, 1, 0, 8));
-        fefoField.setOpaque(false);
-        fefoField.add(Ui.field("Jumlah", fieldJumlahFefo));
-        fefoField.add(Ui.field("Tanggal pengeluaran (yyyy-MM-dd)",
-                fieldTanggalFefo));
-        fefoIsi.add(fefoField, BorderLayout.CENTER);
-        fefoIsi.add(tombolFefo, BorderLayout.SOUTH);
+        fefoIsi.setLayout(new javax.swing.BoxLayout(
+                fefoIsi, javax.swing.BoxLayout.Y_AXIS));
+        JLabel bantuan = Ui.keterangan(
+                "Batch layak dengan kedaluwarsa terdekat digunakan lebih dahulu.");
+        bantuan.setBorder(new EmptyBorder(0, 0, 8, 0));
+        fefoIsi.add(bantuan);
+        fefoIsi.add(Ui.field("Jumlah *", fieldJumlahFefo));
+        fefoIsi.add(javax.swing.Box.createVerticalStrut(8));
+        fefoIsi.add(Ui.field("Tanggal pengeluaran * (yyyy-MM-dd)",
+                fieldTanggalFefo, pesanFefo));
+        fefoIsi.add(javax.swing.Box.createVerticalStrut(6));
+        JPanel aksiFefo = new JPanel(new BorderLayout());
+        aksiFefo.setOpaque(false);
+        aksiFefo.add(tombolFefo, BorderLayout.EAST);
+        fefoIsi.add(aksiFefo);
+        hasilAlokasi.setBorder(new EmptyBorder(10, 0, 0, 0));
+        fefoIsi.add(hasilAlokasi);
         fefo.add(fefoIsi, BorderLayout.CENTER);
 
-        JPanel kartu = new JPanel(new GridLayout(1, 2, 16, 0));
-        kartu.setOpaque(false);
-        kartu.add(manual);
-        kartu.add(fefo);
-        JLabel catatan = Ui.keterangan(
-                "Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch.");
-        kartu.setBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0));
+        JPanel manualWrap = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.LEFT, 0, 0));
+        manualWrap.setOpaque(true);
+        manualWrap.setBackground(Ui.KARTU);
+        manual.setMaximumSize(new java.awt.Dimension(620, Integer.MAX_VALUE));
+        manual.setPreferredSize(new java.awt.Dimension(600, 260));
+        manualWrap.add(manual);
+        JPanel fefoWrap = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.LEFT, 0, 0));
+        fefoWrap.setOpaque(true);
+        fefoWrap.setBackground(Ui.KARTU);
+        fefo.setMaximumSize(new java.awt.Dimension(620, Integer.MAX_VALUE));
+        fefo.setPreferredSize(new java.awt.Dimension(600, 300));
+        fefoWrap.add(fefo);
 
-        JPanel isi = new JPanel(new BorderLayout(0, 12));
+        JTabbedPane mode = new JTabbedPane();
+        mode.setFont(Ui.font(Font.BOLD, 12f));
+        mode.setBackground(Ui.KARTU);
+        mode.setOpaque(true);
+        mode.addTab("Manual", manualWrap);
+        mode.addTab("FEFO", fefoWrap);
+
+        JPanel isi = new JPanel(new BorderLayout(0, 0));
         isi.setOpaque(false);
-        isi.add(kartu, BorderLayout.NORTH);
-        isi.add(catatan, BorderLayout.CENTER);
+        isi.add(mode, BorderLayout.CENTER);
         add(isi, BorderLayout.CENTER);
     }
 
@@ -121,16 +155,19 @@ public class PanelStokKeluar extends PanelKantin {
     }
 
     private void keluarkanManual() {
+        pesanManual.setText(" ");
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
-            konteks.tampilkanPesan("Pilih batch terlebih dahulu.", false);
+            pesanManual.setText("Pilih batch terlebih dahulu.");
+            comboBatch.requestFocusInWindow();
             return;
         }
         int jumlah;
         try {
             jumlah = Integer.parseInt(fieldJumlahManual.getText().trim());
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Jumlah harus berupa angka bulat.", false);
+            pesanManual.setText("Jumlah harus berupa angka bulat.");
+            fieldJumlahManual.requestFocusInWindow();
             return;
         }
 
@@ -139,6 +176,7 @@ public class PanelStokKeluar extends PanelKantin {
             pengeluaran.keluarkan(konteks.getBarangAktif(), batch, jumlah);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
+            pesanManual.setText("Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran gagal: "
                     + exception.getMessage(), false);
             return;
@@ -148,15 +186,20 @@ public class PanelStokKeluar extends PanelKantin {
                 + batch.getKode() + ", " + jumlah + " "
                 + konteks.getBarangAktif().getSatuan() + ".")) {
             fieldJumlahManual.setText("");
+            pesanManual.setText(" ");
+        } else {
+            pesanManual.setText("Pengeluaran gagal disimpan. Lihat status.");
         }
     }
 
     private void keluarkanFefo() {
+        pesanFefo.setText(" ");
         int jumlah;
         try {
             jumlah = Integer.parseInt(fieldJumlahFefo.getText().trim());
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Jumlah harus berupa angka bulat.", false);
+            pesanFefo.setText("Jumlah harus berupa angka bulat.");
+            fieldJumlahFefo.requestFocusInWindow();
             return;
         }
 
@@ -164,8 +207,8 @@ public class PanelStokKeluar extends PanelKantin {
         try {
             tanggal = LocalDate.parse(fieldTanggalFefo.getText().trim());
         } catch (DateTimeParseException exception) {
-            konteks.tampilkanPesan("Format tanggal tidak valid. Gunakan yyyy-MM-dd.",
-                    false);
+            pesanFefo.setText("Format tanggal harus yyyy-MM-dd.");
+            fieldTanggalFefo.requestFocusInWindow();
             return;
         }
 
@@ -174,6 +217,7 @@ public class PanelStokKeluar extends PanelKantin {
             pengeluaran.keluarkanFefo(konteks.getBarangAktif(), jumlah, tanggal);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
+            pesanFefo.setText("Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran FEFO gagal: "
                     + exception.getMessage(), false);
             return;
@@ -186,6 +230,10 @@ public class PanelStokKeluar extends PanelKantin {
                 + konteks.getBarangAktif().getSatuan() + ".")) {
             fieldJumlahFefo.setText("");
             fieldTanggalFefo.setText(LocalDate.now().toString());
+            pesanFefo.setText(" ");
+            hasilAlokasi.setText("Alokasi: " + alokasi);
+        } else {
+            pesanFefo.setText("Pengeluaran gagal disimpan. Lihat status.");
         }
     }
 
@@ -206,6 +254,15 @@ public class PanelStokKeluar extends PanelKantin {
 
     @Override
     public void perbarui() {
+        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
+            idBarangTerakhir = konteks.getBarangAktif().getId();
+            fieldJumlahManual.setText("");
+            fieldJumlahFefo.setText("");
+            pesanManual.setText(" ");
+            pesanFefo.setText(" ");
+            hasilAlokasi.setText(
+                    "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+        }
         String kodeTerpilih = comboBatch.getItemCount() == 0
                 ? null
                 : ((BatchStok) comboBatch.getSelectedItem()).getKode();

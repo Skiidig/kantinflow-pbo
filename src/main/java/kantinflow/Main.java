@@ -1,5 +1,6 @@
 package kantinflow;
 
+import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -52,13 +53,16 @@ public class Main {
 
         SwingUtilities.invokeLater(() -> {
             FlatLightLaf.setup();
-            UIManager.put("Component.arc", 12);
-            UIManager.put("Button.arc", 12);
-            UIManager.put("TextComponent.arc", 10);
+            UIManager.put("defaultFont", new Font("Segoe UI", Font.PLAIN, 13));
+            UIManager.put("Component.arc", 10);
+            UIManager.put("Button.arc", 8);
+            UIManager.put("TextComponent.arc", 8);
             UIManager.put("Component.focusWidth", 1);
-            UIManager.put("ScrollBar.width", 12);
+            UIManager.put("ScrollBar.width", 10);
             UIManager.put("Table.showVerticalLines", false);
             UIManager.put("Table.showHorizontalLines", true);
+            UIManager.put("Table.rowHeight", 36);
+            UIManager.put("TableHeader.height", 38);
 
             PenyimpananSQLite penyimpanan = null;
             try {

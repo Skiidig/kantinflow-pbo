@@ -6,11 +6,11 @@ import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -32,11 +32,17 @@ public class PanelBarang extends PanelKantin {
     private final JTextField fieldMinimum = Ui.field(8);
     private final JButton tombolMinimum = Ui.utama("Simpan Minimum");
     private final JLabel labelMinimumAktif = new JLabel("-");
+    private final JLabel pesanNama = Ui.pesan();
+    private final JLabel pesanSatuan = Ui.pesan();
+    private final JLabel pesanTambah = Ui.pesan();
+    private final JLabel pesanMinimum = Ui.pesan();
+    private final JLabel kosong = Ui.kosong(
+            "Belum ada barang. Tambahkan barang pertama melalui formulir di bawah.");
     private boolean memperbaruiTabel;
 
     public PanelBarang(KonteksKantin konteks) {
         super(konteks, "Barang",
-                "Kelola daftar barang dan batas stok minimum barang aktif.");
+                "Kelola daftar barang dan batas minimum.");
         tabel.setName("tabelBarang");
         fieldNama.setName("namaBarangBaru");
         fieldSatuan.setName("satuanBarangBaru");
@@ -56,6 +62,7 @@ public class PanelBarang extends PanelKantin {
                 }
             }
         });
+        Ui.rataKanan(tabel, 2, 3);
         bangunIsi();
     }
 
@@ -64,34 +71,59 @@ public class PanelBarang extends PanelKantin {
         isi.setOpaque(false);
 
         JPanel daftar = Ui.kartu("Daftar Barang");
-        daftar.add(Ui.scrollTabel(tabel), BorderLayout.CENTER);
+        JLabel petunjuk = Ui.keterangan(
+                "Pilih baris untuk menjadikan barang aktif.");
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
+        daftarIsi.setOpaque(false);
+        daftarIsi.add(petunjuk, BorderLayout.NORTH);
+        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
+        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 175));
+        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        JPanel bawahDaftar = new JPanel();
+        bawahDaftar.setOpaque(false);
+        bawahDaftar.setLayout(new BoxLayout(bawahDaftar, BoxLayout.Y_AXIS));
+        bawahDaftar.add(kosong);
+        daftarIsi.add(bawahDaftar, BorderLayout.SOUTH);
+        daftar.add(daftarIsi, BorderLayout.CENTER);
 
         JPanel tambah = Ui.kartu("Tambah Barang");
-        JPanel tambahIsi = new JPanel(new GridLayout(2, 1, 0, 8));
+        JPanel tambahIsi = new JPanel();
         tambahIsi.setOpaque(false);
-        tambahIsi.add(Ui.field("Nama barang", fieldNama));
-        tambahIsi.add(Ui.field("Satuan", fieldSatuan));
+        tambahIsi.setLayout(new BoxLayout(tambahIsi, BoxLayout.Y_AXIS));
+        tambahIsi.add(Ui.field("Nama barang *", fieldNama, pesanNama));
+        tambahIsi.add(Box.createVerticalStrut(8));
+        tambahIsi.add(Ui.field("Satuan *", fieldSatuan, pesanSatuan));
+        tambahIsi.add(Box.createVerticalStrut(8));
+        tambahIsi.add(pesanTambah);
+        tambahIsi.add(Box.createVerticalStrut(4));
+        JPanel tombolTambahPanel = new JPanel(new BorderLayout());
+        tombolTambahPanel.setOpaque(false);
+        tombolTambahPanel.add(tombolTambah, BorderLayout.EAST);
+        tambahIsi.add(tombolTambahPanel);
         tambah.add(tambahIsi, BorderLayout.CENTER);
-        tambah.add(tombolTambah, BorderLayout.SOUTH);
 
         JPanel minimum = Ui.kartu("Minimum Barang Aktif");
-        JPanel minimumIsi = new JPanel(new BorderLayout(0, 8));
+        JPanel minimumIsi = new JPanel();
         minimumIsi.setOpaque(false);
+        minimumIsi.setLayout(new BoxLayout(minimumIsi, BoxLayout.Y_AXIS));
         labelMinimumAktif.setFont(Ui.font(Font.BOLD, 13f));
         labelMinimumAktif.setForeground(Ui.AKSEN);
-        minimumIsi.add(labelMinimumAktif, BorderLayout.NORTH);
-        JPanel minBaris = new JPanel(new BorderLayout(8, 4));
-        minBaris.setOpaque(false);
-        minBaris.add(Ui.field("Stok minimum (bilangan bulat >= 0)", fieldMinimum),
-                BorderLayout.NORTH);
-        minBaris.add(tombolMinimum, BorderLayout.SOUTH);
-        minimumIsi.add(minBaris, BorderLayout.CENTER);
+        labelMinimumAktif.setBorder(new EmptyBorder(0, 0, 10, 0));
+        minimumIsi.add(labelMinimumAktif);
+        minimumIsi.add(Ui.field(
+                "Stok minimum * (bilangan bulat >= 0)", fieldMinimum, pesanMinimum));
+        minimumIsi.add(Box.createVerticalStrut(6));
+        JPanel tombolMinimumPanel = new JPanel(new BorderLayout());
+        tombolMinimumPanel.setOpaque(false);
+        tombolMinimumPanel.add(tombolMinimum, BorderLayout.EAST);
+        minimumIsi.add(tombolMinimumPanel);
+        minimumIsi.add(Box.createVerticalStrut(8));
+        JLabel catatan = Ui.keterangan(
+                "Nilai minimum dipakai Ringkasan untuk menentukan status restok.");
+        minimumIsi.add(catatan);
         minimum.add(minimumIsi, BorderLayout.CENTER);
 
-        JPanel form = new JPanel(new GridLayout(1, 2, 16, 0));
-        form.setOpaque(false);
-        form.add(tambah);
-        form.add(minimum);
+        JPanel form = Ui.gridResponsif(2, 760, tambah, minimum);
 
         isi.add(daftar, BorderLayout.NORTH);
         isi.add(form, BorderLayout.CENTER);
@@ -99,24 +131,46 @@ public class PanelBarang extends PanelKantin {
     }
 
     private void tambah() {
+        pesanNama.setText(" ");
+        pesanSatuan.setText(" ");
+        pesanTambah.setText(" ");
         String nama = fieldNama.getText().trim();
         String satuan = fieldSatuan.getText().trim();
+        if (nama.isEmpty()) {
+            pesanNama.setText("Nama barang wajib diisi.");
+            fieldNama.requestFocusInWindow();
+            return;
+        }
+        if (satuan.isEmpty()) {
+            pesanSatuan.setText("Satuan wajib diisi.");
+            fieldSatuan.requestFocusInWindow();
+            return;
+        }
         if (konteks.tambahBarang(nama, satuan)) {
             fieldNama.setText("");
             fieldSatuan.setText("");
+        } else {
+            pesanTambah.setText("Tambah barang gagal. Lihat status di bawah.");
         }
     }
 
     private void simpanMinimum() {
+        pesanMinimum.setText(" ");
         try {
             int minimum = Integer.parseInt(fieldMinimum.getText().trim());
             if (minimum < 0) {
-                konteks.tampilkanPesan("Stok minimum tidak boleh negatif.", false);
+                pesanMinimum.setText("Stok minimum tidak boleh negatif.");
+                fieldMinimum.requestFocusInWindow();
                 return;
             }
-            konteks.simpanStokMinimum(minimum);
+            if (konteks.simpanStokMinimum(minimum)) {
+                pesanMinimum.setText(" ");
+            } else {
+                pesanMinimum.setText("Gagal menyimpan minimum. Lihat status.");
+            }
         } catch (NumberFormatException exception) {
-            konteks.tampilkanPesan("Stok minimum harus berupa angka bulat.", false);
+            pesanMinimum.setText("Stok minimum harus berupa angka bulat.");
+            fieldMinimum.requestFocusInWindow();
         }
     }
 
@@ -149,6 +203,7 @@ public class PanelBarang extends PanelKantin {
                     + " (" + konteks.getBarangAktif().getSatuan() + ")");
             fieldMinimum.setText(String.valueOf(
                     konteks.getBarangAktif().getStokMinimum()));
+            kosong.setVisible(model.getRowCount() == 0);
         } finally {
             memperbaruiTabel = false;
         }

@@ -1,13 +1,21 @@
 package kantinflow.gui;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import kantinflow.BatchStok;
@@ -18,20 +26,52 @@ import kantinflow.StatusKedaluwarsa;
  */
 public class PanelPemantauan extends PanelKantin {
     private final JTextField fieldTanggal = Ui.field(11);
-    private final JButton tombolPeriksa = Ui.utama("Periksa Kedaluwarsa");
+    private final JButton tombolPeriksa = Ui.sekunder("Periksa Kedaluwarsa");
+    private final JLabel pesanValidasi = Ui.pesan();
+    private final JLabel labelFisik = new JLabel("-");
+    private final JLabel labelLayak = new JLabel("-");
+    private final JLabel labelMinimum = new JLabel("-");
+    private final JLabel labelStatus = new JLabel("Belum diperiksa");
     private final DefaultTableModel model = Ui.model(
             "Kode Batch", "Sisa", "Tanggal Kedaluwarsa", "Status");
     private final JTable tabel = Ui.tabel(model);
-    private final javax.swing.JLabel labelInfo = Ui.keterangan(
+    private final JLabel labelInfo = Ui.keterangan(
             "Belum ada tanggal pemeriksaan.");
+    private final JLabel kosong = Ui.kosong(
+            "Belum ada batch bersisa yang dapat dipantau.");
 
     public PanelPemantauan(KonteksKantin konteks) {
         super(konteks, "Pemantauan",
-                "Periksa batch bersisa berdasarkan status kedaluwarsa.");
+                "Periksa status kedaluwarsa batch aktif.");
         fieldTanggal.setName("tanggalPemantauan");
         tombolPeriksa.setName("tombolPeriksa");
         tabel.setName("tabelPemantauan");
         tombolPeriksa.addActionListener(event -> periksa());
+        Ui.rataKanan(tabel, 1);
+        tabel.getColumnModel().getColumn(3).setCellRenderer(
+                new DefaultTableCellRenderer() {
+                    @Override
+                    public java.awt.Component getTableCellRendererComponent(
+                            JTable table, Object value, boolean isSelected,
+                            boolean hasFocus, int row, int column) {
+                        java.awt.Component c = super.getTableCellRendererComponent(
+                                table, value, isSelected, hasFocus, row, column);
+                        setHorizontalAlignment(SwingConstants.LEFT);
+                        setBorder(new EmptyBorder(0, 12, 0, 12));
+                        if (!isSelected) {
+                            String status = value == null ? "" : value.toString();
+                            if (StatusKedaluwarsa.KEDALUWARSA.getLabel().equals(status)) {
+                                setForeground(Ui.MERAH);
+                            } else if (StatusKedaluwarsa.SEGERA_KEDALUWARSA.getLabel()
+                                    .equals(status)) {
+                                setForeground(Ui.KUNING);
+                            } else {
+                                setForeground(Ui.HIJAU);
+                            }
+                        }
+                        return c;
+                    }
+                });
         bangunIsi();
     }
 
@@ -39,35 +79,81 @@ public class PanelPemantauan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel kontrol = Ui.kartu();
-        JPanel baris = new JPanel(new BorderLayout(0, 6));
+        JPanel kontrol = Ui.kartu("Tanggal pemeriksaan");
+        JPanel baris = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         baris.setOpaque(false);
-        JPanel input = new JPanel(new java.awt.FlowLayout(
-                java.awt.FlowLayout.LEFT, 8, 0));
-        input.setOpaque(false);
-        input.add(Ui.labelField("Tanggal pengecekan (yyyy-MM-dd):"));
-        input.add(fieldTanggal);
-        input.add(tombolPeriksa);
-        baris.add(input, BorderLayout.NORTH);
-        baris.add(labelInfo, BorderLayout.SOUTH);
-        kontrol.add(baris, BorderLayout.CENTER);
+        baris.add(fieldTanggal);
+        baris.add(tombolPeriksa);
+        JPanel kontrolIsi = new JPanel(new BorderLayout(0, 5));
+        kontrolIsi.setOpaque(false);
+        kontrolIsi.add(baris, BorderLayout.NORTH);
+        kontrolIsi.add(pesanValidasi, BorderLayout.CENTER);
+        kontrolIsi.add(labelInfo, BorderLayout.SOUTH);
+        kontrol.add(kontrolIsi, BorderLayout.CENTER);
+
+        JPanel nilai = Ui.kartu("Ringkasan stok");
+        JPanel nilaiBaris = new JPanel(new GridLayout(1, 4, 16, 0));
+        nilaiBaris.setOpaque(false);
+        nilaiBaris.add(nilaiKecil("Stok fisik", labelFisik,
+                "Seluruh sisa batch"));
+        nilaiBaris.add(nilaiKecil("Stok layak", labelLayak,
+                "Batch layak pada tanggal"));
+        nilaiBaris.add(nilaiKecil("Minimum", labelMinimum,
+                "Batas kebutuhan aktif"));
+        nilaiBaris.add(nilaiKecil("Status", labelStatus,
+                "Perlu restok / Cukup"));
+        nilai.add(nilaiBaris, BorderLayout.CENTER);
 
         JPanel daftar = Ui.kartu("Status Batch");
-        daftar.add(Ui.scrollTabel(tabel), BorderLayout.CENTER);
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
+        daftarIsi.setOpaque(false);
+        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
+        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 240));
+        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(kosong, BorderLayout.SOUTH);
+        daftar.add(daftarIsi, BorderLayout.CENTER);
 
-        isi.add(kontrol, BorderLayout.NORTH);
+        JPanel atas = new JPanel(new BorderLayout(0, 12));
+        atas.setOpaque(false);
+        atas.add(kontrol, BorderLayout.NORTH);
+        atas.add(nilai, BorderLayout.CENTER);
+
+        isi.add(atas, BorderLayout.NORTH);
         isi.add(daftar, BorderLayout.CENTER);
         add(isi, BorderLayout.CENTER);
+    }
+
+    private JPanel nilaiKecil(String judul, JLabel nilai, String detail) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new javax.swing.BoxLayout(
+                panel, javax.swing.BoxLayout.Y_AXIS));
+        JLabel label = Ui.keterangan(judul);
+        label.setFont(Ui.font(Font.PLAIN, 11f));
+        nilai.setFont(Ui.font(Font.BOLD, 20f));
+        nilai.setForeground(Ui.TEKS);
+        JLabel catatan = Ui.keterangan(detail);
+        catatan.setFont(Ui.font(Font.PLAIN, 10f));
+        panel.add(label);
+        panel.add(javax.swing.Box.createVerticalStrut(3));
+        panel.add(nilai);
+        panel.add(javax.swing.Box.createVerticalStrut(2));
+        panel.add(catatan);
+        panel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Ui.GARIS));
+        return panel;
     }
 
     private void periksa() {
         try {
             LocalDate tanggal = LocalDate.parse(fieldTanggal.getText().trim());
+            pesanValidasi.setText(" ");
             konteks.setTanggalPemantauan(tanggal);
             konteks.tampilkanPesan("Pemantauan " + tanggal
                     + " selesai: " + model.getRowCount()
                     + " batch bersisa diperiksa.", true);
         } catch (DateTimeParseException exception) {
+            pesanValidasi.setText("Format tanggal harus yyyy-MM-dd.");
+            fieldTanggal.requestFocusInWindow();
             konteks.tampilkanPesan("Format tanggal tidak valid. Gunakan yyyy-MM-dd.",
                     false);
         }
@@ -80,27 +166,41 @@ public class PanelPemantauan extends PanelKantin {
             if (fieldTanggal.getText().isBlank()) {
                 fieldTanggal.setText(LocalDate.now().toString());
             }
+            tanggal = LocalDate.now();
             model.setRowCount(0);
             labelInfo.setText("Belum diperiksa. Isi tanggal lalu klik Periksa.");
-            return;
+        } else {
+            fieldTanggal.setText(tanggal.toString());
+            model.setRowCount(0);
+            labelInfo.setText("Diperiksa pada " + tanggal
+                    + ". Hanya batch bersisa yang ditampilkan.");
         }
+        int fisik = konteks.getBarangAktif().hitungSaldo();
+        int layak = konteks.getBarangAktif().hitungStokLayak(tanggal);
+        int minimum = konteks.getBarangAktif().getStokMinimum();
+        String satuan = konteks.getBarangAktif().getSatuan();
+        labelFisik.setText(fisik + " " + satuan);
+        labelLayak.setText(layak + " " + satuan);
+        labelMinimum.setText(minimum + " " + satuan);
+        boolean restok = layak <= minimum;
+        labelStatus.setText(restok ? "Perlu restok" : "Cukup");
+        labelStatus.setForeground(restok ? Ui.MERAH : Ui.HIJAU);
 
-        fieldTanggal.setText(tanggal.toString());
-        model.setRowCount(0);
-        for (BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
-            if (batch.getSisaJumlah() <= 0) {
-                continue;
+        if (konteks.getTanggalPemantauan() != null) {
+            model.setRowCount(0);
+            for (BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
+                if (batch.getSisaJumlah() <= 0) {
+                    continue;
+                }
+                StatusKedaluwarsa status = batch.statusPada(tanggal);
+                model.addRow(new Object[]{
+                    batch.getKode(),
+                    batch.getSisaJumlah() + " " + satuan,
+                    batch.getTanggalKedaluwarsa().toString(),
+                    status.getLabel()
+                });
             }
-            StatusKedaluwarsa status = batch.statusPada(tanggal);
-            model.addRow(new Object[]{
-                batch.getKode(),
-                batch.getSisaJumlah() + " "
-                + konteks.getBarangAktif().getSatuan(),
-                batch.getTanggalKedaluwarsa().toString(),
-                status.getLabel()
-            });
         }
-        labelInfo.setText("Diperiksa pada " + tanggal + ". Hanya batch bersisa "
-                + "yang ditampilkan.");
+        kosong.setVisible(model.getRowCount() == 0);
     }
 }

@@ -8,6 +8,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.time.LocalDate;
@@ -54,6 +56,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final JTextArea status = new JTextArea(2, 40);
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
+    private JLabel judulHalaman;
+    private JLabel keteranganHalaman;
     private Barang barang;
     private LocalDate tanggalPemantauan;
     private boolean menggantiBarang;
@@ -79,8 +83,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                 tutup();
             }
         });
-        setMinimumSize(new Dimension(900, 600));
-        setSize(1180, 700);
+        setMinimumSize(new Dimension(960, 640));
+        setSize(1180, 720);
         setLocationRelativeTo(null);
 
         bangunTampilan();
@@ -100,92 +104,85 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     private JPanel buatSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(Color.WHITE);
-        sidebar.setPreferredSize(new Dimension(220, 0));
+        sidebar.setBackground(Ui.KARTU);
+        sidebar.setPreferredSize(new Dimension(240, 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Ui.GARIS));
 
         JPanel atas = new JPanel();
         atas.setOpaque(false);
         atas.setLayout(new BoxLayout(atas, BoxLayout.Y_AXIS));
-        atas.setBorder(new EmptyBorder(20, 18, 12, 18));
+        atas.setBorder(new EmptyBorder(20, 16, 8, 16));
 
+        JPanel merekBaris = new JPanel();
+        merekBaris.setOpaque(false);
+        merekBaris.setLayout(new BoxLayout(merekBaris, BoxLayout.X_AXIS));
+        JLabel merekMark = new JLabel("KF");
+        merekMark.setOpaque(true);
+        merekMark.setBackground(Ui.AKSEN);
+        merekMark.setForeground(Color.WHITE);
+        merekMark.setFont(Ui.font(Font.BOLD, 11f));
+        merekMark.setHorizontalAlignment(SwingConstants.CENTER);
+        merekMark.setPreferredSize(new Dimension(32, 32));
+        merekMark.setMaximumSize(new Dimension(32, 32));
+        merekMark.setBorder(new EmptyBorder(2, 0, 2, 0));
+        merekBaris.add(merekMark);
+        merekBaris.add(Box.createHorizontalStrut(10));
+        JPanel merekTeks = new JPanel();
+        merekTeks.setOpaque(false);
+        merekTeks.setLayout(new BoxLayout(merekTeks, BoxLayout.Y_AXIS));
         JLabel merek = new JLabel("KantinFlow");
-        merek.setFont(Ui.font(Font.BOLD, 22f));
+        merek.setFont(Ui.font(Font.BOLD, 20f));
         merek.setForeground(Ui.TEKS);
-        merek.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel sub = new JLabel("PBO · stok kantin");
-        sub.setFont(Ui.font(Font.PLAIN, 11f));
+        JLabel sub = new JLabel("Manajemen Persediaan");
+        sub.setFont(Ui.font(Font.PLAIN, 10.5f));
         sub.setForeground(Ui.TEKS_LEMBUT);
-        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
-        atas.add(merek);
-        atas.add(Box.createVerticalStrut(2));
-        atas.add(sub);
-        atas.add(Box.createVerticalStrut(18));
-
-        JLabel labelAktif = new JLabel("Barang aktif");
-        labelAktif.setFont(Ui.font(Font.BOLD, 11f));
-        labelAktif.setForeground(Ui.TEKS_LEMBUT);
-        labelAktif.setAlignmentX(Component.LEFT_ALIGNMENT);
-        atas.add(labelAktif);
-        atas.add(Box.createVerticalStrut(5));
-
-        comboBarang.setName("barangAktif");
-        comboBarang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        comboBarang.setAlignmentX(Component.LEFT_ALIGNMENT);
-        comboBarang.addActionListener(event -> {
-            if (!menggantiBarang) {
-                Barang dipilih = (Barang) comboBarang.getSelectedItem();
-                if (dipilih != null && dipilih.getId() != barang.getId()) {
-                    gantiBarang(dipilih);
-                }
-            }
-        });
-        comboBarang.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(
-                    JList<?> list, Object value, int index,
-                    boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(
-                        list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Barang item) {
-                    setText(item.getNama() + " (" + item.getSatuan() + ")");
-                }
-                return this;
-            }
-        });
-        atas.add(comboBarang);
+        merekTeks.add(merek);
+        merekTeks.add(Box.createVerticalStrut(1));
+        merekTeks.add(sub);
+        merekBaris.add(merekTeks);
+        merekBaris.setAlignmentX(Component.LEFT_ALIGNMENT);
+        atas.add(merekBaris);
+        atas.add(Box.createVerticalStrut(20));
 
         JPanel nav = new JPanel();
         nav.setOpaque(false);
         nav.setLayout(new BoxLayout(nav, BoxLayout.Y_AXIS));
-        nav.setBorder(new EmptyBorder(8, 10, 8, 10));
+        nav.setBorder(new EmptyBorder(4, 10, 8, 10));
         String[][] halaman = {
-            {"ringkasan", "Ringkasan"},
-            {"barang", "Barang"},
-            {"stok-masuk", "Stok Masuk"},
-            {"stok-keluar", "Stok Keluar"},
-            {"pemantauan", "Pemantauan"},
-            {"pembuangan", "Pembuangan"},
-            {"riwayat", "Riwayat"}
+            {"ringkasan", "▦  Ringkasan"},
+            {"barang", "▤  Barang"},
+            {"stok-masuk", "↓  Stok Masuk"},
+            {"stok-keluar", "↑  Stok Keluar"},
+            {"pemantauan", "◷  Pemantauan"},
+            {"pembuangan", "↧  Pembuangan"},
+            {"riwayat", "≡  Riwayat"}
         };
         for (String[] item : halaman) {
             JToggleButton tombol = new JToggleButton(item[1]);
             tombol.setName("nav-" + item[0]);
-            tombol.setFont(Ui.font(Font.PLAIN, 12f));
+            tombol.setFont(Ui.font(Font.PLAIN, 13f));
             tombol.setHorizontalAlignment(SwingConstants.LEFT);
-            tombol.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+            tombol.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
             tombol.setAlignmentX(Component.LEFT_ALIGNMENT);
-            tombol.setFocusPainted(false);
+            tombol.setFocusPainted(true);
             tombol.setOpaque(true);
-            tombol.setBorder(new EmptyBorder(8, 12, 8, 12));
+            tombol.setContentAreaFilled(false);
+            tombol.setBorder(aturBorderNav(false));
             tombol.addActionListener(event -> tampilkanHalaman(item[0]));
-            tombol.addItemListener(event -> {
-                if (tombol.isSelected()) {
-                    tombol.setBackground(Ui.AKSEN);
-                    tombol.setForeground(Color.WHITE);
-                } else {
-                    tombol.setBackground(Color.WHITE);
-                    tombol.setForeground(Ui.TEKS);
+            tombol.addItemListener(event -> aturGayaNav(tombol));
+            tombol.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent event) {
+                    if (!tombol.isSelected()) {
+                        tombol.setBackground(Ui.HOVER);
+                    }
+                }
+
+                @Override
+                public void mouseExited(MouseEvent event) {
+                    if (!tombol.isSelected()) {
+                        tombol.setBackground(Ui.KARTU);
+                    }
                 }
             });
             grupNavigasi.add(tombol);
@@ -197,12 +194,33 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         JLabel footer = new JLabel("SQLite lokal · FlatLaf 3.8");
         footer.setFont(Ui.font(Font.PLAIN, 10f));
         footer.setForeground(Ui.TEKS_LEMBUT);
-        footer.setBorder(new EmptyBorder(10, 18, 16, 18));
+        footer.setBorder(new EmptyBorder(10, 16, 14, 16));
 
         sidebar.add(atas, BorderLayout.NORTH);
         sidebar.add(nav, BorderLayout.CENTER);
         sidebar.add(footer, BorderLayout.SOUTH);
         return sidebar;
+    }
+
+    private javax.swing.border.Border aturBorderNav(boolean aktif) {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 3, 0, 0,
+                        aktif ? Ui.AKSEN : Ui.KARTU),
+                new EmptyBorder(8, 9, 8, 10));
+    }
+
+    private void aturGayaNav(JToggleButton tombol) {
+        if (tombol.isSelected()) {
+            tombol.setBackground(Ui.AKSEN_LEMBUT);
+            tombol.setForeground(Ui.AKSEN);
+            tombol.setFont(Ui.font(Font.BOLD, 13f));
+            tombol.setBorder(aturBorderNav(true));
+        } else {
+            tombol.setBackground(Ui.KARTU);
+            tombol.setForeground(Ui.TEKS_LEMBUT);
+            tombol.setFont(Ui.font(Font.PLAIN, 13f));
+            tombol.setBorder(aturBorderNav(false));
+        }
     }
 
     private JPanel buatKonten() {
@@ -230,19 +248,91 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         status.setLineWrap(true);
         status.setWrapStyleWord(true);
         status.setFont(Ui.font(Font.PLAIN, 12f));
-        status.setBorder(new EmptyBorder(9, 18, 9, 18));
-        status.setBackground(new Color(0xEEF2F7));
+        status.setBorder(new EmptyBorder(9, 26, 9, 26));
+        status.setBackground(Ui.KARTU);
         status.setForeground(Ui.TEKS);
         status.setRows(2);
 
         JPanel konten = new JPanel(new BorderLayout());
         konten.setBackground(Ui.LATAR);
+        konten.add(buatHeader(), BorderLayout.NORTH);
         konten.add(kartu, BorderLayout.CENTER);
         konten.add(status, BorderLayout.SOUTH);
         return konten;
     }
 
+    private JPanel buatHeader() {
+        JPanel header = new JPanel(new BorderLayout(24, 0));
+        header.setBackground(Ui.KARTU);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, Ui.GARIS),
+                new EmptyBorder(16, 26, 15, 26)));
+
+        JPanel kiri = new JPanel();
+        kiri.setOpaque(false);
+        kiri.setLayout(new BoxLayout(kiri, BoxLayout.Y_AXIS));
+        JLabel eyebrow = new JLabel("KANTINFLOW · MANAJEMEN PERSEDIAAN");
+        eyebrow.setFont(Ui.font(Font.BOLD, 9.5f));
+        eyebrow.setForeground(Ui.AKSEN);
+        judulHalaman = new JLabel("Ringkasan");
+        judulHalaman.setFont(Ui.font(Font.BOLD, 24f));
+        judulHalaman.setForeground(Ui.TEKS);
+        keteranganHalaman = new JLabel(" ");
+        keteranganHalaman.setFont(Ui.font(Font.PLAIN, 12f));
+        keteranganHalaman.setForeground(Ui.TEKS_LEMBUT);
+        kiri.add(eyebrow);
+        kiri.add(Box.createVerticalStrut(2));
+        kiri.add(judulHalaman);
+        kiri.add(Box.createVerticalStrut(2));
+        kiri.add(keteranganHalaman);
+
+        JPanel kanan = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        kanan.setOpaque(false);
+        JLabel labelAktif = new JLabel("Barang aktif");
+        labelAktif.setFont(Ui.font(Font.BOLD, 11.5f));
+        labelAktif.setForeground(Ui.TEKS_LEMBUT);
+        comboBarang.setName("barangAktif");
+        comboBarang.setFont(Ui.font(Font.PLAIN, 12f));
+        comboBarang.setPreferredSize(new Dimension(230, 34));
+        comboBarang.addActionListener(event -> {
+            if (!menggantiBarang) {
+                Barang dipilih = (Barang) comboBarang.getSelectedItem();
+                if (dipilih != null && dipilih.getId() != barang.getId()) {
+                    gantiBarang(dipilih);
+                }
+            }
+        });
+        comboBarang.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Barang item) {
+                    setText(item.getNama() + " (" + item.getSatuan() + ")");
+                }
+                return this;
+            }
+        });
+        kanan.add(labelAktif);
+        kanan.add(comboBarang);
+
+        header.add(kiri, BorderLayout.CENTER);
+        header.add(kanan, BorderLayout.EAST);
+        return header;
+    }
+
     private void tampilkanHalaman(String kunci) {
+        PanelKantin halaman = panel.get(kunci);
+        if (halaman != null) {
+            if (judulHalaman != null) {
+                judulHalaman.setText(halaman.getJudul());
+            }
+            if (keteranganHalaman != null) {
+                keteranganHalaman.setText(halaman.getKeterangan());
+            }
+        }
         cardLayout.show(kartu, kunci);
         JToggleButton tombol = tombolNavigasi.get(kunci);
         if (tombol != null) {

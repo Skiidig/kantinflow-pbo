@@ -18,19 +18,42 @@ public class PanelRiwayat extends PanelKantin {
             "Tanggal", "Jenis", "Kode Batch", "Jumlah", "Alasan");
     private final JTable tabel = Ui.tabel(model);
     private final JLabel labelJumlah = Ui.keterangan("0 rincian transaksi");
+    private final JLabel kosong = Ui.kosong(
+            "Belum ada transaksi untuk barang aktif ini.");
 
     public PanelRiwayat(KonteksKantin konteks) {
         super(konteks, "Riwayat",
-                "Seluruh rincian transaksi barang aktif, terbaru di bawah.");
+                "Rincian transaksi barang aktif.");
         tabel.setName("tabelRiwayat");
+        Ui.rataKanan(tabel, 3);
+        tabel.getColumnModel().getColumn(0).setPreferredWidth(90);
+        tabel.getColumnModel().getColumn(1).setPreferredWidth(110);
+        tabel.getColumnModel().getColumn(2).setPreferredWidth(95);
+        tabel.getColumnModel().getColumn(3).setPreferredWidth(80);
+        tabel.getColumnModel().getColumn(4).setPreferredWidth(190);
         bangunIsi();
     }
 
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 12));
+        JPanel isi = new JPanel(new BorderLayout(0, 10));
         isi.setOpaque(false);
-        isi.add(labelJumlah, BorderLayout.NORTH);
-        isi.add(Ui.scrollTabel(tabel), BorderLayout.CENTER);
+        JPanel kepala = new JPanel(new BorderLayout());
+        kepala.setOpaque(false);
+        kepala.add(labelJumlah, BorderLayout.WEST);
+        JLabel petunjuk = Ui.keterangan(
+                "Tanggal · jenis transaksi · batch · jumlah · alasan");
+        petunjuk.setBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0));
+        kepala.add(petunjuk, BorderLayout.EAST);
+        isi.add(kepala, BorderLayout.NORTH);
+        JPanel daftar = Ui.kartu();
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
+        daftarIsi.setOpaque(false);
+        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
+        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 300));
+        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(kosong, BorderLayout.SOUTH);
+        daftar.add(daftarIsi, BorderLayout.CENTER);
+        isi.add(daftar, BorderLayout.CENTER);
         add(isi, BorderLayout.CENTER);
     }
 
@@ -52,5 +75,6 @@ public class PanelRiwayat extends PanelKantin {
             }
         }
         labelJumlah.setText(model.getRowCount() + " rincian transaksi");
+        kosong.setVisible(model.getRowCount() == 0);
     }
 }
