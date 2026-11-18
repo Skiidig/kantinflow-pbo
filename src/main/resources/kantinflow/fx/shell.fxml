@@ -15,19 +15,20 @@
             fx:controller="kantinflow.fx.ShellController"
             styleClass="root">
     <left>
-        <VBox styleClass="sidebar" prefWidth="230" spacing="10">
+        <VBox styleClass="sidebar" prefWidth="232" spacing="9">
             <padding>
                 <javafx.geometry.Insets top="22" right="16" bottom="16" left="16"/>
             </padding>
             <Label text="KantinFlow" styleClass="brand"/>
-            <Label text="PBO · JavaFX" styleClass="brand-sub"/>
+            <Label text="Manajemen Persediaan" styleClass="brand-sub"/>
             <Label text="Barang aktif" styleClass="field-label">
                 <VBox.margin>
                     <javafx.geometry.Insets top="14" bottom="0" right="0" left="0"/>
                 </VBox.margin>
             </Label>
             <ComboBox fx:id="barangCombo" id="barangAktif" maxWidth="Infinity"/>
-            <VBox styleClass="nav-box" spacing="4">
+            <VBox styleClass="nav-box" spacing="3">
+                <Label text="Menu" styleClass="nav-section-label"/>
                 <ToggleButton fx:id="navRingkasan" id="navRingkasan" text="▦  Ringkasan"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanRingkasan"/>
@@ -40,6 +41,15 @@
                 <ToggleButton fx:id="navStokKeluar" id="navStokKeluar" text="↑  Stok Keluar"
                               styleClass="nav-button" maxWidth="Infinity"
                               onAction="#tampilkanStokKeluar"/>
+            </VBox>
+            <VBox styleClass="nav-soon-box" spacing="3">
+                <Label text="Segera tersedia" styleClass="nav-section-label"/>
+                <ToggleButton text="◷  Pemantauan" styleClass="nav-button"
+                              maxWidth="Infinity" disable="true"/>
+                <ToggleButton text="↧  Pembuangan" styleClass="nav-button"
+                              maxWidth="Infinity" disable="true"/>
+                <ToggleButton text="≡  Riwayat" styleClass="nav-button"
+                              maxWidth="Infinity" disable="true"/>
             </VBox>
             <Region VBox.vgrow="ALWAYS"/>
             <Label text="JavaFX 25 · SQLite" styleClass="sidebar-footer"/>

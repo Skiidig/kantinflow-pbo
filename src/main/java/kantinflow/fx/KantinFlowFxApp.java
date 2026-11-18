@@ -27,7 +27,7 @@ public class KantinFlowFxApp extends Application {
         StackPane loading = new StackPane(new Label("Memuat KantinFlow..."));
         loading.setAlignment(Pos.CENTER);
         loading.getStyleClass().add("loading-root");
-        stage.setScene(new Scene(loading, 1180, 720));
+        stage.setScene(new Scene(loading, 1100, 720));
         stage.show();
 
         Task<DataAwal> task = new Task<>() {
@@ -71,13 +71,13 @@ public class KantinFlowFxApp extends Application {
             shell.setData(data.penyimpanan, data.daftarBarang,
                     data.barangAktif, data.riwayat);
 
-            Scene scene = new Scene(root, 1180, 720);
+            Scene scene = new Scene(root, 1100, 720);
             scene.getStylesheets().add(
                     KantinFlowFxApp.class.getResource("/kantinflow/fx/app.css")
                             .toExternalForm());
             stage.setScene(scene);
             stage.setMinWidth(960);
-            stage.setMinHeight(600);
+            stage.setMinHeight(640);
             stage.centerOnScreen();
         } catch (java.io.IOException exception) {
             data.penyimpanan.close();

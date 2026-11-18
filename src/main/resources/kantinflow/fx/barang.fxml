@@ -24,8 +24,12 @@
     </VBox>
 
     <VBox styleClass="card" spacing="10">
-        <Label text="Daftar Barang" styleClass="card-title"/>
-        <TableView fx:id="tabelBarang" id="tabelBarang" prefHeight="190">
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <Label text="Daftar Barang" styleClass="card-title"/>
+        </HBox>
+        <Label text="Pilih baris untuk menjadikan barang aktif."
+               styleClass="note" wrapText="true"/>
+        <TableView fx:id="tabelBarang" id="tabelBarang" prefHeight="160">
             <columns>
                 <TableColumn fx:id="kolomNama" text="Nama" prefWidth="280"/>
                 <TableColumn fx:id="kolomSatuan" text="Satuan" prefWidth="160"/>
@@ -41,7 +45,7 @@
             <ColumnConstraints percentWidth="50"/>
         </columnConstraints>
 
-        <VBox styleClass="card" spacing="8" GridPane.columnIndex="0"
+        <VBox styleClass="card" spacing="6" GridPane.columnIndex="0"
               GridPane.rowIndex="0">
             <Label text="Tambah Barang" styleClass="card-title"/>
             <Label text="Nama barang *" styleClass="field-label"/>
@@ -61,7 +65,7 @@
                     maxWidth="Infinity"/>
         </VBox>
 
-        <VBox styleClass="card" spacing="8" GridPane.columnIndex="1"
+        <VBox styleClass="card" spacing="6" GridPane.columnIndex="1"
               GridPane.rowIndex="0">
             <Label text="Minimum Barang Aktif" styleClass="card-title"/>
             <Label fx:id="barangAktifLabel" id="barangAktifLabel"

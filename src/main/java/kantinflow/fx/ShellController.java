@@ -1,5 +1,6 @@
 package kantinflow.fx;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -496,13 +497,25 @@ public class ShellController implements KonteksFx, AutoCloseable {
                 try {
                     Barang baru = penyimpanan.simpanBarang(
                             new Barang(0, nama, satuan, stokMinimum));
-                    List<Barang> daftarBaru = penyimpanan.muatSemuaBarang();
+                    List<Barang> daftarBaru = new ArrayList<>(daftarBarang);
+                    daftarBaru.add(baru);
                     return new HasilTambah(true, "Barang ditambahkan: "
                             + baru.getNama() + " (" + baru.getSatuan() + ").",
-                            baru, daftarBaru);
+                            baru, daftarBaru, List.of());
                 } catch (RuntimeException exception) {
+                    Barang aktifTerbaru = null;
+                    List<Barang> daftarBaru = null;
+                    List<Transaksi> riwayatBaru = null;
+                    try {
+                        aktifTerbaru = penyimpanan.muatBarang(idAktif);
+                        daftarBaru = penyimpanan.muatSemuaBarang();
+                        riwayatBaru = penyimpanan.muatRiwayat(aktifTerbaru);
+                    } catch (RuntimeException ignored) {
+                        // Pesan kegagalan utama tetap dilaporkan.
+                    }
                     return new HasilTambah(false, "Tambah barang gagal: "
-                            + exception.getMessage(), null, null);
+                            + exception.getMessage(), aktifTerbaru, daftarBaru,
+                            riwayatBaru);
                 }
             }
         };
@@ -510,13 +523,6 @@ public class ShellController implements KonteksFx, AutoCloseable {
             HasilTambah hasil = task.getValue();
             sibuk = false;
             aturSibukUI(false);
-            if (hasil.barang == null) {
-                tampilkanPesan(hasil.pesan, false);
-                if (selesai != null) {
-                    selesai.accept(false);
-                }
-                return;
-            }
             if (barang.getId() != idAktif || versiBarang != versiAktif) {
                 tampilkanPesan("Hasil tambah barang lama diabaikan.", false);
                 if (selesai != null) {
@@ -524,14 +530,17 @@ public class ShellController implements KonteksFx, AutoCloseable {
                 }
                 return;
             }
-            daftarBarang.clear();
-            daftarBarang.addAll(hasil.daftar);
-            barang = hasil.barang;
-            riwayat.clear();
-            tanggalPemantauan = null;
-            versiBarang++;
-            perbaruiCombo();
-            perbaruiHalaman();
+            if (!hasil.berhasil) {
+                if (hasil.barang != null) {
+                    terapkanDataBarang(hasil.barang, hasil.daftar, hasil.riwayat);
+                }
+                tampilkanPesan(hasil.pesan, false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            terapkanDataBarang(hasil.barang, hasil.daftar, List.of());
             tampilkanPesan(hasil.pesan, true);
             if (selesai != null) {
                 selesai.accept(true);
@@ -576,11 +585,23 @@ public class ShellController implements KonteksFx, AutoCloseable {
                     List<Barang> daftarBaru = penyimpanan.muatSemuaBarang();
                     return new HasilMinimum(true, "Stok minimum "
                             + target.getNama() + " disimpan: " + stokMinimum
-                            + " " + target.getSatuan() + ".", baru, daftarBaru);
+                            + " " + target.getSatuan() + ".", baru, daftarBaru,
+                            null);
                 } catch (RuntimeException exception) {
+                    Barang aktifTerbaru = null;
+                    List<Barang> daftarBaru = null;
+                    List<Transaksi> riwayatBaru = null;
+                    try {
+                        aktifTerbaru = penyimpanan.muatBarang(idAktif);
+                        daftarBaru = penyimpanan.muatSemuaBarang();
+                        riwayatBaru = penyimpanan.muatRiwayat(aktifTerbaru);
+                    } catch (RuntimeException ignored) {
+                        // Pesan kegagalan utama tetap dilaporkan.
+                    }
                     return new HasilMinimum(false,
                             "Gagal menyimpan stok minimum: "
-                            + exception.getMessage(), null, null);
+                            + exception.getMessage(), aktifTerbaru, daftarBaru,
+                            riwayatBaru);
                 }
             }
         };
@@ -588,13 +609,6 @@ public class ShellController implements KonteksFx, AutoCloseable {
             HasilMinimum hasil = task.getValue();
             sibuk = false;
             aturSibukUI(false);
-            if (hasil.barang == null) {
-                tampilkanPesan(hasil.pesan, false);
-                if (selesai != null) {
-                    selesai.accept(false);
-                }
-                return;
-            }
             if (barang.getId() != idAktif || versiBarang != versiAktif) {
                 tampilkanPesan("Hasil minimum barang lama diabaikan.", false);
                 if (selesai != null) {
@@ -602,12 +616,17 @@ public class ShellController implements KonteksFx, AutoCloseable {
                 }
                 return;
             }
-            daftarBarang.clear();
-            daftarBarang.addAll(hasil.daftar);
-            barang = hasil.barang;
-            versiBarang++;
-            perbaruiCombo();
-            perbaruiHalaman();
+            if (!hasil.berhasil) {
+                if (hasil.barang != null) {
+                    terapkanDataBarang(hasil.barang, hasil.daftar, hasil.riwayat);
+                }
+                tampilkanPesan(hasil.pesan, false);
+                if (selesai != null) {
+                    selesai.accept(false);
+                }
+                return;
+            }
+            terapkanDataBarang(hasil.barang, hasil.daftar, hasil.riwayat);
             tampilkanPesan(hasil.pesan, true);
             if (selesai != null) {
                 selesai.accept(true);
@@ -625,6 +644,25 @@ public class ShellController implements KonteksFx, AutoCloseable {
             }
         });
         io.submit(task);
+    }
+
+    private void terapkanDataBarang(Barang baru, List<Barang> daftarBaru,
+            List<Transaksi> riwayatBaru) {
+        if (daftarBaru != null) {
+            daftarBarang.clear();
+            daftarBarang.addAll(daftarBaru);
+        }
+        if (baru == null) {
+            return;
+        }
+        barang = baru;
+        if (riwayatBaru != null) {
+            riwayat = riwayatBaru;
+        }
+        tanggalPemantauan = null;
+        versiBarang++;
+        perbaruiCombo();
+        perbaruiHalaman();
     }
 
     private void aturSibukUI(boolean aktif) {
@@ -715,13 +753,15 @@ public class ShellController implements KonteksFx, AutoCloseable {
         private final String pesan;
         private final Barang barang;
         private final List<Barang> daftar;
+        private final List<Transaksi> riwayat;
 
         private HasilTambah(boolean berhasil, String pesan, Barang barang,
-                List<Barang> daftar) {
+                List<Barang> daftar, List<Transaksi> riwayat) {
             this.berhasil = berhasil;
             this.pesan = pesan;
             this.barang = barang;
             this.daftar = daftar;
+            this.riwayat = riwayat;
         }
     }
 
@@ -730,13 +770,15 @@ public class ShellController implements KonteksFx, AutoCloseable {
         private final String pesan;
         private final Barang barang;
         private final List<Barang> daftar;
+        private final List<Transaksi> riwayat;
 
         private HasilMinimum(boolean berhasil, String pesan, Barang barang,
-                List<Barang> daftar) {
+                List<Barang> daftar, List<Transaksi> riwayat) {
             this.berhasil = berhasil;
             this.pesan = pesan;
             this.barang = barang;
             this.daftar = daftar;
+            this.riwayat = riwayat;
         }
     }
 

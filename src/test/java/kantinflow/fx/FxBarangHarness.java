@@ -97,14 +97,14 @@ public class FxBarangHarness extends Application {
             nav("#navBarang");
 
             // Validasi lokal dekat form.
-            isi("#namaBarangBaru", "");
+            isi("#namaBarangBaru", "   ");
             isi("#satuanBarangBaru", "bungkus");
             isi("#minimumBarangBaru", "0");
             klik("#tombolTambahBarang");
             Thread.sleep(150);
             System.out.println("NAMA_KOSONG=" + teks("#errorTambahBarang"));
             isi("#namaBarangBaru", "Roti");
-            isi("#satuanBarangBaru", "");
+            isi("#satuanBarangBaru", "   ");
             klik("#tombolTambahBarang");
             Thread.sleep(150);
             System.out.println("SATUAN_KOSONG=" + teks("#errorTambahBarang"));
@@ -120,8 +120,8 @@ public class FxBarangHarness extends Application {
             System.out.println("JUMLAH_SETELAH_INVALID=" + jumlahBarang());
 
             // Tambah Roti bungkus minimum 5.
-            isi("#namaBarangBaru", "Roti");
-            isi("#satuanBarangBaru", "bungkus");
+            isi("#namaBarangBaru", "  Roti  ");
+            isi("#satuanBarangBaru", "  bungkus  ");
             isi("#minimumBarangBaru", "5");
             klik("#tombolTambahBarang");
             Thread.sleep(800);
@@ -131,6 +131,8 @@ public class FxBarangHarness extends Application {
                     () -> shell.getBarangAktif().getNama()));
             System.out.println("MINIMUM_ROTI=" + fxGet(
                     () -> shell.getBarangAktif().getStokMinimum()));
+            System.out.println("SATUAN_ROTI=" + fxGet(
+                    () -> shell.getBarangAktif().getSatuan()));
             snapshot("gui-fx-barang.png");
 
             // Beri stok Roti 5, lalu ubah minimum dan cek Ringkasan.
@@ -138,7 +140,7 @@ public class FxBarangHarness extends Application {
             terima("ROTI-A", "5", "2026-11-18", "2026-12-20");
             Thread.sleep(500);
             nav("#navBarang");
-            isi("#minimumBarangAktif", "6");
+            isi("#minimumBarangAktif", " 6 ");
             klik("#tombolSimpanMinimum");
             Thread.sleep(700);
             System.out.println("MINIMUM_6=" + status());
@@ -149,7 +151,7 @@ public class FxBarangHarness extends Application {
             snapshot("gui-fx-ringkasan.png");
 
             nav("#navBarang");
-            isi("#minimumBarangAktif", "0");
+            isi("#minimumBarangAktif", " 0 ");
             klik("#tombolSimpanMinimum");
             Thread.sleep(700);
             nav("#navRingkasan");
@@ -204,6 +206,7 @@ public class FxBarangHarness extends Application {
             System.out.println("GAGAL_MIN=" + status());
             System.out.println("MIN_SETELAH_GAGAL=" + fxGet(
                     () -> shell.getBarangAktif().getStokMinimum()));
+            System.out.println("JUMLAH_SETELAH_MIN_GAGAL=" + jumlahBarang());
             try (Connection koneksi = DriverManager.getConnection("jdbc:sqlite:" + DB);
                     Statement statement = koneksi.createStatement()) {
                 statement.executeUpdate("DROP TRIGGER gagal_min");
@@ -243,6 +246,8 @@ public class FxBarangHarness extends Application {
             // Reopen dari repository baru; stage lama tetap hidup sampai selesai.
             ShellController shellAwal = shell;
             Stage stageAwal = stage;
+            fx(() -> shellAwal.close());
+            Thread.sleep(250);
             fx(() -> {
                 try {
                     PenyimpananSQLite kedua = new PenyimpananSQLite(DB.toString());
@@ -265,7 +270,6 @@ public class FxBarangHarness extends Application {
             fx(() -> {
                 shell.close();
                 stage.close();
-                shellAwal.close();
                 stageAwal.close();
             });
             System.out.println("FX_BARANG_LULUS");

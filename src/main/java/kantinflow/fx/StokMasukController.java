@@ -41,6 +41,8 @@ public class StokMasukController implements HalamanFx {
     private TableColumn<BatchStok, String> kolomKedaluwarsa;
     @FXML
     private Label errorLabel;
+    @FXML
+    private Label satuanJumlahLabel;
 
     private KonteksFx konteks;
 
@@ -119,6 +121,7 @@ public class StokMasukController implements HalamanFx {
         }
         tabelBatch.setItems(FXCollections.observableArrayList(
                 konteks.getBarangAktif().getDaftarBatch()));
+        satuanJumlahLabel.setText(konteks.getBarangAktif().getSatuan());
     }
 
     @Override

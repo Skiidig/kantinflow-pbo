@@ -28,6 +28,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.WritableImage;
 import javafx.stage.Stage;
@@ -131,6 +132,9 @@ public class FxKeluarHarness extends Application {
 
             nav("#navStokKeluar");
             Thread.sleep(300);
+            fx(() -> ((TabPane) lookup("#modeTabs"))
+                    .getSelectionModel().select(1));
+            Thread.sleep(200);
             // Tanggal sebelum batch masuk harus ditolak.
             isi("#jumlahFefo", "1");
             isiTanggal("#tanggalFefo", "2026-11-17");

@@ -9,6 +9,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox fx:id="halaman" xmlns="http://javafx.com/javafx/25"
@@ -36,7 +37,12 @@
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
                 <Label text="Jumlah *" styleClass="field-label"/>
-                <TextField fx:id="jumlahField" id="jumlah" promptText="bilangan bulat"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <TextField fx:id="jumlahField" id="jumlah"
+                               promptText="bilangan bulat" HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="satuanJumlahLabel" id="satuanJumlah"
+                           styleClass="unit-label" minWidth="52"/>
+                </HBox>
             </VBox>
             <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
                 <Label text="Tanggal masuk *" styleClass="field-label"/>
