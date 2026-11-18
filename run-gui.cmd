@@ -73,9 +73,7 @@ if errorlevel 1 (
 
 set "SOURCES="
 for /r "%ROOT%src\main\java" %%F in (*.java) do (
-    if /I not "%%~dpF"=="%ROOT%src\main\java\kantinflow\fx\" (
-        set "SOURCES=!SOURCES! "%%F""
-    )
+    set "SOURCES=!SOURCES! "%%F""
 )
 if not defined SOURCES (
     echo [GAGAL] Tidak ada file .java di:
@@ -83,7 +81,7 @@ if not defined SOURCES (
     goto :gagal
 )
 
-echo [INFO] Mengompilasi sumber Swing...
+echo [INFO] Mengompilasi seluruh sumber Java...
 javac -encoding UTF-8 -cp "%ROOT%lib\*" -d "%OUT%" !SOURCES!
 if errorlevel 1 (
     echo.

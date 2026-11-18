@@ -2,11 +2,30 @@
 
 Proyek Java untuk mata kuliah Pemrograman Berorientasi Objek. Aplikasi konsol ini menyediakan penerimaan stok, pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa, pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat skenario tetap berjalan sepenuhnya di memori.
 
-Migrasi GUI ke JavaFX dimulai bertahap. Shell JavaFX saat ini menyediakan halaman **Ringkasan**, **Barang**, **Stok Masuk**, dan **Stok Keluar**; halaman lain masih tersedia pada GUI Swing lama. Semua halaman JavaFX memakai domain dan `PenyimpananSQLite` yang sama.
+GUI utama menggunakan **Swing + FlatLaf** dengan tujuh halaman: Ringkasan, Barang, Stok Masuk, Stok Keluar, Pemantauan, Pembuangan, dan Riwayat. Aplikasi dapat dijalankan tanpa build tambahan.
+
+## Tujuan dan berkas kritis
+
+Tujuan proyek mengikuti deskripsi di README ini: menyediakan penerimaan stok,
+pengeluaran manual, pengeluaran otomatis FEFO, pemantauan kedaluwarsa,
+pembuangan stok kedaluwarsa, saldo, riwayat transaksi, dan stok minimum untuk
+beberapa barang. Menu interaktif menyimpan data ke SQLite lokal; mode demo empat
+skenario berjalan sepenuhnya di memori. GUI utama adalah Swing dengan tema
+FlatLaf dan tujuh halaman.
+
+Berkas yang paling menentukan perilaku aplikasi:
+
+- `src/main/java/kantinflow/Barang.java`, `src/main/java/kantinflow/BatchStok.java`, dan `src/main/java/kantinflow/FefoAllocator.java` — aturan barang, batch, status kedaluwarsa, dan urutan alokasi FEFO.
+- `src/main/java/kantinflow/PenerimaanStok.java`, `src/main/java/kantinflow/PengeluaranStok.java`, dan `src/main/java/kantinflow/PembuanganStok.java` — transaksi domain.
+- `src/main/java/kantinflow/penyimpanan/PenyimpananSQLite.java` — seluruh akses JDBC dan skema `barang`, `batch`, `transaksi`, `rincian_transaksi`.
+- `src/main/java/kantinflow/Main.java` — entry point konsol, demo, dan GUI Swing; memasang `FlatLightLaf`.
+- `src/main/java/kantinflow/gui/JendelaKantinFlow.java`, panel halaman di `src/main/java/kantinflow/gui/`, dan `Ui.java` — shell, tujuh halaman, serta gaya FlatLaf.
+- `run-gui.cmd` dan `setup.ps1` — peluncur sekali klik dan penyiapan dependensi SQLite/FlatLaf.
+- `tests/RegresiKantinFlow.java` — regression domain dan penyimpanan.
 
 ## Persiapan lokal
 
-Pastikan `java -version` dan `javac -version` berjalan. Proyek diuji dengan JDK 25.0.5 dan memakai SQLite JDBC 3.54.1.0.
+Pastikan `java -version` dan `javac -version` berjalan. Proyek diuji dengan JDK 25.0.5 dan memakai SQLite JDBC 3.54.1.0 serta FlatLaf 3.8. Tidak diperlukan dependensi GUI tambahan.
 
 ### Menjalankan GUI sekali klik di Windows
 
@@ -40,13 +59,10 @@ Invoke-WebRequest `
 
 Alternatif: salin manual kedua JAR ke `lib/`. Seluruh kode Java berada di `src/main/java/kantinflow/`, dengan `kantinflow.Main` sebagai titik masuk.
 
-### Kompilasi Swing/console
-
-Kompilasi manual jalur Swing tidak menyertakan sumber JavaFX. Untuk JavaFX gunakan Maven di bagian berikutnya.
+### Kompilasi
 
 ```powershell
-$javaSources = Get-ChildItem -Path src/main/java -Recurse -Filter *.java -File |
-  Where-Object { $_.FullName -notmatch '\\kantinflow\\fx\\' }
+$javaSources = Get-ChildItem -Path src/main/java -Recurse -Filter *.java -File
 javac -cp "lib/*" -d out $javaSources.FullName
 ```
 
@@ -64,41 +80,11 @@ Cara praktis di Windows adalah `run-gui.cmd` seperti di atas. Untuk menjalankan 
 java --enable-native-access=ALL-UNNAMED -cp "out;lib/*" kantinflow.Main gui
 ```
 
-GUI memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar di kiri berisi pemilih barang aktif dan navigasi halaman; pemilih barang selalu terlihat. Halaman **Ringkasan** menampilkan stok fisik, stok layak pada tanggal pengecekan, minimum, dan status restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dan daftar batch. **Stok Keluar** menyediakan pengeluaran manual (dengan sisa batch terpilih) dan FEFO. **Pemantauan** menampilkan status kedaluwarsa, **Pembuangan** menangani pembuangan, dan **Riwayat** menampilkan seluruh rincian transaksi barang aktif.
+GUI utama memakai database yang sama dengan menu konsol (default `data/kantinflow.db`). Sidebar di kiri berisi pemilih barang aktif dan navigasi tujuh halaman; pemilih barang selalu terlihat. Halaman **Ringkasan** menampilkan stok fisik, stok layak pada tanggal pengecekan, minimum, dan status restok. Halaman **Barang** memuat daftar barang, tambah barang, dan minimum. **Stok Masuk** memuat form penerimaan dan daftar batch. **Stok Keluar** menyediakan pengeluaran manual (dengan sisa batch terpilih) dan FEFO. **Pemantauan** menampilkan status kedaluwarsa, **Pembuangan** menangani pembuangan, dan **Riwayat** menampilkan seluruh rincian transaksi barang aktif.
 
-Tema memakai FlatLaf Light. Halaman yang tinggi dapat di-scroll; jendela default 1180×700 dan minimum 900×600 sehingga tetap nyaman pada layar 1366×768. Mengganti barang akan memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama.
+Tema memakai FlatLaf Light. Halaman yang tinggi dapat di-scroll; jendela default 1180×700 dan minimum 900×600 sehingga tetap nyaman pada layar 1366×768. Mengganti barang akan memuat ulang seluruh halaman dan membersihkan pilihan batch serta hasil pemantauan lama. Tidak ada dependensi GUI tambahan pada jalur ini.
 
-### Menjalankan GUI JavaFX
-
-Prasyarat: **JDK 25** dan **Maven 3.9+**. JavaFX yang dipakai adalah `25.0.5`; JDK 25 juga yang direkomendasikan oleh release notes JavaFX 25. SQLite JDBC tetap `3.54.1.0`.
-
-Perintah yang diuji dari akar repo:
-
-```powershell
-mvn -DskipTests compile
-mvn javafx:run
-```
-
-Atau:
-
-```powershell
-.\run-fx.cmd
-```
-
-`run-fx.cmd` dapat dijalankan dari folder kerja lain dan mempertahankan `KANTINFLOW_DB`. Jika Maven tidak ada di `PATH`, pasang Maven atau arahkan `KANTINFLOW_MAVEN` ke `mvn.cmd`. Tidak perlu menjalankan `setup.ps1` untuk jalur JavaFX karena Maven mengunduh dependensi JavaFX dan SQLite JDBC.
-
-Database uji:
-
-```powershell
-$env:KANTINFLOW_DB = "$PWD\data\kantinflow-fx-uji.db"
-mvn javafx:run
-```
-
-Tahap migrasi ini menampilkan **Ringkasan**, **Barang**, **Stok Masuk**, dan **Stok Keluar**. Halaman Barang menyediakan tabel barang, tambah barang dengan minimum, serta pengaturan minimum barang aktif. Stok Keluar menyediakan pengeluaran manual dengan sisa batch terpilih dan FEFO dengan tanggal; hasil FEFO menampilkan alokasi per batch. Halaman Pemantauan, Pembuangan, dan Riwayat belum dimigrasikan ke JavaFX; gunakan `run-gui.cmd` untuk GUI Swing lama.
-
-Setiap halaman memakai scroll dan sudah diuji pada jendela 1366×768 serta 960×640. Form menampilkan pesan validasi dekat input, sidebar memakai ikon sederhana, dan proses database menampilkan `ProgressIndicator` serta menonaktifkan halaman selama task.
-
-Bukti JavaFX: [Ringkasan](docs/bukti-gui/gui-fx-ringkasan.png), [Barang](docs/bukti-gui/gui-fx-barang.png), [Stok Masuk](docs/bukti-gui/gui-fx-stok-masuk.png), [Stok Keluar](docs/bukti-gui/gui-fx-stok-keluar.png), [Stok Keluar berhasil](docs/bukti-gui/gui-fx-stok-keluar-berhasil.png), [Stok Keluar ditolak](docs/bukti-gui/gui-fx-stok-keluar-ditolak.png), dan [pengeluaran manual](docs/bukti-gui/gui-fx-stok-keluar-manual.png).
+Bukti antarmuka FlatLaf: [Ringkasan](docs/bukti-gui/gui-flatlaf-ringkasan.png), [Stok Masuk](docs/bukti-gui/gui-flatlaf-stok-masuk.png), [Stok Keluar](docs/bukti-gui/gui-flatlaf-stok-keluar.png), dan [jendela kecil](docs/bukti-gui/gui-flatlaf-jendela-kecil.png).
 
 ### Database lokal setiap komputer
 

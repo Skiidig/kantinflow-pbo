@@ -1,6 +1,7 @@
 # Panduan Demo KantinFlow
 
-Panduan singkat untuk mencoba KantinFlow dari clone baru. Contoh di bawah memakai
+Panduan singkat untuk mencoba GUI Swing KantinFlow dari clone baru. GUI utama
+memakai Swing + FlatLaf. Contoh di bawah memakai
 tanggal demo **18 November 2026**. Jika dijalankan pada hari lain, gunakan tanggal
 hari itu sebagai tanggal masuk/pengecekan, lalu sesuaikan tanggal kedaluwarsa:
 batch A = tanggal demo + 2 hari, batch B = tanggal demo + 27 hari.
@@ -17,7 +18,7 @@ batch A = tanggal demo + 2 hari, batch B = tanggal demo + 27 hari.
    harus lolos pemeriksaan sebelum dipakai.
 4. Buka `run-gui.cmd` dengan klik dua kali.
 
-**Hasil yang diharapkan:** GUI KantinFlow terbuka dengan Susu Kotak sebagai
+**Hasil yang diharapkan:** GUI Swing KantinFlow terbuka dengan Susu Kotak sebagai
 barang aktif pertama. Jika JDK atau driver belum siap, skrip menampilkan pesan
 yang jelas dan tidak membuka GUI.
 
