@@ -22,7 +22,7 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
         this.judul = judul;
         this.keterangan = keterangan;
         setBackground(Ui.LATAR);
-        setBorder(new EmptyBorder(22, 24, 22, 24));
+        setBorder(new EmptyBorder(Ui.PADDING_HALAMAN));
     }
 
     public String getJudul() {

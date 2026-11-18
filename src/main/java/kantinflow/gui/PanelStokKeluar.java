@@ -25,7 +25,7 @@ import kantinflow.StokTidakCukupException;
  * Halaman pengeluaran manual dan FEFO untuk barang aktif.
  */
 public class PanelStokKeluar extends PanelKantin {
-    private final JComboBox<BatchStok> comboBatch = new JComboBox<>();
+    private final JComboBox<BatchStok> comboBatch = Ui.combo();
     private final JLabel labelSisa = new JLabel("-");
     private final JTextField fieldJumlahManual = Ui.field(8);
     private final JButton tombolManual = Ui.utama("Keluarkan Manual");
@@ -79,7 +79,7 @@ public class PanelStokKeluar extends PanelKantin {
                 manualIsi, javax.swing.BoxLayout.Y_AXIS));
         manualIsi.add(Ui.field("Batch *", comboBatch));
         labelSisa.setName("sisaBatch");
-        labelSisa.setFont(Ui.font(Font.BOLD, 12f));
+        labelSisa.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         labelSisa.setForeground(Ui.AKSEN);
         labelSisa.setBorder(new EmptyBorder(8, 0, 8, 0));
         manualIsi.add(labelSisa);
@@ -117,19 +117,19 @@ public class PanelStokKeluar extends PanelKantin {
                 java.awt.FlowLayout.LEFT, 0, 0));
         manualWrap.setOpaque(true);
         manualWrap.setBackground(Ui.KARTU);
-        manual.setMaximumSize(new java.awt.Dimension(620, Integer.MAX_VALUE));
-        manual.setPreferredSize(new java.awt.Dimension(600, 260));
+        manual.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
+        manual.setPreferredSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Ui.TINGGI_FORM_MANUAL));
         manualWrap.add(manual);
         JPanel fefoWrap = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 0, 0));
         fefoWrap.setOpaque(true);
         fefoWrap.setBackground(Ui.KARTU);
-        fefo.setMaximumSize(new java.awt.Dimension(620, Integer.MAX_VALUE));
-        fefo.setPreferredSize(new java.awt.Dimension(600, 300));
+        fefo.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
+        fefo.setPreferredSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Ui.TINGGI_FORM_FEFO));
         fefoWrap.add(fefo);
 
         JTabbedPane mode = new JTabbedPane();
-        mode.setFont(Ui.font(Font.BOLD, 12f));
+        mode.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         mode.setBackground(Ui.KARTU);
         mode.setOpaque(true);
         mode.addTab("Manual", manualWrap);

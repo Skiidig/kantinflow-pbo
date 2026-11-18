@@ -107,6 +107,6 @@ public class PanelRingkasan extends PanelKantin {
         boolean perluRestok = layak <= minimum;
         labelStatus.setText(perluRestok ? "Perlu restok" : "Cukup");
         labelStatus.setForeground(perluRestok ? Ui.MERAH : Ui.HIJAU);
-        labelStatus.setFont(Ui.font(Font.BOLD, 22f));
+        labelStatus.setFont(Ui.font(Font.BOLD, Ui.FONT_NILAI));
     }
 }

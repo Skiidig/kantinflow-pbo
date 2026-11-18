@@ -24,7 +24,7 @@ import kantinflow.StokTidakCukupException;
  * Halaman pembuangan batch kedaluwarsa.
  */
 public class PanelPembuangan extends PanelKantin {
-    private final JComboBox<BatchStok> comboBatch = new JComboBox<>();
+    private final JComboBox<BatchStok> comboBatch = Ui.combo();
     private final JTextField fieldJumlah = Ui.field(6);
     private final JTextField fieldTanggal = Ui.field(10);
     private final JTextField fieldAlasan = Ui.field(16);
@@ -66,7 +66,7 @@ public class PanelPembuangan extends PanelKantin {
 
     private void bangunIsi() {
         JPanel form = Ui.kartu("Form Pembuangan");
-        JPanel isian = Ui.gridResponsif(2, 760,
+        JPanel isian = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Batch *", comboBatch),
                 Ui.field("Jumlah *", fieldJumlah),
                 Ui.field("Tanggal pembuangan * (yyyy-MM-dd)", fieldTanggal),
@@ -87,7 +87,7 @@ public class PanelPembuangan extends PanelKantin {
         JPanel tindakan = Ui.kartu("Ringkasan tindakan");
         JPanel tindakanIsi = new JPanel(new BorderLayout(0, 6));
         tindakanIsi.setOpaque(false);
-        ringkasan.setFont(Ui.font(Font.BOLD, 12f));
+        ringkasan.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         ringkasan.setForeground(Ui.MERAH);
         tindakanIsi.add(ringkasan, BorderLayout.NORTH);
         JLabel catatan = Ui.keterangan(

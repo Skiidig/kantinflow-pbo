@@ -76,9 +76,8 @@ public class PanelBarang extends PanelKantin {
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
         daftarIsi.setOpaque(false);
         daftarIsi.add(petunjuk, BorderLayout.NORTH);
-        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
-        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 175));
-        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_BARANG),
+                BorderLayout.CENTER);
         JPanel bawahDaftar = new JPanel();
         bawahDaftar.setOpaque(false);
         bawahDaftar.setLayout(new BoxLayout(bawahDaftar, BoxLayout.Y_AXIS));
@@ -106,7 +105,7 @@ public class PanelBarang extends PanelKantin {
         JPanel minimumIsi = new JPanel();
         minimumIsi.setOpaque(false);
         minimumIsi.setLayout(new BoxLayout(minimumIsi, BoxLayout.Y_AXIS));
-        labelMinimumAktif.setFont(Ui.font(Font.BOLD, 13f));
+        labelMinimumAktif.setFont(Ui.font(Font.BOLD, Ui.FONT_BODY));
         labelMinimumAktif.setForeground(Ui.AKSEN);
         labelMinimumAktif.setBorder(new EmptyBorder(0, 0, 10, 0));
         minimumIsi.add(labelMinimumAktif);
@@ -123,7 +122,7 @@ public class PanelBarang extends PanelKantin {
         minimumIsi.add(catatan);
         minimum.add(minimumIsi, BorderLayout.CENTER);
 
-        JPanel form = Ui.gridResponsif(2, 760, tambah, minimum);
+        JPanel form = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT, tambah, minimum);
 
         isi.add(daftar, BorderLayout.NORTH);
         isi.add(form, BorderLayout.CENTER);

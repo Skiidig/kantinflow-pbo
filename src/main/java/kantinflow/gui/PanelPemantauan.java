@@ -57,7 +57,7 @@ public class PanelPemantauan extends PanelKantin {
                         java.awt.Component c = super.getTableCellRendererComponent(
                                 table, value, isSelected, hasFocus, row, column);
                         setHorizontalAlignment(SwingConstants.LEFT);
-                        setBorder(new EmptyBorder(0, 12, 0, 12));
+                        setBorder(new EmptyBorder(0, Ui.PADDING_SEL_TABEL, 0, Ui.PADDING_SEL_TABEL));
                         if (!isSelected) {
                             String status = value == null ? "" : value.toString();
                             if (StatusKedaluwarsa.KEDALUWARSA.getLabel().equals(status)) {
@@ -98,7 +98,7 @@ public class PanelPemantauan extends PanelKantin {
                 "Seluruh sisa batch"));
         nilaiBaris.add(nilaiKecil("Stok layak", labelLayak,
                 "Batch layak pada tanggal"));
-        nilaiBaris.add(nilaiKecil("Minimum", labelMinimum,
+        nilaiBaris.add(nilaiKecil("Stok minimum", labelMinimum,
                 "Batas kebutuhan aktif"));
         nilaiBaris.add(nilaiKecil("Status", labelStatus,
                 "Perlu restok / Cukup"));
@@ -107,9 +107,8 @@ public class PanelPemantauan extends PanelKantin {
         JPanel daftar = Ui.kartu("Status Batch");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
-        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 240));
-        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN),
+                BorderLayout.CENTER);
         daftarIsi.add(kosong, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
@@ -129,11 +128,11 @@ public class PanelPemantauan extends PanelKantin {
         panel.setLayout(new javax.swing.BoxLayout(
                 panel, javax.swing.BoxLayout.Y_AXIS));
         JLabel label = Ui.keterangan(judul);
-        label.setFont(Ui.font(Font.PLAIN, 11f));
-        nilai.setFont(Ui.font(Font.BOLD, 20f));
+        label.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
+        nilai.setFont(Ui.font(Font.BOLD, Ui.FONT_NILAI));
         nilai.setForeground(Ui.TEKS);
         JLabel catatan = Ui.keterangan(detail);
-        catatan.setFont(Ui.font(Font.PLAIN, 10f));
+        catatan.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
         panel.add(label);
         panel.add(javax.swing.Box.createVerticalStrut(3));
         panel.add(nilai);

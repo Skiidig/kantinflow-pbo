@@ -63,11 +63,11 @@ public class PanelStokMasuk extends PanelKantin {
         JPanel jumlahBaris = new JPanel(new BorderLayout(8, 0));
         jumlahBaris.setOpaque(false);
         jumlahBaris.add(fieldJumlah, BorderLayout.CENTER);
-        satuanJumlah.setFont(Ui.font(Font.BOLD, 12f));
+        satuanJumlah.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         satuanJumlah.setForeground(Ui.TEKS_LEMBUT);
         satuanJumlah.setBorder(new EmptyBorder(0, 4, 0, 0));
         jumlahBaris.add(satuanJumlah, BorderLayout.EAST);
-        JPanel isian = Ui.gridResponsif(2, 760,
+        JPanel isian = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Kode batch *", fieldKode),
                 Ui.field("Jumlah *", jumlahBaris),
                 Ui.field("Tanggal masuk * (yyyy-MM-dd)", fieldTanggalMasuk),
@@ -91,9 +91,8 @@ public class PanelStokMasuk extends PanelKantin {
         JPanel daftar = Ui.kartu("Batch Barang Aktif");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
-        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 260));
-        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_STOK_MASUK),
+                BorderLayout.CENTER);
         daftarIsi.add(kosong, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 

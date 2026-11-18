@@ -83,8 +83,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                 tutup();
             }
         });
-        setMinimumSize(new Dimension(960, 640));
-        setSize(1180, 720);
+        setMinimumSize(new Dimension(Ui.LEBAR_MINIMUM, Ui.TINGGI_MINIMUM));
+        setSize(Ui.LEBAR_JENDELA, Ui.TINGGI_JENDELA);
         setLocationRelativeTo(null);
 
         bangunTampilan();
@@ -105,7 +105,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private JPanel buatSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Ui.KARTU);
-        sidebar.setPreferredSize(new Dimension(240, 0));
+        sidebar.setPreferredSize(new Dimension(Ui.LEBAR_SIDEBAR, 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Ui.GARIS));
 
         JPanel atas = new JPanel();
@@ -120,7 +120,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         merekMark.setOpaque(true);
         merekMark.setBackground(Ui.AKSEN);
         merekMark.setForeground(Color.WHITE);
-        merekMark.setFont(Ui.font(Font.BOLD, 11f));
+        merekMark.setFont(Ui.font(Font.BOLD, Ui.FONT_KECIL));
         merekMark.setHorizontalAlignment(SwingConstants.CENTER);
         merekMark.setPreferredSize(new Dimension(32, 32));
         merekMark.setMaximumSize(new Dimension(32, 32));
@@ -131,10 +131,10 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         merekTeks.setOpaque(false);
         merekTeks.setLayout(new BoxLayout(merekTeks, BoxLayout.Y_AXIS));
         JLabel merek = new JLabel("KantinFlow");
-        merek.setFont(Ui.font(Font.BOLD, 20f));
+        merek.setFont(Ui.font(Font.BOLD, Ui.FONT_BRAND));
         merek.setForeground(Ui.TEKS);
         JLabel sub = new JLabel("Manajemen Persediaan");
-        sub.setFont(Ui.font(Font.PLAIN, 10.5f));
+        sub.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
         sub.setForeground(Ui.TEKS_LEMBUT);
         merekTeks.add(merek);
         merekTeks.add(Box.createVerticalStrut(1));
@@ -160,7 +160,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         for (String[] item : halaman) {
             JToggleButton tombol = new JToggleButton(item[1]);
             tombol.setName("nav-" + item[0]);
-            tombol.setFont(Ui.font(Font.PLAIN, 13f));
+            tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_NAV));
             tombol.setHorizontalAlignment(SwingConstants.LEFT);
             tombol.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
             tombol.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -192,7 +192,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         }
 
         JLabel footer = new JLabel("SQLite lokal · FlatLaf 3.8");
-        footer.setFont(Ui.font(Font.PLAIN, 10f));
+        footer.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
         footer.setForeground(Ui.TEKS_LEMBUT);
         footer.setBorder(new EmptyBorder(10, 16, 14, 16));
 
@@ -213,12 +213,12 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         if (tombol.isSelected()) {
             tombol.setBackground(Ui.AKSEN_LEMBUT);
             tombol.setForeground(Ui.AKSEN);
-            tombol.setFont(Ui.font(Font.BOLD, 13f));
+            tombol.setFont(Ui.font(Font.BOLD, Ui.FONT_NAV));
             tombol.setBorder(aturBorderNav(true));
         } else {
             tombol.setBackground(Ui.KARTU);
             tombol.setForeground(Ui.TEKS_LEMBUT);
-            tombol.setFont(Ui.font(Font.PLAIN, 13f));
+            tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_NAV));
             tombol.setBorder(aturBorderNav(false));
         }
     }
@@ -247,7 +247,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         status.setEditable(false);
         status.setLineWrap(true);
         status.setWrapStyleWord(true);
-        status.setFont(Ui.font(Font.PLAIN, 12f));
+        status.setFont(Ui.font(Font.PLAIN, Ui.FONT_STATUS));
         status.setBorder(new EmptyBorder(9, 26, 9, 26));
         status.setBackground(Ui.KARTU);
         status.setForeground(Ui.TEKS);
@@ -272,13 +272,13 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         kiri.setOpaque(false);
         kiri.setLayout(new BoxLayout(kiri, BoxLayout.Y_AXIS));
         JLabel eyebrow = new JLabel("KANTINFLOW · MANAJEMEN PERSEDIAAN");
-        eyebrow.setFont(Ui.font(Font.BOLD, 9.5f));
+        eyebrow.setFont(Ui.font(Font.BOLD, Ui.FONT_EYEBROW));
         eyebrow.setForeground(Ui.AKSEN);
         judulHalaman = new JLabel("Ringkasan");
-        judulHalaman.setFont(Ui.font(Font.BOLD, 24f));
+        judulHalaman.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
         judulHalaman.setForeground(Ui.TEKS);
         keteranganHalaman = new JLabel(" ");
-        keteranganHalaman.setFont(Ui.font(Font.PLAIN, 12f));
+        keteranganHalaman.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
         keteranganHalaman.setForeground(Ui.TEKS_LEMBUT);
         kiri.add(eyebrow);
         kiri.add(Box.createVerticalStrut(2));
@@ -289,11 +289,11 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         JPanel kanan = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         kanan.setOpaque(false);
         JLabel labelAktif = new JLabel("Barang aktif");
-        labelAktif.setFont(Ui.font(Font.BOLD, 11.5f));
+        labelAktif.setFont(Ui.font(Font.BOLD, Ui.FONT_LABEL));
         labelAktif.setForeground(Ui.TEKS_LEMBUT);
         comboBarang.setName("barangAktif");
-        comboBarang.setFont(Ui.font(Font.PLAIN, 12f));
-        comboBarang.setPreferredSize(new Dimension(230, 34));
+        comboBarang.setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
+        comboBarang.setPreferredSize(new Dimension(Ui.LEBAR_KOMBO_BARANG, Ui.TINGGI_INPUT));
         comboBarang.addActionListener(event -> {
             if (!menggantiBarang) {
                 Barang dipilih = (Barang) comboBarang.getSelectedItem();

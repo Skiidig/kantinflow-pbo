@@ -48,9 +48,8 @@ public class PanelRiwayat extends PanelKantin {
         JPanel daftar = Ui.kartu();
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        javax.swing.JScrollPane scrollTabel = Ui.scrollTabel(tabel);
-        scrollTabel.setPreferredSize(new java.awt.Dimension(600, 300));
-        daftarIsi.add(scrollTabel, BorderLayout.CENTER);
+        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_RIWAYAT),
+                BorderLayout.CENTER);
         daftarIsi.add(kosong, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
         isi.add(daftar, BorderLayout.CENTER);
