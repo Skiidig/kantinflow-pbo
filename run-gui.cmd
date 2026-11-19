@@ -51,6 +51,7 @@ if errorlevel 1 (
     echo         %ROOT%lib\flatlaf-extras-3.8.jar
     echo         %ROOT%lib\jsvg-2.2.0.jar
     echo         %ROOT%lib\flatlaf-fonts-inter-3.19.jar
+    echo         %ROOT%lib\LGoodDatePicker-11.2.1.jar
     echo         %ROOT%lib\swing-toast-notifications-1.0.4.jar
     echo         %ROOT%lib\xchart-3.8.8.jar
     echo         %ROOT%lib\pdfbox-3.0.8.jar
@@ -63,7 +64,7 @@ if errorlevel 1 (
     goto :gagal
 )
 
-echo [OK] Java, javac, SQLite JDBC, FlatLaf, Inter, SVG, toast, XChart, dan PDFBox tersedia.
+echo [OK] Java, javac, SQLite JDBC, FlatLaf, Inter, SVG, LGoodDatePicker, toast, XChart, dan PDFBox tersedia.
 if defined KANTINFLOW_DB (
     echo      Database uji: %KANTINFLOW_DB%
 ) else (

@@ -4,9 +4,12 @@ import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
@@ -18,22 +21,30 @@ import java.awt.event.ComponentEvent;
 import java.net.URL;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.formdev.flatlaf.ui.FlatLineBorder;
 import com.formdev.flatlaf.util.UIScale;
+
+import kantinflow.Barang;
 
 /**
  * Komponen dan token visual bersama untuk tujuh halaman Swing/FlatLaf.
@@ -198,6 +209,14 @@ final class Ui {
         return label;
     }
 
+    static String teksJumlah(Barang barang) {
+        String satuan = barang == null ? null : barang.getSatuan();
+        if (satuan == null || satuan.isBlank()) {
+            return "Jumlah *";
+        }
+        return "Jumlah (" + satuan + ") *";
+    }
+
     static JLabel pesan() {
         JLabel label = new JLabel(" ");
         label.setFont(font(Font.PLAIN, FONT_KECIL));
@@ -318,14 +337,40 @@ final class Ui {
         return combo;
     }
 
+    static JComboBox<Barang> comboBarang() {
+        JComboBox<Barang> combo = combo();
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Barang item) {
+                    setText(item.getNama() + " (" + item.getSatuan() + ")");
+                }
+                return this;
+            }
+        });
+        return combo;
+    }
+
     static JPanel field(String label, Component input) {
         return field(label, input, null);
     }
 
     static JPanel field(String label, Component input, JLabel pesan) {
+        return field(labelField(label), input, pesan);
+    }
+
+    static JPanel field(JLabel label, Component input) {
+        return field(label, input, null);
+    }
+
+    static JPanel field(JLabel label, Component input, JLabel pesan) {
         JPanel panel = new JPanel(new BorderLayout(0, 4));
         panel.setOpaque(false);
-        panel.add(labelField(label), BorderLayout.NORTH);
+        panel.add(label, BorderLayout.NORTH);
         panel.add(input, BorderLayout.CENTER);
         if (pesan != null) {
             panel.add(pesan, BorderLayout.SOUTH);
@@ -359,6 +404,22 @@ final class Ui {
         panel.add(label, BorderLayout.NORTH);
         panel.add(nilai, BorderLayout.CENTER);
         panel.add(detail, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    /**
+     * Baris filter: label di atas kontrol, kontrol rata bawah, dan jarak
+     * antarkontrol dari token bersama. Komponen pertama (dropdown barang)
+     * mengambil sisa lebar; sisanya memakai lebar pilihan sendiri. Bila
+     * lebar kartu tidak cukup, komponen selain yang pertama dipindah ke
+     * baris kedua agar teks tidak terpotong.
+     */
+    static JPanel barisFilter(Component... bagian) {
+        JPanel panel = new BarisFilter(bagian);
+        panel.setOpaque(false);
+        for (Component item : bagian) {
+            panel.add(item);
+        }
         return panel;
     }
 
@@ -462,6 +523,12 @@ final class Ui {
      * Mengatur lebar kolom tabel secara proporsional. Kolom angka tetap lebih
      * sempit dan rata kanan; kolom teks panjang mendapat porsi lebih besar.
      */
+    static void gulirHorizontalSaatSempit(JTable tabel) {
+        if (tabel instanceof TabelKantin khusus) {
+            khusus.setHorizontalSaatSempit(true);
+        }
+    }
+
     static void aturKolom(JTable tabel, int... lebar) {
         tabel.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         int jumlah = Math.min(lebar.length,
@@ -552,6 +619,51 @@ final class Ui {
         @Override
         public Dimension getMinimumSize() {
             return new Dimension(0, isi.getMinimumSize().height);
+        }
+    }
+
+    /**
+     * Menata baris filter tanpa tinggi tetap: satu baris saat cukup, dua
+     * baris saat menyempit. Tinggi mengikuti isi agar kartu tidak menyisakan
+     * ruang kosong.
+     */
+    private static final class BarisFilter extends JPanel {
+        private final Component[] bagian;
+
+        private BarisFilter(Component[] bagian) {
+            super(new GridBagLayout());
+            this.bagian = bagian;
+            if (bagian.length > 0) {
+                Dimension minimum = bagian[0].getMinimumSize();
+                bagian[0].setMinimumSize(new Dimension(0, minimum.height));
+            }
+        }
+
+        @Override
+        public void doLayout() {
+            int jarak = skala(GAP_FORM);
+            int lebarTetap = 0;
+            for (int i = 1; i < bagian.length; i++) {
+                lebarTetap += bagian[i].getPreferredSize().width;
+            }
+            lebarTetap += jarak * Math.max(0, bagian.length - 1);
+            int lebar = getWidth();
+            boolean wrap = bagian.length > 1
+                    && lebar < lebarTetap + skala(220);
+            for (int i = 0; i < bagian.length; i++) {
+                GridBagConstraints c = new GridBagConstraints();
+                c.gridx = wrap && i > 0 ? i - 1 : i;
+                c.gridy = wrap && i > 0 ? 1 : 0;
+                c.gridwidth = 1;
+                c.weightx = i == 0 && !wrap ? 1 : 0;
+                c.weighty = 0;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.anchor = GridBagConstraints.SOUTH;
+                c.insets = new Insets(0, i == 0 || (wrap && i == 1)
+                        ? 0 : jarak, 0, 0);
+                ((GridBagLayout) getLayout()).setConstraints(bagian[i], c);
+            }
+            super.doLayout();
         }
     }
 
@@ -732,5 +844,41 @@ final class Ui {
             }
         }
         rataKananHeader(tabel, kolom);
+    }
+
+    /**
+     * Menambah jarak kiri pada sel dan header satu kolom agar batas dengan
+     * kolom sebelumnya lebih jelas tanpa mengubah isi atau penyelarasan.
+     */
+    static void jarakKiriKolom(JTable tabel, int kolom, int jarak) {
+        if (kolom < 0 || kolom >= tabel.getColumnModel().getColumnCount()) {
+            return;
+        }
+        TableColumn kolomTabel = tabel.getColumnModel().getColumn(kolom);
+        TableCellRenderer penyajiSel = kolomTabel.getCellRenderer() != null
+                ? kolomTabel.getCellRenderer()
+                : tabel.getDefaultRenderer(Object.class);
+        kolomTabel.setCellRenderer((table, value, isSelected, hasFocus,
+                row, column) -> jarakKiri(penyajiSel.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column), jarak));
+        TableCellRenderer penyajiKepala = kolomTabel.getHeaderRenderer() != null
+                ? kolomTabel.getHeaderRenderer()
+                : tabel.getTableHeader().getDefaultRenderer();
+        kolomTabel.setHeaderRenderer((table, value, isSelected, hasFocus,
+                row, column) -> jarakKiri(
+                        penyajiKepala.getTableCellRendererComponent(
+                                table, value, isSelected, hasFocus, row, column),
+                        jarak));
+    }
+
+    private static Component jarakKiri(Component komponen, int jarak) {
+        if (komponen instanceof JComponent isi) {
+            Border garis = isi.getBorder();
+            Insets ukuran = garis instanceof EmptyBorder kosong
+                    ? kosong.getBorderInsets() : isi.getInsets();
+            isi.setBorder(new EmptyBorder(ukuran.top,
+                    ukuran.left + skala(jarak), ukuran.bottom, ukuran.right));
+        }
+        return komponen;
     }
 }

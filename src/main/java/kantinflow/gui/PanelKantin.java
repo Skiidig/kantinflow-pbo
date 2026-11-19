@@ -9,7 +9,8 @@ import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Dasar halaman. Setiap halaman wajib dapat menyegarkan diri dari barang aktif.
+ * Dasar halaman. Setiap halaman wajib dapat menyegarkan diri dari konteks
+ * datanya sendiri.
  */
 public abstract class PanelKantin extends JPanel implements Scrollable {
     protected final KonteksKantin konteks;
@@ -69,8 +70,8 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
     }
 
     /**
-     * True bila ada isian formulir yang belum disimpan. Dipakai shell untuk
-     * meminta konfirmasi sebelum mengganti barang aktif.
+     * True bila ada isian formulir yang belum disimpan. Dipakai halaman untuk
+     * meminta konfirmasi sebelum mengganti barang pada halaman itu.
      */
     public boolean adaIsianBelumDisimpan() {
         return false;

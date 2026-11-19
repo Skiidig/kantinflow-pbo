@@ -1,8 +1,8 @@
 package kantinflow.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Font;
-import java.awt.GridLayout;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -22,39 +22,41 @@ import kantinflow.RincianTransaksi;
 import kantinflow.StokTidakCukupException;
 
 /**
- * Halaman pengeluaran manual dan FEFO untuk barang aktif.
+ * Halaman pengeluaran manual dan FEFO untuk barang terpilih.
  */
-public class PanelStokKeluar extends PanelKantin {
+public class PanelStokKeluar extends PanelBarangTerpilih {
     private final JComboBox<BatchStok> comboBatch = Ui.combo();
     private final JLabel labelSisa = new JLabel("-");
     private final JTextField fieldJumlahManual = Ui.field(8);
+    private final JLabel labelJumlahManual = Ui.labelField("Jumlah *");
     private final JButton tombolManual = Ui.utama("Keluarkan Manual");
     private final JTextField fieldJumlahFefo = Ui.field(8);
+    private final JLabel labelJumlahFefo = Ui.labelField("Jumlah *");
     private final JTextField fieldTanggalFefo = Ui.field(12);
     private final JButton tombolFefo = Ui.utama("Keluarkan FEFO");
     private final JLabel pesanManual = Ui.pesan();
     private final JLabel pesanFefo = Ui.pesan();
     private final JLabel hasilAlokasi = Ui.keterangan(
             "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
-    private final JLabel infoBarang = Ui.keterangan(" ");
-    private int idBarangTerakhir = -1;
     private String tanggalFefoAwal;
 
     public PanelStokKeluar(KonteksKantin konteks) {
         super(konteks, "Stok Keluar",
                 "Keluarkan stok manual atau dengan FEFO.");
+        pilihanBarang.setName("barangStokKeluar");
         comboBatch.setName("batchManual");
-        infoBarang.setName("konteksStokKeluar");
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
         fieldJumlahFefo.setName("jumlahFefo");
         fieldTanggalFefo.setName("tanggalFefo");
+        fieldTanggalFefo.putClientProperty("JTextField.placeholderText",
+                "yyyy-MM-dd");
         tombolFefo.setName("tombolFefo");
         tombolFefo.setIcon(Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
         tombolFefo.setIconTextGap(7);
         comboBatch.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public java.awt.Component getListCellRendererComponent(
+            public Component getListCellRendererComponent(
                     JList<?> list, Object value, int index,
                     boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(
@@ -62,7 +64,7 @@ public class PanelStokKeluar extends PanelKantin {
                 if (value instanceof BatchStok batch) {
                     setText(batch.getKode() + " — sisa "
                             + batch.getSisaJumlah() + " "
-                            + konteks.getBarangAktif().getSatuan()
+                            + (barang == null ? "-" : barang.getSatuan())
                             + " — kedaluwarsa "
                             + batch.getTanggalKedaluwarsa());
                 }
@@ -83,7 +85,7 @@ public class PanelStokKeluar extends PanelKantin {
                 "Pilih batch sumber, lalu masukkan jumlah yang dikeluarkan."));
         JPanel formManual = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Batch *", comboBatch),
-                Ui.field("Jumlah *", fieldJumlahManual));
+                Ui.field(labelJumlahManual, fieldJumlahManual));
         formManual.setAlignmentX(LEFT_ALIGNMENT);
         manualIsi.add(formManual);
 
@@ -98,10 +100,10 @@ public class PanelStokKeluar extends PanelKantin {
 
         JPanel fefoIsi = isiMode();
         fefoIsi.add(bantuanMode(
-                "Batch layak dengan kedaluwarsa terdekat digunakan lebih dahulu."));
+                "Stok layak dengan tanggal kedaluwarsa terdekat digunakan lebih dahulu."));
 
         JPanel formFefo = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
-                Ui.field("Jumlah *", fieldJumlahFefo),
+                Ui.field(labelJumlahFefo, fieldJumlahFefo),
                 Ui.field("Tanggal pengeluaran * (yyyy-MM-dd)",
                         fieldTanggalFefo));
         formFefo.setAlignmentX(LEFT_ALIGNMENT);
@@ -120,15 +122,16 @@ public class PanelStokKeluar extends PanelKantin {
         mode.setBackground(Ui.KARTU);
         mode.setOpaque(true);
         mode.addTab("Manual", manualIsi);
-        mode.addTab("FEFO", fefoIsi);
+        mode.addTab("Otomatis (FEFO)", fefoIsi);
 
         JPanel isi = new JPanel();
         isi.setOpaque(false);
         isi.setLayout(new javax.swing.BoxLayout(
                 isi, javax.swing.BoxLayout.Y_AXIS));
-        infoBarang.setAlignmentX(LEFT_ALIGNMENT);
-        infoBarang.setBorder(new EmptyBorder(0, 0, 6, 0));
-        isi.add(infoBarang);
+        JPanel pilihan = fieldBarang("Barang *");
+        pilihan.setAlignmentX(LEFT_ALIGNMENT);
+        pilihan.setBorder(new EmptyBorder(0, 0, 10, 0));
+        isi.add(pilihan);
         mode.setAlignmentX(LEFT_ALIGNMENT);
         isi.add(mode);
 
@@ -171,14 +174,20 @@ public class PanelStokKeluar extends PanelKantin {
 
     private void perbaruiSisa() {
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
+        if (barang == null) {
+            labelSisa.setText(
+                    "Belum ada barang. Tambahkan melalui halaman Barang.");
+            labelSisa.setForeground(Ui.TEKS_LEMBUT);
+            tombolManual.setEnabled(false);
+            return;
+        }
         if (batch == null) {
             labelSisa.setText("Tidak ada batch bersisa.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
             tombolManual.setEnabled(false);
         } else {
             labelSisa.setText("Sisa: " + batch.getSisaJumlah() + " "
-                    + konteks.getBarangAktif().getSatuan()
-                    + " pada batch " + batch.getKode());
+                    + barang.getSatuan() + " pada batch " + batch.getKode());
             labelSisa.setForeground(Ui.AKSEN);
             tombolManual.setEnabled(true);
         }
@@ -186,6 +195,11 @@ public class PanelStokKeluar extends PanelKantin {
 
     private void keluarkanManual() {
         pesanManual.setText(" ");
+        if (barang == null) {
+            pesanManual.setText(
+                    "Belum ada barang. Tambahkan melalui halaman Barang.");
+            return;
+        }
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
             pesanManual.setText("Pilih batch terlebih dahulu.");
@@ -203,7 +217,7 @@ public class PanelStokKeluar extends PanelKantin {
 
         PengeluaranStok pengeluaran = new PengeluaranStok(LocalDate.now());
         try {
-            pengeluaran.keluarkan(konteks.getBarangAktif(), batch, jumlah);
+            pengeluaran.keluarkan(barang, batch, jumlah);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
             pesanManual.setText("Pengeluaran ditolak: " + exception.getMessage());
@@ -212,9 +226,9 @@ public class PanelStokKeluar extends PanelKantin {
             return;
         }
 
-        if (konteks.simpanTransaksi(pengeluaran, "Pengeluaran berhasil: "
-                + batch.getKode() + ", " + jumlah + " "
-                + konteks.getBarangAktif().getSatuan() + ".")) {
+        if (konteks.simpanTransaksi(barang, pengeluaran,
+                "Pengeluaran berhasil: " + batch.getKode() + ", " + jumlah
+                + " " + barang.getSatuan() + ".")) {
             fieldJumlahManual.setText("");
             pesanManual.setText(" ");
         } else {
@@ -224,6 +238,11 @@ public class PanelStokKeluar extends PanelKantin {
 
     private void keluarkanFefo() {
         pesanFefo.setText(" ");
+        if (barang == null) {
+            pesanFefo.setText(
+                    "Belum ada barang. Tambahkan melalui halaman Barang.");
+            return;
+        }
         int jumlah;
         try {
             jumlah = Integer.parseInt(fieldJumlahFefo.getText().trim());
@@ -244,7 +263,7 @@ public class PanelStokKeluar extends PanelKantin {
 
         PengeluaranStok pengeluaran = new PengeluaranStok(tanggal);
         try {
-            pengeluaran.keluarkanFefo(konteks.getBarangAktif(), jumlah, tanggal);
+            pengeluaran.keluarkanFefo(barang, jumlah, tanggal);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
             pesanFefo.setText("Pengeluaran ditolak: " + exception.getMessage());
@@ -254,10 +273,9 @@ public class PanelStokKeluar extends PanelKantin {
         }
 
         String alokasi = formatAlokasi(pengeluaran);
-        if (konteks.simpanTransaksi(pengeluaran, "Pengeluaran FEFO berhasil: "
-                + alokasi + ". Saldo: "
-                + konteks.getBarangAktif().hitungSaldo() + " "
-                + konteks.getBarangAktif().getSatuan() + ".")) {
+        if (konteks.simpanTransaksi(barang, pengeluaran,
+                "Pengeluaran FEFO berhasil: " + alokasi + ". Saldo: "
+                + barang.hitungSaldo() + " " + barang.getSatuan() + ".")) {
             fieldJumlahFefo.setText("");
             fieldTanggalFefo.setText(LocalDate.now().toString());
             pesanFefo.setText(" ");
@@ -277,32 +295,50 @@ public class PanelStokKeluar extends PanelKantin {
                     .append(" ")
                     .append(rincian.getJumlah())
                     .append(" ")
-                    .append(konteks.getBarangAktif().getSatuan());
+                    .append(barang == null ? "" : barang.getSatuan());
         }
         return hasil.toString();
     }
 
+    private void perbaruiLabelJumlah() {
+        String teks = Ui.teksJumlah(barang);
+        labelJumlahManual.setText(teks);
+        labelJumlahFefo.setText(teks);
+    }
+
+    @Override
+    protected void saatBarangBerubah() {
+        fieldJumlahManual.setText("");
+        fieldJumlahFefo.setText("");
+        perbaruiLabelJumlah();
+        tanggalFefoAwal = LocalDate.now().toString();
+        fieldTanggalFefo.setText(tanggalFefoAwal);
+        pesanManual.setText(" ");
+        pesanFefo.setText(" ");
+        hasilAlokasi.setText(
+                "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+        comboBatch.removeAllItems();
+    }
+
     @Override
     public void perbarui() {
-        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
-            idBarangTerakhir = konteks.getBarangAktif().getId();
-            fieldJumlahManual.setText("");
-            fieldJumlahFefo.setText("");
-            tanggalFefoAwal = LocalDate.now().toString();
-            fieldTanggalFefo.setText(tanggalFefoAwal);
-            pesanManual.setText(" ");
-            pesanFefo.setText(" ");
-            hasilAlokasi.setText(
-                    "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+        boolean adaBarang = perbaruiBarangTerpilih();
+        perbaruiLabelJumlah();
+        if (!adaBarang) {
+            comboBatch.removeAllItems();
+            labelSisa.setText(
+                    "Belum ada barang. Tambahkan melalui halaman Barang.");
+            labelSisa.setForeground(Ui.TEKS_LEMBUT);
+            tombolManual.setEnabled(false);
+            tombolFefo.setEnabled(false);
+            return;
         }
-        infoBarang.setText("Pengeluaran untuk "
-                + konteks.getBarangAktif().getNama() + " · "
-                + konteks.getBarangAktif().getSatuan());
+        tombolFefo.setEnabled(true);
         String kodeTerpilih = comboBatch.getItemCount() == 0
                 ? null
                 : ((BatchStok) comboBatch.getSelectedItem()).getKode();
         comboBatch.removeAllItems();
-        for (BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
+        for (BatchStok batch : barang.getDaftarBatch()) {
             if (batch.getSisaJumlah() > 0) {
                 comboBatch.addItem(batch);
             }

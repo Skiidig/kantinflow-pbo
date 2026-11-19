@@ -43,6 +43,13 @@ $dependencies = @(
         Url      = 'https://repo1.maven.org/maven2/com/formdev/flatlaf-fonts-inter/3.19/flatlaf-fonts-inter-3.19.jar'
     },
     [pscustomobject]@{
+        Nama     = 'LGoodDatePicker'
+        Versi    = '11.2.1'
+        Jar      = 'LGoodDatePicker-11.2.1.jar'
+        Entry    = 'com/github/lgooddatepicker/components/DatePicker.class'
+        Url      = 'https://repo1.maven.org/maven2/com/github/lgooddatepicker/LGoodDatePicker/11.2.1/LGoodDatePicker-11.2.1.jar'
+    },
+    [pscustomobject]@{
         Nama     = 'Swing Toast Notifications'
         Versi    = '1.0.4'
         Jar      = 'swing-toast-notifications-1.0.4.jar'

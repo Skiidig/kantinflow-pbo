@@ -11,6 +11,7 @@ import javax.swing.table.TableModel;
  */
 public class TabelKantin extends JTable {
     private int barisHover = -1;
+    private boolean horizontalSaatSempit;
 
     public TabelKantin(TableModel model) {
         super(model);
@@ -37,5 +38,31 @@ public class TabelKantin extends JTable {
 
     public int getBarisHover() {
         return barisHover;
+    }
+
+    /**
+     * Saat aktif, tabel tetap mengisi lebar viewport selama semua kolom muat
+     * pada lebar minimumnya. Jika tidak muat, tabel memakai lebar pilihan
+     * sendiri agar scrollbar horizontal muncul, bukan memotong kolom.
+     */
+    public void setHorizontalSaatSempit(boolean aktif) {
+        horizontalSaatSempit = aktif;
+        revalidate();
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        if (!horizontalSaatSempit) {
+            return super.getScrollableTracksViewportWidth();
+        }
+        int lebar = getParent() == null ? 0 : getParent().getWidth();
+        if (lebar <= 0) {
+            return true;
+        }
+        int minimum = 0;
+        for (int i = 0; i < getColumnModel().getColumnCount(); i++) {
+            minimum += getColumnModel().getColumn(i).getMinWidth();
+        }
+        return minimum == 0 || lebar >= minimum;
     }
 }

@@ -11,11 +11,9 @@ import kantinflow.Transaksi;
  * Panel tidak mengakses JDBC secara langsung.
  */
 public interface KonteksKantin {
-    Barang getBarangAktif();
-
     List<Barang> getDaftarBarang();
 
-    List<Transaksi> getRiwayat();
+    List<Transaksi> getRiwayat(Barang barang);
 
     LocalDate getTanggalPemantauan();
 
@@ -30,15 +28,12 @@ public interface KonteksKantin {
 
     void setTanggalPemantauan(LocalDate tanggal);
 
-    boolean simpanTransaksi(Transaksi transaksi, String pesanSukses);
+    boolean simpanTransaksi(Barang barang, Transaksi transaksi,
+            String pesanSukses);
 
     boolean tambahBarang(String nama, String satuan);
 
-    boolean simpanStokMinimum(int minimum);
-
     boolean simpanStokMinimum(Barang barang, int minimum);
-
-    void gantiBarang(Barang barang);
 
     boolean muatUlang();
 

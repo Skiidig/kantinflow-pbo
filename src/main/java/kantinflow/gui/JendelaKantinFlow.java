@@ -17,29 +17,19 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
@@ -58,30 +48,25 @@ import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
 /**
- * Shell aplikasi: sidebar, pemilih barang aktif, CardLayout, dan status bersama.
- * Panel halaman bertanggung jawab atas form masing-masing.
+ * Shell aplikasi: sidebar, CardLayout, dan status bersama. Setiap halaman
+ * memiliki pilihan barangnya sendiri; shell hanya menyediakan daftar dan
+ * operasi penyimpanan.
  */
 public class JendelaKantinFlow extends JFrame implements KonteksKantin {
-    private static final String KUNCI_PREFERENSI = "barangAktif";
     private final PenyimpananSQLite penyimpanan;
     private final List<Barang> daftarBarang;
-    private final List<Transaksi> riwayat = new ArrayList<>();
     private final Map<String, PanelKantin> panel = new LinkedHashMap<>();
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel kartu = new JPanel(cardLayout);
-    private final JComboBox<Barang> comboBarang = Ui.combo();
     private final JTextArea status = new JTextArea(2, 40);
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
     private JLabel judulHalaman;
     private JLabel keteranganHalaman;
-    private JLabel labelBarangKosong;
     private JPanel indikatorNav;
     private JPanel pembungkusNav;
     private String halamanAktif = "ringkasan";
-    private Barang barang;
     private LocalDate tanggalPemantauan;
-    private boolean menggantiBarang;
     private boolean sudahDitutup;
     private final FadeOverlay fade = new FadeOverlay();
 
@@ -93,10 +78,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         Tema.pasang();
         this.penyimpanan = penyimpanan;
         this.daftarBarang = new ArrayList<>(penyimpanan.muatSemuaBarang());
-        this.barang = pilihBarangAwal();
-        if (barang != null) {
-            this.riwayat.addAll(penyimpanan.muatRiwayat(barang));
-        }
 
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -113,9 +94,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         fade.setVisible(false);
         bangunTampilan();
         Notifikasi.pasang(this);
-        perbaruiComboBarang();
         perbaruiSemua();
-        if (barang == null) {
+        if (daftarBarang.isEmpty()) {
             tampilkanPesan("Belum ada barang. Tambahkan barang melalui halaman Barang.", false);
         } else {
             tampilkanPesan("Data dan riwayat dimuat dari database.", true);
@@ -128,7 +108,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         root.add(buatSidebar(), BorderLayout.WEST);
         root.add(buatKonten(), BorderLayout.CENTER);
         setContentPane(root);
-        tampilkanHalaman(barang == null ? "barang" : "ringkasan");
+        tampilkanHalaman(daftarBarang.isEmpty() ? "barang" : "ringkasan");
     }
 
     private JPanel buatSidebar() {
@@ -171,10 +151,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         merekBaris.add(merekTeks);
         merekBaris.setAlignmentX(Component.LEFT_ALIGNMENT);
         isi.add(merekBaris);
-        isi.add(Box.createVerticalStrut(18));
-
-        isi.add(buatPemilihBarang());
-        isi.add(Box.createVerticalStrut(14));
+        isi.add(Box.createVerticalStrut(22));
 
         JPanel nav = new JPanel();
         nav.setOpaque(false);
@@ -274,56 +251,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         sidebar.add(scroll, BorderLayout.CENTER);
         sidebar.add(footer, BorderLayout.SOUTH);
         return sidebar;
-    }
-
-    private JPanel buatPemilihBarang() {
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel label = Ui.labelField("Barang aktif");
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        comboBarang.setName("barangAktif");
-        comboBarang.setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
-        comboBarang.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-                comboBarang.getPreferredSize().height));
-        comboBarang.setPreferredSize(new Dimension(
-                Ui.skala(Ui.LEBAR_SIDEBAR - 32),
-                comboBarang.getPreferredSize().height));
-        comboBarang.setMinimumSize(new Dimension(Ui.skala(80), 0));
-        comboBarang.setAlignmentX(Component.LEFT_ALIGNMENT);
-        comboBarang.addActionListener(event -> {
-            if (!menggantiBarang) {
-                Barang dipilih = (Barang) comboBarang.getSelectedItem();
-                if (dipilih != null && (barang == null
-                        || dipilih.getId() != barang.getId())) {
-                    gantiBarang(dipilih);
-                }
-            }
-        });
-        comboBarang.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(
-                    JList<?> list, Object value, int index,
-                    boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(
-                        list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Barang item) {
-                    setText(item.getNama() + " (" + item.getSatuan() + ")");
-                }
-                return this;
-            }
-        });
-        labelBarangKosong = Ui.kosong(
-                "Belum ada barang. Buka halaman Barang untuk menambahkan.");
-        labelBarangKosong.setName("barangKosongSidebar");
-        labelBarangKosong.setVisible(false);
-        panel.add(label);
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(comboBarang);
-        panel.add(Box.createVerticalStrut(4));
-        panel.add(labelBarangKosong);
-        return panel;
     }
 
     private javax.swing.border.Border aturBorderNav(boolean aktif) {
@@ -431,9 +358,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     private void tampilkanHalaman(String kunci) {
-        if (barang == null && !"barang".equals(kunci)) {
-            kunci = "barang";
-        }
         PanelKantin halaman = panel.get(kunci);
         if (halaman != null) {
             if (judulHalaman != null) {
@@ -505,18 +429,23 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     @Override
-    public Barang getBarangAktif() {
-        return barang;
-    }
-
-    @Override
     public List<Barang> getDaftarBarang() {
         return Collections.unmodifiableList(daftarBarang);
     }
 
     @Override
-    public List<Transaksi> getRiwayat() {
-        return Collections.unmodifiableList(riwayat);
+    public List<Transaksi> getRiwayat(Barang target) {
+        if (target == null) {
+            return List.of();
+        }
+        try {
+            Barang terbaru = penyimpanan.muatBarang(target.getId());
+            return penyimpanan.muatRiwayat(terbaru);
+        } catch (IllegalArgumentException | PenyimpananException exception) {
+            tampilkanPesan("Gagal memuat riwayat: " + exception.getMessage(),
+                    false);
+            return List.of();
+        }
     }
 
     @Override
@@ -533,9 +462,14 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     @Override
-    public boolean simpanTransaksi(Transaksi transaksi, String pesanSukses) {
+    public boolean simpanTransaksi(Barang target, Transaksi transaksi,
+            String pesanSukses) {
+        if (target == null) {
+            tampilkanPesan("Pilih barang terlebih dahulu.", false);
+            return false;
+        }
         try {
-            penyimpanan.simpanTransaksi(barang, transaksi);
+            penyimpanan.simpanTransaksi(target, transaksi);
         } catch (PenyimpananException exception) {
             boolean dimuat = muatUlang();
             tampilkanPesan("Penyimpanan gagal: " + exception.getMessage()
@@ -555,18 +489,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         try {
             Barang baru = penyimpanan.simpanBarang(new Barang(nama, satuan));
             daftarBarang.add(baru);
-            if (barang == null) {
-                this.barang = baru;
-                this.riwayat.clear();
-                this.riwayat.addAll(penyimpanan.muatRiwayat(baru));
-                perbaruiComboBarang();
-                perbaruiSemua();
-                simpanPreferensiBarang();
-            } else {
-                // Menambah barang tidak mengubah konteks barang aktif yang sudah dipilih.
-                perbaruiComboBarang();
-                perbaruiSemua();
-            }
+            perbaruiSemua();
             tampilkanHalaman("barang");
             tampilkanPesan("Barang ditambahkan: " + baru.getNama()
                     + " (" + baru.getSatuan() + ").", true);
@@ -575,11 +498,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             tampilkanPesan("Tambah barang gagal: " + exception.getMessage(), false);
             return false;
         }
-    }
-
-    @Override
-    public boolean simpanStokMinimum(int minimum) {
-        return simpanStokMinimum(barang, minimum);
     }
 
     @Override
@@ -594,12 +512,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         }
         try {
             penyimpanan.simpanStokMinimum(target, minimum);
-            target.setStokMinimum(minimum);
-            if (barang != null && barang.getId() == target.getId()
-                    && barang != target) {
-                barang.setStokMinimum(minimum);
-            }
-            perbaruiSemua();
+            muatUlang();
             tampilkanPesan("Stok minimum " + target.getNama() + " disimpan: "
                     + minimum + " " + target.getSatuan() + ".", true);
             return true;
@@ -611,44 +524,11 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     @Override
-    public void gantiBarang(Barang dipilih) {
-        if (dipilih == null || (barang != null && dipilih.getId() == barang.getId())) {
-            return;
-        }
-        if (barang != null && adaIsianTransaksiBelumDisimpan()
-                && !konfirmasiGantiBarang(dipilih)) {
-            kembalikanPilihanBarang();
-            tampilkanPesanNetral(
-                    "Perpindahan barang dibatalkan. Isian formulir dipertahankan.");
-            return;
-        }
-        try {
-            Barang terbaru = penyimpanan.muatBarang(dipilih.getId());
-            gantiReferensiBarang(terbaru);
-            this.barang = terbaru;
-            this.riwayat.clear();
-            this.riwayat.addAll(penyimpanan.muatRiwayat(terbaru));
-            perbaruiComboBarang();
-            perbaruiSemua();
-            simpanPreferensiBarang();
-            tampilkanPesan("Barang aktif: " + terbaru.getNama()
-                    + " (" + terbaru.getSatuan() + ").", true);
-        } catch (PenyimpananException exception) {
-            tampilkanPesan("Gagal mengganti barang: "
-                    + exception.getMessage(), false);
-            perbaruiComboBarang();
-        }
-    }
-
-    @Override
     public boolean muatUlang() {
         try {
-            Barang terbaru = penyimpanan.muatBarang(barang.getId());
-            gantiReferensiBarang(terbaru);
-            this.barang = terbaru;
-            this.riwayat.clear();
-            this.riwayat.addAll(penyimpanan.muatRiwayat(terbaru));
-            perbaruiComboBarang();
+            List<Barang> terbaru = penyimpanan.muatSemuaBarang();
+            daftarBarang.clear();
+            daftarBarang.addAll(terbaru);
             perbaruiSemua();
             return true;
         } catch (PenyimpananException exception) {
@@ -670,74 +550,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         }
     }
 
-    private Barang pilihBarangAwal() {
-        if (daftarBarang.isEmpty()) {
-            return null;
-        }
-        try {
-            int id = bacaPreferensiBarang();
-            for (Barang item : daftarBarang) {
-                if (item.getId() == id) {
-                    return item;
-                }
-            }
-        } catch (RuntimeException exception) {
-            // Preferensi UI opsional; fallback ke barang pertama.
-        }
-        return daftarBarang.get(0);
-    }
-
-    private Path filePreferensiBarang() {
-        String lokasi = penyimpanan.getLokasiDatabase();
-        if (lokasi == null || lokasi.isBlank() || ":memory:".equals(lokasi)) {
-            return null;
-        }
-        Path database = Path.of(lokasi).toAbsolutePath().normalize();
-        return database.resolveSibling(database.getFileName() + ".ui");
-    }
-
-    private int bacaPreferensiBarang() {
-        Path file = filePreferensiBarang();
-        if (file == null || !Files.isRegularFile(file)) {
-            return -1;
-        }
-        Properties properti = new Properties();
-        try (InputStream input = Files.newInputStream(file)) {
-            properti.load(input);
-            return Integer.parseInt(properti.getProperty(KUNCI_PREFERENSI, "-1"));
-        } catch (IOException | NumberFormatException exception) {
-            return -1;
-        }
-    }
-
-    private void simpanPreferensiBarang() {
-        Path file = filePreferensiBarang();
-        if (file == null || barang == null) {
-            return;
-        }
-        Properties properti = new Properties();
-        properti.setProperty(KUNCI_PREFERENSI, String.valueOf(barang.getId()));
-        try {
-            Path induk = file.getParent();
-            if (induk != null) {
-                Files.createDirectories(induk);
-            }
-            try (OutputStream output = Files.newOutputStream(file)) {
-                properti.store(output, "KantinFlow UI state");
-            }
-        } catch (IOException exception) {
-            // Kegagalan preferensi tidak boleh mengganggu operasi aplikasi.
-        }
-    }
-
     private void perbaruiSemua() {
-        if (barang == null) {
-            PanelKantin halamanBarang = panel.get("barang");
-            if (halamanBarang != null) {
-                halamanBarang.perbarui();
-            }
-            return;
-        }
         for (PanelKantin halaman : panel.values()) {
             halaman.perbarui();
         }
@@ -748,89 +561,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         if (halaman != null) {
             halaman.perbarui();
         }
-    }
-
-    private void perbaruiComboBarang() {
-        menggantiBarang = true;
-        try {
-            comboBarang.removeAllItems();
-            boolean kosong = daftarBarang.isEmpty();
-            comboBarang.setEnabled(!kosong);
-            if (labelBarangKosong != null) {
-                labelBarangKosong.setVisible(kosong);
-            }
-            if (kosong) {
-                comboBarang.setToolTipText(
-                        "Belum ada barang. Buka halaman Barang untuk menambahkan.");
-                return;
-            }
-            for (Barang item : daftarBarang) {
-                comboBarang.addItem(item);
-            }
-            if (barang == null) {
-                comboBarang.setSelectedIndex(-1);
-                return;
-            }
-            for (int i = 0; i < comboBarang.getItemCount(); i++) {
-                if (comboBarang.getItemAt(i).getId() == barang.getId()) {
-                    comboBarang.setSelectedIndex(i);
-                    break;
-                }
-            }
-            comboBarang.setToolTipText(barang.getNama() + " ("
-                    + barang.getSatuan() + ")");
-        } finally {
-            menggantiBarang = false;
-        }
-    }
-
-    private boolean adaIsianTransaksiBelumDisimpan() {
-        for (PanelKantin halaman : panel.values()) {
-            if (halaman.adaIsianBelumDisimpan()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean konfirmasiGantiBarang(Barang dipilih) {
-        String pesan = "Formulir transaksi masih berisi isian. Ganti barang aktif "
-                + "dari " + barang.getNama() + " ke " + dipilih.getNama()
-                + "? Isian formulir akan dibuang.";
-        int jawaban = JOptionPane.showConfirmDialog(
-                this, pesan, "Ganti barang aktif",
-                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        return jawaban == JOptionPane.YES_OPTION;
-    }
-
-    private void kembalikanPilihanBarang() {
-        menggantiBarang = true;
-        try {
-            comboBarang.setSelectedItem(barang);
-            if (barang != null) {
-                comboBarang.setToolTipText(barang.getNama() + " ("
-                        + barang.getSatuan() + ")");
-            }
-        } finally {
-            menggantiBarang = false;
-        }
-    }
-
-    private void tampilkanPesanNetral(String pesan) {
-        status.setText(pesan);
-        status.setForeground(Ui.TEKS);
-        status.setCaretPosition(0);
-        Notifikasi.info(pesan);
-    }
-
-    private void gantiReferensiBarang(Barang baru) {
-        for (int i = 0; i < daftarBarang.size(); i++) {
-            if (daftarBarang.get(i).getId() == baru.getId()) {
-                daftarBarang.set(i, baru);
-                return;
-            }
-        }
-        daftarBarang.add(baru);
     }
 
     private static final class HalamanScroll extends JPanel

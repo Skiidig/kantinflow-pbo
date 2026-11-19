@@ -45,7 +45,7 @@ import kantinflow.Transaksi;
 /**
  * Halaman riwayat dengan pencarian, filter, dan detail transaksi.
  */
-public class PanelRiwayat extends PanelKantin {
+public class PanelRiwayat extends PanelBarangTerpilih {
     private static final String SEMUA = "Semua";
     private static final String MANUAL = "Pengeluaran Manual";
     private static final String FEFO = "Pengeluaran FEFO";
@@ -57,6 +57,8 @@ public class PanelRiwayat extends PanelKantin {
     private final JButton tombolTerapkan = Ui.utama("Terapkan Filter");
     private final JButton tombolReset = Ui.sekunder("Reset");
     private final JButton tombolDetail = Ui.sekunder("Lihat Detail");
+    private final JLabel petunjukDetail = Ui.keterangan(
+            "Pilih baris transaksi untuk melihat detail.");
     private final JButton tombolEkspor = Ui.sekunder("Ekspor CSV");
     private final JButton tombolPdf = Ui.sekunder("Ekspor PDF");
     private final JLabel pesanFilter = Ui.pesan();
@@ -71,7 +73,6 @@ public class PanelRiwayat extends PanelKantin {
     private final JTable tabel = Ui.tabel(model);
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
     private final List<BarisRiwayat> barisModel = new ArrayList<>();
-    private int idBarangTerakhir = -1;
     private boolean mengekspor;
     private String cariAktif = "";
     private String jenisAktif = SEMUA;
@@ -81,10 +82,14 @@ public class PanelRiwayat extends PanelKantin {
     public PanelRiwayat(KonteksKantin konteks) {
         super(konteks, "Riwayat",
                 "Cari, filter, dan periksa rincian transaksi barang aktif.");
+        pilihanBarang.setName("barangRiwayat");
         fieldCari.setName("cariRiwayat");
         infoBarang.setName("konteksRiwayat");
         fieldDari.setName("tanggalAwalRiwayat");
+        fieldDari.putClientProperty("JTextField.placeholderText", "yyyy-MM-dd");
         fieldSampai.setName("tanggalAkhirRiwayat");
+        fieldSampai.putClientProperty("JTextField.placeholderText",
+                "yyyy-MM-dd");
         comboJenis.setName("jenisRiwayat");
         tombolTerapkan.setName("terapkanFilterRiwayat");
         tombolReset.setName("resetFilterRiwayat");
@@ -107,6 +112,7 @@ public class PanelRiwayat extends PanelKantin {
         comboJenis.addItem("Pembuangan");
         comboJenis.setSelectedIndex(0);
         tombolDetail.setEnabled(false);
+        tombolDetail.setToolTipText("Pilih transaksi terlebih dahulu.");
         tombolEkspor.setEnabled(false);
         tombolPdf.setEnabled(false);
 
@@ -121,7 +127,7 @@ public class PanelRiwayat extends PanelKantin {
         tabel.setRowSorter(sorter);
         tabel.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
-                tombolDetail.setEnabled(tabel.getSelectedRow() >= 0);
+                perbaruiDetail();
             }
         });
         tabel.addMouseListener(new MouseAdapter() {
@@ -136,6 +142,7 @@ public class PanelRiwayat extends PanelKantin {
         Ui.rataKanan(tabel, 3);
         Ui.pasangTeksStatus(tabel, 1);
         Ui.aturKolom(tabel, 100, 140, 95, 95, 210);
+        Ui.jarakKiriKolom(tabel, 4, 20);
         bangunIsi();
     }
 
@@ -150,6 +157,7 @@ public class PanelRiwayat extends PanelKantin {
         aksi.add(tombolTerapkan);
         aksi.add(tombolReset);
         JPanel isian = Ui.gridForm(2, 520,
+                fieldBarang("Barang *"),
                 Ui.field("Cari kode batch atau alasan", fieldCari),
                 Ui.field("Jenis transaksi", comboJenis),
                 Ui.field("Tanggal mulai (yyyy-MM-dd)", fieldDari),
@@ -174,14 +182,22 @@ public class PanelRiwayat extends PanelKantin {
         kanan.setOpaque(false);
         kanan.add(tombolEkspor);
         kanan.add(tombolPdf);
-        kanan.add(tombolDetail);
         kepala.add(kanan, BorderLayout.EAST);
+        JPanel aksiTabel = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.LEFT, 8, 0));
+        aksiTabel.setOpaque(false);
+        aksiTabel.add(tombolDetail);
+        aksiTabel.add(petunjukDetail);
+        JPanel bawahTabel = new JPanel(new BorderLayout(0, 4));
+        bawahTabel.setOpaque(false);
+        bawahTabel.add(aksiTabel, BorderLayout.NORTH);
+        bawahTabel.add(kosong, BorderLayout.CENTER);
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
         daftarIsi.setOpaque(false);
         daftarIsi.add(kepala, BorderLayout.NORTH);
         daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_RIWAYAT),
                 BorderLayout.CENTER);
-        daftarIsi.add(kosong, BorderLayout.SOUTH);
+        daftarIsi.add(bawahTabel, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
         isi.add(filter, BorderLayout.NORTH);
@@ -191,8 +207,7 @@ public class PanelRiwayat extends PanelKantin {
 
     private void terapkanFilter() {
         pesanFilter.setText(" ");
-        tabel.clearSelection();
-        tombolDetail.setEnabled(false);
+        bersihkanSeleksiDetail();
         List<? extends RowSorter.SortKey> kunciUrut = sorter.getSortKeys();
         LocalDate dari = bacaTanggal(fieldDari.getText(), "Tanggal mulai");
         if (dari == INVALID) {
@@ -217,8 +232,10 @@ public class PanelRiwayat extends PanelKantin {
         String jenis = jenisAktif;
         List<BarisRiwayat> hasil = new ArrayList<>();
         Set<Transaksi> transaksiUnik = new LinkedHashSet<>();
+        List<Transaksi> riwayat = barang == null
+                ? List.of() : konteks.getRiwayat(barang);
 
-        for (Transaksi transaksi : konteks.getRiwayat()) {
+        for (Transaksi transaksi : riwayat) {
             if (!cocokJenis(transaksi, jenis)
                     || !cocokTanggal(transaksi, dari, sampai)) {
                 continue;
@@ -247,7 +264,8 @@ public class PanelRiwayat extends PanelKantin {
                 transaksi.getTanggal().toString(),
                 jenisTampil(transaksi),
                 rincian.getBatch().getKode(),
-                rincian.getJumlah() + " " + konteks.getBarangAktif().getSatuan(),
+                rincian.getJumlah() + " "
+                + (barang == null ? "-" : barang.getSatuan()),
                 transaksi.getAlasan() == null ? "" : transaksi.getAlasan()
             });
             barisModel.add(baris);
@@ -259,22 +277,44 @@ public class PanelRiwayat extends PanelKantin {
         }
         labelJumlah.setText(transaksiUnik.size() + " transaksi · "
                 + hasil.size() + " rincian ditampilkan");
-        boolean adaRiwayat = !konteks.getRiwayat().isEmpty();
+        boolean adaRiwayat = !riwayat.isEmpty();
         if (hasil.isEmpty()) {
-            kosong.setTitle(adaRiwayat
-                    ? "Tidak ada hasil filter" : "Belum ada riwayat");
-            kosong.setDescription(adaRiwayat
-                    ? "Tidak ada riwayat yang cocok dengan filter."
-                    : "Belum ada transaksi untuk barang aktif ini.");
+            if (barang == null) {
+                kosong.setTitle("Belum ada barang");
+                kosong.setDescription(
+                        "Tambahkan barang melalui halaman Barang untuk "
+                        + "melihat riwayatnya.");
+            } else {
+                kosong.setTitle(adaRiwayat
+                        ? "Tidak ada hasil filter" : "Belum ada riwayat");
+                kosong.setDescription(adaRiwayat
+                        ? "Tidak ada riwayat yang cocok dengan filter."
+                        : "Belum ada transaksi untuk "
+                        + barang.getNama() + ".");
+            }
         }
         kosong.setVisible(hasil.isEmpty());
         perbaruiTombolAksi();
     }
 
     private void perbaruiTombolAksi() {
-        tombolEkspor.setEnabled(!mengekspor && !barisModel.isEmpty());
-        tombolPdf.setEnabled(!mengekspor && !barisModel.isEmpty());
-        tombolDetail.setEnabled(tabel.getSelectedRow() >= 0);
+        boolean adaBarang = barang != null;
+        tombolEkspor.setEnabled(adaBarang && !mengekspor
+                && !barisModel.isEmpty());
+        tombolPdf.setEnabled(adaBarang && !mengekspor
+                && !barisModel.isEmpty());
+        perbaruiDetail();
+    }
+
+    private void perbaruiDetail() {
+        boolean adaBaris = tabel.getSelectedRow() >= 0;
+        tombolDetail.setEnabled(adaBaris);
+        petunjukDetail.setVisible(!adaBaris);
+    }
+
+    private void bersihkanSeleksiDetail() {
+        tabel.clearSelection();
+        perbaruiDetail();
     }
 
     private void eksporCsv() {
@@ -338,9 +378,13 @@ public class PanelRiwayat extends PanelKantin {
         if (tujuan == null) {
             return;
         }
+        if (barang == null) {
+            perbaruiTombolAksi();
+            return;
+        }
         RiwayatPdfExporter.Info info = new RiwayatPdfExporter.Info(
-                konteks.getBarangAktif().getNama(),
-                konteks.getBarangAktif().getSatuan(),
+                barang.getNama(),
+                barang.getSatuan(),
                 LocalDateTime.now(),
                 snapshot.cari(),
                 snapshot.jenis(),
@@ -416,12 +460,12 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     private SnapshotTampilan snapshotTampilan() {
-        if (konteks.getBarangAktif() == null) {
+        if (barang == null) {
             return new SnapshotTampilan(List.of(), 0,
                     cariAktif, jenisAktif, dariAktif, sampaiAktif);
         }
-        String barang = konteks.getBarangAktif().getNama();
-        String satuan = konteks.getBarangAktif().getSatuan();
+        String namaBarang = barang.getNama();
+        String satuan = barang.getSatuan();
         List<RiwayatCsvExporter.Baris> hasil = new ArrayList<>();
         Set<Transaksi> unik = new LinkedHashSet<>();
         for (int tampilan = 0; tampilan < tabel.getRowCount(); tampilan++) {
@@ -434,7 +478,7 @@ public class PanelRiwayat extends PanelKantin {
             RincianTransaksi rincian = baris.rincian();
             unik.add(transaksi);
             hasil.add(new RiwayatCsvExporter.Baris(
-                    barang,
+                    namaBarang,
                     satuan,
                     transaksi.getTanggal(),
                     jenisTampil(transaksi),
@@ -447,7 +491,7 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     private String namaAwalEkspor(String ekstensi) {
-        String nama = sanitasiNamaFile(konteks.getBarangAktif().getNama());
+        String nama = sanitasiNamaFile(barang == null ? null : barang.getNama());
         return "kantinflow-riwayat-" + nama + "-"
                 + LocalDate.now() + "." + ekstensi;
     }
@@ -599,11 +643,18 @@ public class PanelRiwayat extends PanelKantin {
         nilai.add(new JLabel(jenisTampil(transaksi)));
         nilai.add(Ui.labelField("Tanggal"));
         nilai.add(new JLabel(transaksi.getTanggal().toString()));
-        nilai.add(Ui.labelField("Barang"));
-        nilai.add(new JLabel(konteks.getBarangAktif().getNama()));
-        nilai.add(Ui.labelField("Jumlah transaksi"));
-        nilai.add(new JLabel(transaksi.getJumlah() + " "
-                + konteks.getBarangAktif().getSatuan()));
+        if (barang != null) {
+            nilai.add(Ui.labelField("Barang"));
+            nilai.add(new JLabel(barang.getNama()));
+            nilai.add(Ui.labelField("Jumlah transaksi"));
+            nilai.add(new JLabel(transaksi.getJumlah() + " "
+                    + barang.getSatuan()));
+        } else {
+            nilai.add(Ui.labelField("Barang"));
+            nilai.add(new JLabel("Tidak ada barang dipilih"));
+            nilai.add(Ui.labelField("Jumlah transaksi"));
+            nilai.add(new JLabel(String.valueOf(transaksi.getJumlah())));
+        }
         nilai.add(Ui.labelField("Alasan"));
         nilai.add(new JLabel(transaksi.getAlasan() == null
                 || transaksi.getAlasan().isBlank()
@@ -618,7 +669,8 @@ public class PanelRiwayat extends PanelKantin {
         for (RincianTransaksi item : transaksi.getRincian()) {
             modelDetail.addRow(new Object[]{
                 item.getBatch().getKode(),
-                item.getJumlah() + " " + konteks.getBarangAktif().getSatuan()
+                barang == null ? String.valueOf(item.getJumlah())
+                        : item.getJumlah() + " " + barang.getSatuan()
             });
         }
         rincian.add(Ui.scrollTabel(tabelDetail, 150), BorderLayout.CENTER);
@@ -643,20 +695,18 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     @Override
+    protected void saatBarangBerubah() {
+        pesanFilter.setText(" ");
+        bersihkanSeleksiDetail();
+    }
+
+    @Override
     public void perbarui() {
-        if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
-            idBarangTerakhir = konteks.getBarangAktif().getId();
-            fieldCari.setText("");
-            fieldDari.setText("");
-            fieldSampai.setText("");
-            comboJenis.setSelectedIndex(0);
-            pesanFilter.setText(" ");
-            tabel.clearSelection();
-            tombolDetail.setEnabled(false);
-        }
-        infoBarang.setText("Riwayat untuk "
-                + konteks.getBarangAktif().getNama() + " · "
-                + konteks.getBarangAktif().getSatuan());
+        boolean adaBarang = perbaruiBarangTerpilih();
+        infoBarang.setText(adaBarang
+                ? "Riwayat untuk " + barang.getNama() + " · "
+                + barang.getSatuan()
+                : "Belum ada barang. Tambahkan melalui halaman Barang.");
         terapkanFilter();
     }
 

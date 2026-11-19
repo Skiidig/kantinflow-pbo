@@ -2,6 +2,7 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -14,11 +15,14 @@ import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 import javax.swing.AbstractAction;
+import javax.swing.AbstractCellEditor;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -39,31 +43,33 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableRowSorter;
 
 import kantinflow.Barang;
 
 /**
- * Halaman Barang: pencarian, daftar, aksi barang terpilih, dan dialog tambah/minimum.
+ * Halaman Barang: pencarian, daftar, dan dialog tambah/minimum.
  */
 public class PanelBarang extends PanelKantin {
-    private static final String SEMUA = "Semua";
     private static final String LAINNYA = "Lainnya";
     private static final String[] SATUAN = {
         "buah", "kotak", "bungkus", "botol", "kaleng", LAINNYA
     };
 
-    private final DefaultTableModel model = Ui.model(
-            "Nama", "Satuan", "Stok fisik", "Stok minimum");
+    private final DefaultTableModel model = new DefaultTableModel(
+            new Object[]{"Nama", "Satuan", "Stok fisik", "Stok minimum", "Aksi"},
+            0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return column == 4;
+        }
+    };
     private final JTable tabel = Ui.tabel(model);
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
     private final List<Barang> urutanBarang = new ArrayList<>();
     private final JTextField fieldCari = Ui.field(18);
     private final JButton tombolTambah = Ui.utama("Tambah Barang");
-    private final JButton tombolAktif = Ui.utama("Jadikan Barang Aktif");
-    private final JButton tombolMinimum = Ui.sekunder("Atur Minimum");
-    private final JLabel labelAktif = Ui.keterangan("Barang aktif: -");
-    private final JLabel labelDipilih = Ui.keterangan("Belum ada barang dipilih.");
     private final EmptyState kosong = new EmptyState(
             "package", "Belum ada barang",
             "Tambahkan barang pertama melalui tombol Tambah Barang.");
@@ -74,29 +80,26 @@ public class PanelBarang extends PanelKantin {
                 "Kelola daftar barang, stok fisik, dan batas minimum.");
         tabel.setName("tabelBarang");
         fieldCari.setName("cariBarang");
+        fieldCari.putClientProperty("JTextField.placeholderText",
+                "Cari nama barang");
         tombolTambah.setName("tombolTambahBarang");
         tombolTambah.setIcon(Ui.ikonAksi("plus", 16, java.awt.Color.WHITE));
         tombolTambah.setIconTextGap(7);
-        tombolAktif.setName("jadikanBarangAktif");
-        tombolAktif.setIcon(Ui.ikonAksi("check", 16, java.awt.Color.WHITE));
-        tombolAktif.setIconTextGap(7);
-        tombolMinimum.setName("aturMinimum");
-        tombolMinimum.setIcon(Ui.ikonAksi("wallet", 16, Ui.TEKS_LEMBUT));
-        tombolMinimum.setIconTextGap(7);
-        labelAktif.setName("labelBarangAktif");
-        labelDipilih.setName("labelBarangDipilih");
         kosong.setName("kosongBarang");
-        tombolAktif.setEnabled(false);
-        tombolMinimum.setEnabled(false);
         tabel.setRowSorter(sorter);
-        for (int i = 0; i < tabel.getColumnModel().getColumnCount(); i++) {
-            tabel.getColumnModel().getColumn(i).setCellRenderer(new PenyajiBarang());
-        }
-        Ui.rataKananHeader(tabel, 2, 3);
-        Ui.aturKolom(tabel, 260, 100, 120, 130);
-        tabel.getSelectionModel().addListSelectionListener(event -> {
-            if (!event.getValueIsAdjusting() && !memperbaruiTabel) {
-                perbaruiAksi();
+        pasangRendererTabel();
+        tabel.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                int kolom = tabel.columnAtPoint(event.getPoint());
+                tabel.setCursor(Cursor.getPredefinedCursor(
+                        kolom == 4 ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+            }
+        });
+        tabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseExited(MouseEvent event) {
+                tabel.setCursor(Cursor.getDefaultCursor());
             }
         });
         fieldCari.getDocument().addDocumentListener(new DocumentListener() {
@@ -116,13 +119,6 @@ public class PanelBarang extends PanelKantin {
             }
         });
         tombolTambah.addActionListener(event -> bukaDialogTambah());
-        tombolAktif.addActionListener(event -> jadikanAktif());
-        tombolMinimum.addActionListener(event -> {
-            Barang dipilih = barangDipilih();
-            if (dipilih != null) {
-                bukaDialogMinimum(dipilih);
-            }
-        });
         bangunIsi();
     }
 
@@ -130,56 +126,23 @@ public class PanelBarang extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 14));
         isi.setOpaque(false);
 
-        JPanel atas = Ui.kartu();
-        JPanel atasIsi = new JPanel();
-        atasIsi.setOpaque(false);
-        atasIsi.setLayout(new BoxLayout(atasIsi, BoxLayout.Y_AXIS));
-        JLabel petunjuk = Ui.keterangan(
-                "Pilih barang untuk melihat tindakannya. "
-                + "Barang aktif digunakan pada halaman transaksi.");
-        petunjuk.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JPanel cariBaris = new JPanel(new BorderLayout(12, 0));
-        cariBaris.setOpaque(false);
-        cariBaris.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cariBaris.add(Ui.field("Cari nama barang", fieldCari),
-                BorderLayout.CENTER);
-        cariBaris.add(Ui.field(" ", tombolTambah), BorderLayout.EAST);
-        atasIsi.add(petunjuk);
-        atasIsi.add(Box.createVerticalStrut(10));
-        atasIsi.add(cariBaris);
-        atas.add(atasIsi, BorderLayout.CENTER);
-
         JPanel daftar = Ui.kartu("Daftar Barang", "package");
+        JPanel kepala = new JPanel(new BorderLayout(12, 0));
+        kepala.setOpaque(false);
+        kepala.add(fieldCari, BorderLayout.CENTER);
+        kepala.add(tombolTambah, BorderLayout.EAST);
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
         daftarIsi.setOpaque(false);
-        daftarIsi.add(Ui.scrollTabel(tabel, 150), BorderLayout.CENTER);
+        daftarIsi.add(kepala, BorderLayout.NORTH);
+        JScrollPane gulir = Ui.scrollTabel(tabel, 250);
+        gulir.setVerticalScrollBarPolicy(
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        gulir.setHorizontalScrollBarPolicy(
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        daftarIsi.add(gulir, BorderLayout.CENTER);
         daftarIsi.add(kosong, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
-
-        JPanel aksi = Ui.kartu("Aksi Barang", "check");
-        JPanel aksiIsi = new JPanel(new BorderLayout(12, 6));
-        aksiIsi.setOpaque(false);
-        JPanel informasi = new JPanel();
-        informasi.setOpaque(false);
-        informasi.setLayout(new BoxLayout(informasi, BoxLayout.Y_AXIS));
-        labelAktif.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-        labelAktif.setForeground(Ui.AKSEN);
-        labelAktif.setAlignmentX(Component.LEFT_ALIGNMENT);
-        labelDipilih.setAlignmentX(Component.LEFT_ALIGNMENT);
-        informasi.add(labelAktif);
-        informasi.add(Box.createVerticalStrut(3));
-        informasi.add(labelDipilih);
-        JPanel tombolAksi = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        tombolAksi.setOpaque(false);
-        tombolAksi.add(tombolAktif);
-        tombolAksi.add(tombolMinimum);
-        aksiIsi.add(informasi, BorderLayout.CENTER);
-        aksiIsi.add(tombolAksi, BorderLayout.EAST);
-        aksi.add(aksiIsi, BorderLayout.CENTER);
-
-        isi.add(atas, BorderLayout.NORTH);
         isi.add(daftar, BorderLayout.CENTER);
-        isi.add(aksi, BorderLayout.SOUTH);
         add(isi, BorderLayout.CENTER);
     }
 
@@ -202,6 +165,20 @@ public class PanelBarang extends PanelKantin {
         perbaruiKeadaan();
     }
 
+    private void pasangRendererTabel() {
+        for (int i = 0; i < 4; i++) {
+            tabel.getColumnModel().getColumn(i)
+                    .setCellRenderer(new PenyajiBarang());
+        }
+        tabel.getColumnModel().getColumn(4)
+                .setCellRenderer(new PenyajiAksi());
+        tabel.getColumnModel().getColumn(4)
+                .setCellEditor(new EditorAksi());
+        Ui.rataKananHeader(tabel, 2, 3);
+        Ui.aturKolom(tabel, 260, 100, 120, 130, 105);
+        Ui.gulirHorizontalSaatSempit(tabel);
+    }
+
     private void perbaruiKeadaan() {
         boolean tanpaData = urutanBarang.isEmpty();
         boolean tanpaTampilan = tabel.getRowCount() == 0;
@@ -213,19 +190,6 @@ public class PanelBarang extends PanelKantin {
                     : "Tidak ada barang yang cocok dengan pencarian.");
         }
         kosong.setVisible(tanpaTampilan);
-        perbaruiAksi();
-    }
-
-    private void perbaruiAksi() {
-        Barang dipilih = barangDipilih();
-        Barang aktif = konteks.getBarangAktif();
-        labelDipilih.setText(dipilih == null
-                ? "Belum ada barang dipilih."
-                : "Dipilih: " + dipilih.getNama()
-                + " (" + dipilih.getSatuan() + ")");
-        tombolAktif.setEnabled(dipilih != null
-                && (aktif == null || dipilih.getId() != aktif.getId()));
-        tombolMinimum.setEnabled(dipilih != null);
     }
 
     private Barang barangDipilih() {
@@ -238,19 +202,6 @@ public class PanelBarang extends PanelKantin {
             return null;
         }
         return urutanBarang.get(barisModel);
-    }
-
-    private void jadikanAktif() {
-        Barang dipilih = barangDipilih();
-        if (dipilih == null) {
-            return;
-        }
-        Barang aktif = konteks.getBarangAktif();
-        if (aktif != null && aktif.getId() == dipilih.getId()) {
-            return;
-        }
-        konteks.gantiBarang(dipilih);
-        perbaruiAksi();
     }
 
     private void bukaDialogTambah() {
@@ -551,13 +502,13 @@ public class PanelBarang extends PanelKantin {
             urutanBarang.clear();
             urutanBarang.addAll(konteks.getDaftarBarang());
             model.setRowCount(0);
-            Barang aktif = konteks.getBarangAktif();
             for (Barang barang : urutanBarang) {
                 model.addRow(new Object[]{
                     barang.getNama(),
                     barang.getSatuan(),
-                    barang.hitungSaldo() + " " + barang.getSatuan(),
-                    barang.getStokMinimum() + " " + barang.getSatuan()
+                    barang.hitungSaldo(),
+                    barang.getStokMinimum(),
+                    "Atur Minimum"
                 });
             }
             tabel.clearSelection();
@@ -572,15 +523,10 @@ public class PanelBarang extends PanelKantin {
                     }
                 }
             }
-            labelAktif.setText(aktif == null
-                    ? "Barang aktif: belum ada."
-                    : "Barang aktif: " + aktif.getNama()
-                    + " (" + aktif.getSatuan() + ")");
             perbaruiSaringan();
         } finally {
             memperbaruiTabel = false;
         }
-        perbaruiAksi();
     }
 
     private abstract static class SimpleDocumentListener
@@ -612,33 +558,77 @@ public class PanelBarang extends PanelKantin {
                     table, value, isSelected, hasFocus, row, column);
             setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
                     0, Ui.skala(Ui.PADDING_SEL_TABEL)));
-            setHorizontalAlignment(column >= 2
+            setHorizontalAlignment(column >= 2 && column < 4
                     ? javax.swing.SwingConstants.RIGHT
                     : javax.swing.SwingConstants.LEFT);
             setVerticalAlignment(javax.swing.SwingConstants.CENTER);
-            int modelRow = table.convertRowIndexToModel(row);
-            Barang barang = modelRow >= 0 && modelRow < urutanBarang.size()
-                    ? urutanBarang.get(modelRow) : null;
-            Barang aktif = konteks.getBarangAktif();
-            boolean iniAktif = barang != null && aktif != null
-                    && barang.getId() == aktif.getId();
-            if (iniAktif && !isSelected) {
-                setBackground(Ui.AKSEN_LEMBUT);
-                setForeground(Ui.KARTU.getRed() < 100
-                        ? Ui.TEKS : Ui.AKSEN);
-                setFont(Ui.font(Font.BOLD, Ui.FONT_BODY));
-                setToolTipText("Barang aktif");
-            } else {
-                int hover = table instanceof TabelKantin
-                        ? ((TabelKantin) table).getBarisHover() : -1;
-                setBackground(isSelected
-                        ? table.getSelectionBackground()
-                        : (row == hover ? Ui.HOVER : Ui.KARTU));
-                setForeground(Ui.TEKS);
-                setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
-                setToolTipText(null);
-            }
+            int hover = table instanceof TabelKantin
+                    ? ((TabelKantin) table).getBarisHover() : -1;
+            setBackground(isSelected
+                    ? table.getSelectionBackground()
+                    : (row == hover ? Ui.HOVER : Ui.KARTU));
+            setForeground(Ui.TEKS);
+            setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
+            setToolTipText(null);
             return this;
+        }
+    }
+
+    private final class PenyajiAksi extends DefaultTableCellRenderer {
+        private final JButton tombol = Ui.sekunder("Atur Minimum");
+
+        private PenyajiAksi() {
+            tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
+            tombol.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            tombol.setBorder(new EmptyBorder(0, Ui.skala(8), 0,
+                    Ui.skala(8)));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table,
+                Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
+            tombol.setText(String.valueOf(value));
+            tombol.setOpaque(true);
+            tombol.setBackground(isSelected
+                    ? table.getSelectionBackground() : Ui.KARTU);
+            tombol.setForeground(Ui.AKSEN);
+            tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            return tombol;
+        }
+    }
+
+    private final class EditorAksi extends AbstractCellEditor
+            implements TableCellEditor {
+        private final JButton tombol = Ui.sekunder("Atur Minimum");
+
+        private EditorAksi() {
+            tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
+            tombol.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            tombol.setForeground(Ui.AKSEN);
+            tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            tombol.addActionListener(event -> {
+                int viewRow = tabel.getEditingRow();
+                stopCellEditing();
+                if (viewRow >= 0) {
+                    int modelRow = tabel.convertRowIndexToModel(viewRow);
+                    if (modelRow >= 0 && modelRow < urutanBarang.size()) {
+                        bukaDialogMinimum(urutanBarang.get(modelRow));
+                    }
+                }
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table,
+                Object value, boolean isSelected, int row, int column) {
+            tombol.setText(String.valueOf(value));
+            return tombol;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "Atur Minimum";
         }
     }
 }
