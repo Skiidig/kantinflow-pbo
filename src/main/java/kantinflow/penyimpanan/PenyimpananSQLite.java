@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -234,6 +235,53 @@ public class PenyimpananSQLite implements AutoCloseable {
         } catch (SQLException exception) {
             throw new PenyimpananException("Gagal memuat barang dari database", exception);
         }
+    }
+
+    /**
+     * Membentuk kode batch berikutnya untuk barang dan tanggal masuk yang
+     * sama. Pencarian memakai id barang dan semua batch tersimpan, termasuk
+     * batch yang sudah habis.
+     */
+    public String kodeBatchBerikutnya(Barang barang, LocalDate tanggalMasuk) {
+        if (barang == null || barang.getId() <= 0) {
+            throw new IllegalArgumentException("Barang aktif tidak valid");
+        }
+        if (tanggalMasuk == null) {
+            throw new IllegalArgumentException("Tanggal masuk wajib diisi");
+        }
+        String awalan = kantinflow.KodeBatch.awalan(barang.getNama());
+        String tanggal = tanggalMasuk.format(
+                DateTimeFormatter.BASIC_ISO_DATE);
+        int urutan = 0;
+        try (PreparedStatement statement = koneksi.prepareStatement(
+                "SELECT kode FROM batch WHERE barang_id = ? "
+                + "AND kode LIKE ?")) {
+            statement.setInt(1, barang.getId());
+            statement.setString(2, "%" + tanggal + "-%");
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    String kode = result.getString("kode");
+                    int pemisah = kode.lastIndexOf('-');
+                    if (pemisah < 0 || pemisah == kode.length() - 1) {
+                        continue;
+                    }
+                    try {
+                        int nomor = Integer.parseInt(
+                                kode.substring(pemisah + 1));
+                        if (nomor > urutan) {
+                            urutan = nomor;
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // Kode lama nonnumerik tidak menentukan urutan.
+                    }
+                }
+            }
+        } catch (SQLException exception) {
+            throw new PenyimpananException(
+                    "Gagal membentuk kode batch", exception);
+        }
+        return kantinflow.KodeBatch.format(
+                awalan, tanggalMasuk, urutan + 1);
     }
 
     /**

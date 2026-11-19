@@ -4,7 +4,13 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Dialog;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -28,6 +34,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.RowSorter;
@@ -70,11 +77,11 @@ public class PanelRiwayat extends PanelKantin {
     private final EmptyState kosong = new EmptyState(
             "history", "Belum ada riwayat",
             "Belum ada transaksi untuk barang aktif ini.");
-    private final JLabel infoBarang = Ui.keterangan(" ");
     private final DefaultTableModel model = Ui.model(
             "Tanggal", "Barang", "Jenis", "Kode Batch",
             "Jumlah", "Satuan", "Alasan");
     private final JTable tabel = Ui.tabel(model);
+    private JScrollPane gulirTabel;
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
     private final List<BarisRiwayat> barisModel = new ArrayList<>();
     private Barang barang;
@@ -92,7 +99,6 @@ public class PanelRiwayat extends PanelKantin {
         pilihanBarang.setName("barangRiwayat");
         pilihanBarang.addActionListener(event -> pilihDariPengguna());
         fieldCari.setName("cariRiwayat");
-        infoBarang.setName("konteksRiwayat");
         tanggalMulai.komponenTeks().setName("tanggalAwalRiwayat");
         tanggalAkhir.komponenTeks().setName("tanggalAkhirRiwayat");
         tanggalMulai.setPertahankanTeksTidakValid(true);
@@ -112,6 +118,9 @@ public class PanelRiwayat extends PanelKantin {
         tabel.setName("tabelRiwayat");
         labelJumlah.setName("jumlahRiwayat");
         pesanFilter.setName("pesanFilterRiwayat");
+        kosongkanPesan(pesanFilter);
+        kosongkanPesan(pesanTanggalMulai);
+        kosongkanPesan(pesanTanggalAkhir);
         kosong.setName("kosongRiwayat");
 
         comboJenis.addItem(SEMUA);
@@ -158,26 +167,51 @@ public class PanelRiwayat extends PanelKantin {
         isi.setOpaque(false);
 
         JPanel filter = Ui.kartu("Filter riwayat", "search");
+        JPanel[] kolom = {
+            Ui.field("Barang", pilihanBarang),
+            Ui.field("Cari kode batch atau alasan", fieldCari),
+            Ui.field("Jenis transaksi", comboJenis),
+            Ui.field("Tanggal mulai", tanggalMulai, pesanTanggalMulai),
+            Ui.field("Tanggal akhir", tanggalAkhir, pesanTanggalAkhir)
+        };
+        JPanel isian = new JPanel();
+        isian.setOpaque(false);
+        aturGridFilter(isian, kolom, false);
+        isian.addComponentListener(new ComponentAdapter() {
+            private boolean sempit;
+
+            @Override
+            public void componentResized(ComponentEvent event) {
+                boolean sekarang = isian.getWidth() > 0
+                        && isian.getWidth() < Ui.skala(520);
+                if (sekarang == sempit) {
+                    return;
+                }
+                sempit = sekarang;
+                aturGridFilter(isian, kolom, sempit);
+                isian.revalidate();
+                isian.repaint();
+            }
+        });
+
         JPanel aksi = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 8, 0));
         aksi.setOpaque(false);
+        aksi.setBorder(new EmptyBorder(Ui.skala(16), 0, 0, 0));
         aksi.add(tombolTerapkan);
         aksi.add(tombolReset);
-        JPanel isian = Ui.gridForm(2, 520,
-                Ui.field("Barang *", pilihanBarang),
-                Ui.field("Cari kode batch atau alasan", fieldCari),
-                Ui.field("Jenis transaksi", comboJenis),
-                Ui.field("Tanggal mulai", tanggalMulai, pesanTanggalMulai),
-                Ui.field("Tanggal akhir", tanggalAkhir, pesanTanggalAkhir),
-                Ui.field("Aksi", aksi));
-        JPanel filterIsi = new JPanel(new BorderLayout(0, 6));
+
+        JPanel filterIsi = new JPanel();
         filterIsi.setOpaque(false);
-        JPanel isianDenganKonteks = new JPanel(new BorderLayout(0, 6));
-        isianDenganKonteks.setOpaque(false);
-        isianDenganKonteks.add(infoBarang, BorderLayout.NORTH);
-        isianDenganKonteks.add(isian, BorderLayout.CENTER);
-        filterIsi.add(isianDenganKonteks, BorderLayout.NORTH);
-        filterIsi.add(pesanFilter, BorderLayout.SOUTH);
+        filterIsi.setLayout(new javax.swing.BoxLayout(
+                filterIsi, javax.swing.BoxLayout.Y_AXIS));
+        isian.setAlignmentX(LEFT_ALIGNMENT);
+        filterIsi.add(isian);
+        pesanFilter.setAlignmentX(LEFT_ALIGNMENT);
+        pesanFilter.setBorder(new EmptyBorder(Ui.skala(6), 0, 0, 0));
+        filterIsi.add(pesanFilter);
+        aksi.setAlignmentX(LEFT_ALIGNMENT);
+        filterIsi.add(aksi);
         filter.add(filterIsi, BorderLayout.CENTER);
 
         JPanel daftar = Ui.kartu();
@@ -202,8 +236,8 @@ public class PanelRiwayat extends PanelKantin {
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
         daftarIsi.setOpaque(false);
         daftarIsi.add(kepala, BorderLayout.NORTH);
-        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_RIWAYAT),
-                BorderLayout.CENTER);
+        gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_RIWAYAT);
+        daftarIsi.add(gulirTabel, BorderLayout.CENTER);
         daftarIsi.add(bawahTabel, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
@@ -212,10 +246,71 @@ public class PanelRiwayat extends PanelKantin {
         add(isi, BorderLayout.CENTER);
     }
 
+    private void aturGridFilter(JPanel panel, JPanel[] kolom,
+            boolean sempit) {
+        panel.removeAll();
+        panel.setLayout(new GridBagLayout());
+        int jarak = Ui.skala(Ui.GAP_FORM);
+        if (sempit) {
+            for (int i = 0; i < kolom.length; i++) {
+                GridBagConstraints c = new GridBagConstraints();
+                c.gridx = 0;
+                c.gridy = i;
+                c.weightx = 1;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.anchor = GridBagConstraints.NORTH;
+                c.insets = new Insets(i == 0 ? 0 : jarak, 0, 0, 0);
+                panel.add(kolom[i], c);
+            }
+            return;
+        }
+        for (int i = 0; i < kolom.length; i++) {
+            GridBagConstraints c = new GridBagConstraints();
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.anchor = GridBagConstraints.NORTH;
+            c.weightx = 1;
+            if (i == 0) {
+                c.gridx = 0;
+                c.gridy = 0;
+                c.gridwidth = 2;
+                c.insets = new Insets(0, 0, 0, 0);
+            } else {
+                c.gridx = (i - 1) % 2;
+                c.gridy = 1 + (i - 1) / 2;
+                c.gridwidth = 1;
+                c.insets = new Insets(jarak,
+                        c.gridx == 0 ? 0 : jarak / 2,
+                        0, c.gridx == 1 ? 0 : jarak / 2);
+            }
+            panel.add(kolom[i], c);
+        }
+    }
+
+    private void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        if (tampil) {
+            label.setPreferredSize(null);
+            label.setMinimumSize(null);
+            label.setMaximumSize(null);
+        } else {
+            Dimension kosong = new Dimension(0, 0);
+            label.setPreferredSize(kosong);
+            label.setMinimumSize(kosong);
+            label.setMaximumSize(kosong);
+        }
+        label.revalidate();
+    }
+
+    private void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
+    }
+
     private void terapkanFilter() {
-        pesanFilter.setText(" ");
-        pesanTanggalMulai.setText(" ");
-        pesanTanggalAkhir.setText(" ");
+        kosongkanPesan(pesanFilter);
+        kosongkanPesan(pesanTanggalMulai);
+        kosongkanPesan(pesanTanggalAkhir);
         List<? extends RowSorter.SortKey> kunciUrut = sorter.getSortKeys();
         LocalDate dari = bacaTanggal(
                 tanggalMulai, pesanTanggalMulai, "Tanggal mulai");
@@ -228,7 +323,7 @@ public class PanelRiwayat extends PanelKantin {
             return;
         }
         if (dari != null && sampai != null && dari.isAfter(sampai)) {
-            pesanTanggalAkhir.setText(
+            aturPesan(pesanTanggalAkhir,
                     "Tanggal mulai tidak boleh setelah tanggal akhir.");
             tanggalAkhir.komponenTeks().requestFocusInWindow();
             return;
@@ -316,7 +411,12 @@ public class PanelRiwayat extends PanelKantin {
                         + barang.getNama() + ".");
             }
         }
-        kosong.setVisible(hasil.isEmpty());
+        boolean kosongTabel = hasil.isEmpty();
+        kosong.setVisible(kosongTabel);
+        if (gulirTabel != null) {
+            gulirTabel.setVisible(!kosongTabel);
+        }
+        Ui.sesuaikanTinggiTabel(gulirTabel, tabel, 10);
         perbaruiTombolAksi();
     }
 
@@ -457,7 +557,7 @@ public class PanelRiwayat extends PanelKantin {
         Path tujuan = pathEkstensi(
                 chooser.getSelectedFile().toPath(), ekstensi);
         if (Files.isDirectory(tujuan)) {
-            pesanFilter.setText("Pilih nama file "
+            aturPesan(pesanFilter, "Pilih nama file "
                     + ekstensi.toUpperCase(Locale.ROOT)
                     + ", bukan folder tujuan.");
             return null;
@@ -594,14 +694,15 @@ public class PanelRiwayat extends PanelKantin {
         tanggalMulai.setTanggal(null);
         tanggalAkhir.setTanggal(null);
         comboJenis.setSelectedIndex(0);
-        pesanFilter.setText(" ");
+        kosongkanPesan(pesanFilter);
         terapkanFilter();
     }
 
     private LocalDate bacaTanggal(PemilihTanggal pemilih, JLabel pesan,
             String nama) {
         if (pemilih.ambilTeksTidakValid() || !pemilih.isTextFieldValid()) {
-            pesan.setText(nama + " tidak valid. Pilih tanggal yang benar.");
+            aturPesan(pesan,
+                    nama + " tidak valid. Pilih tanggal yang benar.");
             pemilih.komponenTeks().requestFocusInWindow();
             return INVALID;
         }
@@ -629,7 +730,8 @@ public class PanelRiwayat extends PanelKantin {
     private void tampilkanDetail() {
         int barisTampilan = tabel.getSelectedRow();
         if (barisTampilan < 0) {
-            pesanFilter.setText("Pilih salah satu baris riwayat terlebih dahulu.");
+            aturPesan(pesanFilter,
+                    "Pilih salah satu baris riwayat terlebih dahulu.");
             return;
         }
         int barisData = tabel.convertRowIndexToModel(barisTampilan);
@@ -766,22 +868,13 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     private void saatBarangBerubah() {
-        pesanFilter.setText(" ");
+        kosongkanPesan(pesanFilter);
         bersihkanSeleksiDetail();
     }
 
     @Override
     public void perbarui() {
-        boolean adaBarang = perbaruiPilihanBarang();
-        if (!adaBarang) {
-            infoBarang.setText(
-                    "Belum ada barang. Tambahkan melalui halaman Barang.");
-        } else if (barang == null) {
-            infoBarang.setText("Riwayat seluruh barang · berbagai satuan");
-        } else {
-            infoBarang.setText("Riwayat untuk " + barang.getNama() + " · "
-                    + barang.getSatuan());
-        }
+        perbaruiPilihanBarang();
         terapkanFilter();
     }
 

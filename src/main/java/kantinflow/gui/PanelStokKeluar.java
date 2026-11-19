@@ -28,17 +28,16 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     private final JComboBox<BatchStok> comboBatch = Ui.combo();
     private final JLabel labelSisa = new JLabel("-");
     private final JTextField fieldJumlahManual = Ui.field(8);
-    private final JLabel labelJumlahManual = Ui.labelField("Jumlah *");
+    private final JLabel labelJumlahManual = Ui.labelField("Jumlah");
     private final JButton tombolManual = Ui.utama("Keluarkan Manual");
     private final JTextField fieldJumlahFefo = Ui.field(8);
-    private final JLabel labelJumlahFefo = Ui.labelField("Jumlah *");
+    private final JLabel labelJumlahFefo = Ui.labelField("Jumlah");
     private final PemilihTanggal tanggalFefo = new PemilihTanggal();
     private final JButton tombolFefo = Ui.utama("Keluarkan FEFO");
     private final JLabel pesanManual = Ui.pesan();
     private final JLabel pesanFefo = Ui.pesan();
     private final JLabel pesanTanggalFefo = Ui.pesan();
-    private final JLabel hasilAlokasi = Ui.keterangan(
-            "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+    private final JLabel hasilAlokasi = Ui.keterangan(" ");
     private LocalDate tanggalFefoAwal;
 
     public PanelStokKeluar(KonteksKantin konteks) {
@@ -48,9 +47,16 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         comboBatch.setName("batchManual");
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
+        tombolManual.setIcon(
+                Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
+        tombolManual.setIconTextGap(7);
         fieldJumlahFefo.setName("jumlahFefo");
         tanggalFefo.komponenTeks().setName("tanggalFefo");
         pesanTanggalFefo.setName("pesanTanggalFefo");
+        kosongkanPesan(pesanManual);
+        kosongkanPesan(pesanFefo);
+        kosongkanPesan(pesanTanggalFefo);
+        labelSisa.setVisible(false);
         tombolFefo.setName("tombolFefo");
         tombolFefo.setIcon(Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
         tombolFefo.setIconTextGap(7);
@@ -77,7 +83,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         tanggalFefoAwal = LocalDate.now();
         tanggalFefo.setTanggal(tanggalFefoAwal);
         tanggalFefo.tambahPerubahan(
-                () -> pesanTanggalFefo.setText(" "));
+                () -> kosongkanPesan(pesanTanggalFefo));
+        hasilAlokasi.setVisible(false);
         bangunIsi();
     }
 
@@ -86,7 +93,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         manualIsi.add(bantuanMode(
                 "Pilih batch sumber, lalu masukkan jumlah yang dikeluarkan."));
         JPanel formManual = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
-                Ui.field("Batch *", comboBatch),
+                Ui.field("Batch", comboBatch),
                 Ui.field(labelJumlahManual, fieldJumlahManual));
         formManual.setAlignmentX(LEFT_ALIGNMENT);
         manualIsi.add(formManual);
@@ -96,8 +103,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         manualIsi.add(labelSisa);
 
         pesanManual.setAlignmentX(LEFT_ALIGNMENT);
+        pesanManual.setBorder(new EmptyBorder(Ui.skala(6), 0, 0, 0));
         manualIsi.add(pesanManual);
-        manualIsi.add(javax.swing.Box.createVerticalStrut(6));
         manualIsi.add(aksiKiri(tombolManual));
 
         JPanel fefoIsi = isiMode();
@@ -106,18 +113,19 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
 
         JPanel formFefo = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field(labelJumlahFefo, fieldJumlahFefo),
-                Ui.field("Tanggal pengeluaran *",
+                Ui.field("Tanggal pengeluaran",
                         tanggalFefo, pesanTanggalFefo));
         formFefo.setAlignmentX(LEFT_ALIGNMENT);
         fefoIsi.add(formFefo);
 
-        siapkanInfoMode(hasilAlokasi);
-        fefoIsi.add(hasilAlokasi);
-
         pesanFefo.setAlignmentX(LEFT_ALIGNMENT);
+        pesanFefo.setBorder(new EmptyBorder(Ui.skala(6), 0, 0, 0));
         fefoIsi.add(pesanFefo);
-        fefoIsi.add(javax.swing.Box.createVerticalStrut(6));
         fefoIsi.add(aksiKiri(tombolFefo));
+
+        siapkanInfoMode(hasilAlokasi);
+        hasilAlokasi.setBorder(new EmptyBorder(Ui.skala(12), 0, 0, 0));
+        fefoIsi.add(hasilAlokasi);
 
         JTabbedPane mode = new JTabbedPane();
         mode.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
@@ -130,7 +138,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         isi.setOpaque(false);
         isi.setLayout(new javax.swing.BoxLayout(
                 isi, javax.swing.BoxLayout.Y_AXIS));
-        JPanel pilihan = fieldBarang("Barang *");
+        JPanel pilihan = fieldBarang("Barang");
         pilihan.setAlignmentX(LEFT_ALIGNMENT);
         pilihan.setBorder(new EmptyBorder(0, 0, 10, 0));
         isi.add(pilihan);
@@ -145,7 +153,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     private JLabel bantuanMode(String teks) {
         JLabel label = Ui.keterangan(teks);
         label.setAlignmentX(LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 10, 0));
+        label.setBorder(new EmptyBorder(0, 0, 12, 0));
         return label;
     }
 
@@ -170,8 +178,20 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 java.awt.FlowLayout.LEFT, 0, 0));
         panel.setOpaque(false);
         panel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.setBorder(new EmptyBorder(Ui.skala(16), 0, 0, 0));
         panel.add(tombol);
         return panel;
+    }
+
+    private void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        label.revalidate();
+    }
+
+    private void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
     }
 
     private void perbaruiSisa() {
@@ -180,31 +200,32 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             labelSisa.setText(
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
+            labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
             return;
         }
         if (batch == null) {
             labelSisa.setText("Tidak ada batch bersisa.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
+            labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
         } else {
-            labelSisa.setText("Sisa: " + batch.getSisaJumlah() + " "
-                    + barang.getSatuan() + " pada batch " + batch.getKode());
-            labelSisa.setForeground(Ui.AKSEN);
+            labelSisa.setText(" ");
+            labelSisa.setVisible(false);
             tombolManual.setEnabled(true);
         }
     }
 
     private void keluarkanManual() {
-        pesanManual.setText(" ");
+        kosongkanPesan(pesanManual);
         if (barang == null) {
-            pesanManual.setText(
+            aturPesan(pesanManual,
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
-            pesanManual.setText("Pilih batch terlebih dahulu.");
+            aturPesan(pesanManual, "Pilih batch terlebih dahulu.");
             comboBatch.requestFocusInWindow();
             return;
         }
@@ -212,7 +233,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         try {
             jumlah = Integer.parseInt(fieldJumlahManual.getText().trim());
         } catch (NumberFormatException exception) {
-            pesanManual.setText("Jumlah harus berupa angka bulat.");
+            aturPesan(pesanManual, "Jumlah harus berupa angka bulat.");
             fieldJumlahManual.requestFocusInWindow();
             return;
         }
@@ -222,7 +243,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             pengeluaran.keluarkan(barang, batch, jumlah);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
-            pesanManual.setText("Pengeluaran ditolak: " + exception.getMessage());
+            aturPesan(pesanManual,
+                    "Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran gagal: "
                     + exception.getMessage(), false);
             return;
@@ -232,17 +254,19 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 "Pengeluaran berhasil: " + batch.getKode() + ", " + jumlah
                 + " " + barang.getSatuan() + ".")) {
             fieldJumlahManual.setText("");
-            pesanManual.setText(" ");
+            kosongkanPesan(pesanManual);
         } else {
-            pesanManual.setText("Pengeluaran gagal disimpan. Lihat status.");
+            aturPesan(pesanManual,
+                    "Pengeluaran gagal disimpan. Lihat status.");
         }
     }
 
     private void keluarkanFefo() {
-        pesanFefo.setText(" ");
-        pesanTanggalFefo.setText(" ");
+        kosongkanPesan(pesanFefo);
+        kosongkanPesan(pesanTanggalFefo);
+        hasilAlokasi.setVisible(false);
         if (barang == null) {
-            pesanFefo.setText(
+            aturPesan(pesanFefo,
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
@@ -250,7 +274,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         try {
             jumlah = Integer.parseInt(fieldJumlahFefo.getText().trim());
         } catch (NumberFormatException exception) {
-            pesanFefo.setText("Jumlah harus berupa angka bulat.");
+            aturPesan(pesanFefo, "Jumlah harus berupa angka bulat.");
             fieldJumlahFefo.requestFocusInWindow();
             return;
         }
@@ -259,7 +283,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         if (tanggal == null) {
             boolean kosong = tanggalFefo.komponenTeks()
                     .getText().trim().isEmpty();
-            pesanTanggalFefo.setText(kosong
+            aturPesan(pesanTanggalFefo, kosong
                     ? "Tanggal pengeluaran wajib diisi."
                     : "Format tanggal pengeluaran tidak valid.");
             tanggalFefo.komponenTeks().requestFocusInWindow();
@@ -271,7 +295,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             pengeluaran.keluarkanFefo(barang, jumlah, tanggal);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
-            pesanFefo.setText("Pengeluaran ditolak: " + exception.getMessage());
+            aturPesan(pesanFefo,
+                    "Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran FEFO gagal: "
                     + exception.getMessage(), false);
             return;
@@ -284,10 +309,13 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             fieldJumlahFefo.setText("");
             tanggalFefoAwal = LocalDate.now();
             tanggalFefo.setTanggal(tanggalFefoAwal);
-            pesanFefo.setText(" ");
+            kosongkanPesan(pesanFefo);
             hasilAlokasi.setText("Alokasi: " + alokasi);
+            hasilAlokasi.setVisible(true);
+            hasilAlokasi.revalidate();
         } else {
-            pesanFefo.setText("Pengeluaran gagal disimpan. Lihat status.");
+            aturPesan(pesanFefo,
+                    "Pengeluaran gagal disimpan. Lihat status.");
         }
     }
 
@@ -319,11 +347,11 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         perbaruiLabelJumlah();
         tanggalFefoAwal = LocalDate.now();
         tanggalFefo.setTanggal(tanggalFefoAwal);
-        pesanManual.setText(" ");
-        pesanFefo.setText(" ");
-        pesanTanggalFefo.setText(" ");
-        hasilAlokasi.setText(
-                "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
+        kosongkanPesan(pesanManual);
+        kosongkanPesan(pesanFefo);
+        kosongkanPesan(pesanTanggalFefo);
+        hasilAlokasi.setText(" ");
+        hasilAlokasi.setVisible(false);
         comboBatch.removeAllItems();
     }
 
@@ -336,6 +364,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             labelSisa.setText(
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
+            labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
             tombolFefo.setEnabled(false);
             return;

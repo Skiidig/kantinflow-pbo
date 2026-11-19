@@ -14,9 +14,7 @@ import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -32,17 +30,13 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 
-import org.knowm.xchart.CategoryChart;
-import org.knowm.xchart.CategoryChartBuilder;
-import org.knowm.xchart.XChartPanel;
-
 import kantinflow.Barang;
 import kantinflow.BatchStok;
 import kantinflow.StatusKedaluwarsa;
 
 /**
- * Dashboard ringkasan stok: statistik, peringatan kedaluwarsa, tabel barang,
- * dan grafik stok fisik.
+ * Dashboard ringkasan stok: statistik, peringatan kedaluwarsa, dan tabel
+ * barang.
  */
 public class PanelRingkasan extends PanelKantin {
     private final JComboBox<PilihanBarang> pilihanBarang = Ui.combo();
@@ -82,23 +76,21 @@ public class PanelRingkasan extends PanelKantin {
     private final DefaultTabel model = new DefaultTabel(
             "Barang", "Satuan", "Stok fisik", "Stok minimum", "Status");
     private final JTable tabel = Ui.tabel(model);
+    private final JLabel jumlahBarang = Ui.keterangan(" ");
     private final DefaultTabel modelPeringatan = new DefaultTabel(
             "Barang / Batch", "Sisa", "Kedaluwarsa", "Status");
     private final JTable tabelPeringatan = Ui.tabel(modelPeringatan);
     private final JPanel wadahPeringatan = new JPanel(new CardLayout());
     private JScrollPane gulirPeringatan;
-    private final JPanel grafik = new JPanel(new BorderLayout());
     private final EmptyState kosongBarang = new EmptyState(
             "boxes", "Belum ada barang",
             "Tambahkan barang terlebih dahulu melalui halaman Barang.");
     private final JLabel kosongPeringatan = Ui.keterangan(" ");
     private final JLabel ringkasanPeringatan = Ui.keterangan(" ");
-    private final JComboBox<String> comboSatuanGrafik = Ui.combo();
-    private boolean memperbaruiSatuanGrafik;
 
     public PanelRingkasan(KonteksKantin konteks) {
         super(konteks, "Ringkasan",
-                "Pantau stok, peringatan kedaluwarsa, dan kebutuhan restok.");
+                "Lihat kondisi stok dan barang yang perlu ditindaklanjuti.");
         pilihanBarang.setName("barangRingkasan");
         pilihanBarang.addItem(PilihanBarang.SEMUA);
         pilihanBarang.addActionListener(event -> pilihBarang());
@@ -110,16 +102,6 @@ public class PanelRingkasan extends PanelKantin {
         tombolPeriksa.setName("periksaRingkasan");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
-        comboSatuanGrafik.setName("satuanGrafik");
-        comboSatuanGrafik.setToolTipText(
-                "Pilih satuan yang dibandingkan pada grafik.");
-        comboSatuanGrafik.setPreferredSize(new Dimension(
-                Ui.skala(110), Ui.tinggiKontrol()));
-        comboSatuanGrafik.addActionListener(event -> {
-            if (!memperbaruiSatuanGrafik) {
-                gambarGrafik();
-            }
-        });
         kartuFisik.getNilai().setName("ringkasanFisik");
         kartuLayak.getNilai().setName("ringkasanLayak");
         kartuMinimum.getNilai().setName("ringkasanMinimum");
@@ -130,10 +112,26 @@ public class PanelRingkasan extends PanelKantin {
         kartuKedaluwarsa.getNilai().setName("ringkasanKedaluwarsa");
         tabel.setName("tabelRingkasan");
         tombolPeriksa.addActionListener(event -> periksa());
-        Ui.rataKanan(tabel, 2, 3);
+        tabel.setRowHeight(Ui.skala(44));
+        tabel.setFillsViewportHeight(false);
+        tabel.getColumnModel().getColumn(0)
+                .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.LEFT, false));
+        tabel.getColumnModel().getColumn(1)
+                .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.LEFT, false));
+        tabel.getColumnModel().getColumn(2)
+                .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.RIGHT, false));
+        tabel.getColumnModel().getColumn(3)
+                .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.RIGHT, false));
         tabel.getColumnModel().getColumn(4)
-                .setCellRenderer(new PenyajiStatus());
+                .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.LEFT, true));
+        Ui.rataKananHeader(tabel, 2, 3);
         Ui.aturKolom(tabel, 230, 85, 110, 105, 110);
+        aturKolomStatus(tabel, 4);
         pasangTabelPeringatan();
         bangunIsi();
     }
@@ -151,8 +149,8 @@ public class PanelRingkasan extends PanelKantin {
         tabelPeringatan.getColumnModel().getColumn(3)
                 .setCellRenderer(new PenyajiStatusPeringatan());
         Ui.rataKananHeader(tabelPeringatan, 1);
-        int[] lebar = {420, 150, 160, 170};
-        int[] minimum = {170, 70, 100, 135};
+        int[] lebar = {320, 120, 230, 330};
+        int[] minimum = {160, 70, 120, 150};
         tabelPeringatan.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         for (int i = 0; i < lebar.length; i++) {
             tabelPeringatan.getColumnModel().getColumn(i)
@@ -160,6 +158,14 @@ public class PanelRingkasan extends PanelKantin {
             tabelPeringatan.getColumnModel().getColumn(i)
                     .setMinWidth(Ui.skala(minimum[i]));
         }
+        aturKolomStatus(tabelPeringatan, 3);
+    }
+
+    private void aturKolomStatus(JTable tabel, int kolom) {
+        int lebar = Ui.skala(210);
+        tabel.getColumnModel().getColumn(kolom).setPreferredWidth(lebar);
+        tabel.getColumnModel().getColumn(kolom).setMinWidth(lebar);
+        tabel.getColumnModel().getColumn(kolom).setMaxWidth(lebar);
     }
 
     @Override
@@ -171,7 +177,7 @@ public class PanelRingkasan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel kontrol = Ui.kartu("Filter barang", "search");
+        JPanel kontrol = kartuRingkasan("Filter barang", "search");
         kontrol.setBorder(new EmptyBorder(Ui.skala(12), Ui.skala(14),
                 Ui.skala(12), Ui.skala(14)));
         JLabel labelBarang = Ui.labelField("Barang");
@@ -188,11 +194,11 @@ public class PanelRingkasan extends PanelKantin {
         nilai.add(panelKartuSatuan, KARTU_SATU);
         tampilkanKartu(true);
 
-        JPanel peringatan = Ui.kartu("Peringatan kedaluwarsa", "alert-triangle");
+        JPanel peringatan = kartuRingkasan("Peringatan kedaluwarsa", "alert-triangle");
         JPanel peringatanIsi = new JPanel(new BorderLayout(0, 8));
         peringatanIsi.setOpaque(false);
         peringatanIsi.add(ringkasanPeringatan, BorderLayout.NORTH);
-        gulirPeringatan = Ui.scrollTabel(tabelPeringatan, 120);
+        gulirPeringatan = buatGulirTabel(tabelPeringatan, 120);
         gulirPeringatan.setPreferredSize(null);
         gulirPeringatan.setMinimumSize(new Dimension(0, 0));
         gulirPeringatan.setVerticalScrollBarPolicy(
@@ -207,35 +213,74 @@ public class PanelRingkasan extends PanelKantin {
         kosongPeringatan.setBorder(new EmptyBorder(
                 Ui.skala(12), 0, Ui.skala(12), 0));
 
-        JPanel grafikKartu = Ui.kartu("Stok fisik per barang", "chart-column");
-        JPanel kepalaGrafik = (JPanel) ((BorderLayout) grafikKartu.getLayout())
-                .getLayoutComponent(BorderLayout.NORTH);
-        if (kepalaGrafik != null) {
-            kepalaGrafik.add(comboSatuanGrafik, BorderLayout.EAST);
-        }
-        grafik.setOpaque(false);
-        grafikKartu.add(grafik, BorderLayout.CENTER);
-
-        JPanel samping = new JPanel(new BorderLayout(0, 12));
-        samping.setOpaque(false);
-        samping.add(peringatan, BorderLayout.NORTH);
-        samping.add(grafikKartu, BorderLayout.CENTER);
-
-        JPanel semua = Ui.kartu("Semua barang", "package");
+        JPanel semua = kartuRingkasan("Semua barang", "package");
         JPanel semuaIsi = new JPanel(new BorderLayout(0, 6));
         semuaIsi.setOpaque(false);
-        gulirTabel = Ui.scrollTabel(tabel, 280);
+        gulirTabel = buatGulirTabel(tabel, 280);
         semuaIsi.add(gulirTabel, BorderLayout.CENTER);
-        semuaIsi.add(kosongBarang, BorderLayout.SOUTH);
+        JPanel kaki = new JPanel(new BorderLayout(0, Ui.skala(8)));
+        kaki.setOpaque(false);
+        jumlahBarang.setBorder(new EmptyBorder(Ui.skala(8), 0, 0, 0));
+        kaki.add(jumlahBarang, BorderLayout.NORTH);
+        kaki.add(kosongBarang, BorderLayout.CENTER);
+        semuaIsi.add(kaki, BorderLayout.SOUTH);
         semua.add(semuaIsi, BorderLayout.CENTER);
+
+        JPanel bawah = new JPanel(new BorderLayout(0, 12));
+        bawah.setOpaque(false);
+        bawah.add(semua, BorderLayout.NORTH);
+        bawah.add(peringatan, BorderLayout.CENTER);
 
         JPanel atas = new JPanel(new BorderLayout(0, 12));
         atas.setOpaque(false);
         atas.add(kontrol, BorderLayout.NORTH);
         atas.add(nilai, BorderLayout.CENTER);
         isi.add(atas, BorderLayout.NORTH);
-        isi.add(buatAreaUtama(semua, samping), BorderLayout.CENTER);
+        isi.add(bawah, BorderLayout.CENTER);
         add(isi, BorderLayout.CENTER);
+    }
+
+    /**
+     * Tabel Ringkasan memakai scrollpane standar tanpa bingkai luar. Kartu
+     * pembungkus tetap menjadi satu-satunya bingkai putih membulat.
+     */
+    private JScrollPane buatGulirTabel(JTable tabel, int tinggi) {
+        tabel.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        tabel.getTableHeader().setBackground(Ui.NETRAL_LEMBUT);
+        tabel.getTableHeader().setPreferredSize(
+                new Dimension(0, Ui.skala(40)));
+        tabel.setFillsViewportHeight(false);
+        JScrollPane gulir = new JScrollPane(tabel);
+        gulir.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        gulir.setViewportBorder(null);
+        gulir.setBackground(Ui.KARTU);
+        gulir.setOpaque(true);
+        gulir.getViewport().setOpaque(true);
+        gulir.getViewport().setBackground(Ui.KARTU);
+        if (gulir.getColumnHeader() != null) {
+            gulir.getColumnHeader().setOpaque(true);
+            gulir.getColumnHeader().setBackground(Ui.KARTU);
+        }
+        gulir.setPreferredSize(new Dimension(600, Ui.skala(tinggi)));
+        gulir.getVerticalScrollBar().setUnitIncrement(16);
+        gulir.setVerticalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        gulir.setHorizontalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        return gulir;
+    }
+
+    /** Gaya kartu dashboard, terbatas pada halaman Ringkasan. */
+    private JPanel kartuRingkasan(String judul, String ikon) {
+        JPanel kartu = Ui.kartu(judul, ikon);
+        kartu.setBorder(new EmptyBorder(Ui.skala(16), Ui.skala(16),
+                Ui.skala(18), Ui.skala(16)));
+        JPanel kepala = (JPanel) ((BorderLayout) kartu.getLayout())
+                .getLayoutComponent(BorderLayout.NORTH);
+        kepala.setOpaque(false);
+        kepala.setBackground(Ui.KARTU);
+        kepala.setBorder(new EmptyBorder(0, 0, 0, 0));
+        return kartu;
     }
 
     private JPanel buatBarisFilter(JLabel labelBarang, JLabel labelTanggal) {
@@ -347,48 +392,6 @@ public class PanelRingkasan extends PanelKantin {
             c.insets = new Insets(Ui.skala(4), 0, 0, 0);
             panel.add(pesanTanggal, c);
         }
-    }
-
-    /**
-     * Tabel menjadi konten utama; peringatan dan grafik berada di samping
-     * pada lebar besar, lalu ditumpuk di bawah tabel pada lebar sempit.
-     */
-    private JPanel buatAreaUtama(JPanel tabelKartu, JPanel samping) {
-        JPanel area = new JPanel(new BorderLayout(16, 0));
-        area.setOpaque(false);
-        area.add(tabelKartu, BorderLayout.CENTER);
-        area.add(samping, BorderLayout.EAST);
-        samping.setPreferredSize(new Dimension(Ui.skala(560),
-                samping.getPreferredSize().height));
-        area.addComponentListener(new ComponentAdapter() {
-            private boolean sempit;
-
-            @Override
-            public void componentResized(ComponentEvent event) {
-                boolean sekarang = area.getWidth() > 0
-                        && area.getWidth() < Ui.skala(1000);
-                if (sekarang == sempit) {
-                    return;
-                }
-                sempit = sekarang;
-                area.removeAll();
-                if (sempit) {
-                    samping.setPreferredSize(null);
-                    area.setLayout(new BorderLayout(0, 16));
-                    area.add(tabelKartu, BorderLayout.NORTH);
-                    area.add(samping, BorderLayout.CENTER);
-                } else {
-                    samping.setPreferredSize(new Dimension(Ui.skala(560),
-                            samping.getPreferredSize().height));
-                    area.setLayout(new BorderLayout(16, 0));
-                    area.add(tabelKartu, BorderLayout.CENTER);
-                    area.add(samping, BorderLayout.EAST);
-                }
-                area.revalidate();
-                area.repaint();
-            }
-        });
-        return area;
     }
 
     private void periksa() {
@@ -538,7 +541,6 @@ public class PanelRingkasan extends PanelKantin {
             perbaruiKartuSemua(acuan);
             perbaruiTabel(acuan);
             perbaruiPeringatan(acuan);
-            perbaruiGrafik();
             return;
         }
 
@@ -566,7 +568,6 @@ public class PanelRingkasan extends PanelKantin {
 
         perbaruiTabel(acuan);
         perbaruiPeringatan(acuan);
-        perbaruiGrafik();
     }
 
     private void perbaruiTabel(LocalDate tanggal) {
@@ -582,12 +583,25 @@ public class PanelRingkasan extends PanelKantin {
                 restok ? "Perlu restok" : "Cukup"
             });
         }
+        jumlahBarang.setText(model.getRowCount() + " barang ditampilkan");
         boolean kosong = model.getRowCount() == 0;
         kosongBarang.setVisible(kosong);
         if (gulirTabel != null) {
             gulirTabel.setVisible(!kosong);
         }
         tabel.setVisible(!kosong);
+        sesuaikanTinggiTabel();
+    }
+
+    private void sesuaikanTinggiTabel() {
+        if (gulirTabel == null) {
+            return;
+        }
+        int baris = Math.min(model.getRowCount(), 10);
+        int tinggi = tabel.getTableHeader().getPreferredSize().height
+                + baris * tabel.getRowHeight() + 2;
+        gulirTabel.setPreferredSize(new Dimension(0, tinggi));
+        gulirTabel.revalidate();
     }
 
     private void perbaruiPeringatan(LocalDate tanggal) {
@@ -663,7 +677,7 @@ public class PanelRingkasan extends PanelKantin {
         if (gulirPeringatan == null) {
             return;
         }
-        int baris = Math.min(modelPeringatan.getRowCount(), 5);
+        int baris = Math.min(modelPeringatan.getRowCount(), 10);
         int tinggi = tabelPeringatan.getTableHeader()
                 .getPreferredSize().height
                 + baris * tabelPeringatan.getRowHeight() + 2;
@@ -673,6 +687,51 @@ public class PanelRingkasan extends PanelKantin {
 
     private record BarisPeringatan(Barang barang, BatchStok batch,
             StatusKedaluwarsa status) {
+    }
+
+    private static Color latarBaris(JTable tabel, boolean dipilih, int baris) {
+        if (dipilih) {
+            return tabel.getSelectionBackground();
+        }
+        int hover = tabel instanceof TabelKantin
+                ? ((TabelKantin) tabel).getBarisHover() : -1;
+        return baris == hover ? Ui.HOVER : Ui.KARTU;
+    }
+
+    private static final class PenyajiSelRingkasan
+            extends DefaultTableCellRenderer {
+        private final int perataan;
+        private final boolean status;
+
+        private PenyajiSelRingkasan(int perataan, boolean status) {
+            this.perataan = perataan;
+            this.status = status;
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable tabel,
+                Object nilai, boolean dipilih, boolean fokus, int baris,
+                int kolom) {
+            super.getTableCellRendererComponent(
+                    tabel, nilai, dipilih, fokus, baris, kolom);
+            setOpaque(true);
+            setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
+            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
+                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
+            setHorizontalAlignment(perataan);
+            setVerticalAlignment(SwingConstants.CENTER);
+            setBackground(latarBaris(tabel, dipilih, baris));
+            if (dipilih) {
+                setForeground(tabel.getSelectionForeground());
+            } else if (status) {
+                setForeground("Perlu restok".equals(String.valueOf(nilai))
+                        ? Ui.MERAH : Ui.HIJAU);
+            } else {
+                setForeground(Ui.TEKS);
+            }
+            setToolTipText(null);
+            return this;
+        }
     }
 
     private static final class PenyajiBarangBatch extends JPanel
@@ -687,7 +746,7 @@ public class PanelRingkasan extends PanelKantin {
             setBorder(new EmptyBorder(Ui.skala(6), Ui.skala(
                     Ui.PADDING_SEL_TABEL), Ui.skala(6), Ui.skala(
                     Ui.PADDING_SEL_TABEL)));
-            nama.setFont(Ui.font(Font.BOLD, Ui.FONT_BODY));
+            nama.setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
             nama.setForeground(Ui.TEKS);
             batch.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
             batch.setForeground(Ui.TEKS_LEMBUT);
@@ -704,10 +763,16 @@ public class PanelRingkasan extends PanelKantin {
                 nama.setText(data.barang().getNama());
                 batch.setText(data.batch().getKode());
             }
-            int hover = tabel instanceof TabelKantin
-                    ? ((TabelKantin) tabel).getBarisHover() : -1;
-            setBackground(dipilih ? tabel.getSelectionBackground()
-                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            nama.setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
+            batch.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
+            nama.setForeground(dipilih
+                    ? tabel.getSelectionForeground() : Ui.TEKS);
+            batch.setForeground(dipilih
+                    ? tabel.getSelectionForeground() : Ui.TEKS_LEMBUT);
+            setBorder(new EmptyBorder(Ui.skala(6), Ui.skala(
+                    Ui.PADDING_SEL_TABEL), Ui.skala(6), Ui.skala(
+                    Ui.PADDING_SEL_TABEL)));
+            setBackground(latarBaris(tabel, dipilih, baris));
             return this;
         }
     }
@@ -732,11 +797,9 @@ public class PanelRingkasan extends PanelKantin {
                     ? SwingConstants.RIGHT : SwingConstants.LEFT);
             setVerticalAlignment(SwingConstants.CENTER);
             setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
-            int hover = tabel instanceof TabelKantin
-                    ? ((TabelKantin) tabel).getBarisHover() : -1;
-            setForeground(Ui.TEKS);
-            setBackground(dipilih ? tabel.getSelectionBackground()
-                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            setForeground(dipilih
+                    ? tabel.getSelectionForeground() : Ui.TEKS);
+            setBackground(latarBaris(tabel, dipilih, baris));
             return this;
         }
     }
@@ -756,99 +819,13 @@ public class PanelRingkasan extends PanelKantin {
                     0, Ui.skala(Ui.PADDING_SEL_TABEL)));
             setHorizontalAlignment(SwingConstants.LEFT);
             setVerticalAlignment(SwingConstants.CENTER);
-            setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-            int hover = tabel instanceof TabelKantin
-                    ? ((TabelKantin) tabel).getBarisHover() : -1;
+            setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
             setForeground(dipilih ? tabel.getSelectionForeground()
                     : status == StatusKedaluwarsa.KEDALUWARSA
                             ? Ui.MERAH : Ui.KUNING_BADGE);
-            setBackground(dipilih ? tabel.getSelectionBackground()
-                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            setBackground(latarBaris(tabel, dipilih, baris));
             return this;
         }
-    }
-
-    private void perbaruiGrafik() {
-        perbaruiPilihanSatuanGrafik();
-        gambarGrafik();
-    }
-
-    private void perbaruiPilihanSatuanGrafik() {
-        String terpilih = (String) comboSatuanGrafik.getSelectedItem();
-        Set<String> satuan = new LinkedHashSet<>();
-        for (Barang barang : konteks.getDaftarBarang()) {
-            satuan.add(barang.getSatuan());
-        }
-        memperbaruiSatuanGrafik = true;
-        try {
-            comboSatuanGrafik.removeAllItems();
-            for (String item : satuan) {
-                comboSatuanGrafik.addItem(item);
-            }
-            if (terpilih != null && satuan.contains(terpilih)) {
-                comboSatuanGrafik.setSelectedItem(terpilih);
-            } else if (barang != null && satuan.contains(barang.getSatuan())) {
-                comboSatuanGrafik.setSelectedItem(barang.getSatuan());
-            } else if (comboSatuanGrafik.getItemCount() > 0) {
-                comboSatuanGrafik.setSelectedIndex(0);
-            }
-            comboSatuanGrafik.setEnabled(!satuan.isEmpty());
-        } finally {
-            memperbaruiSatuanGrafik = false;
-        }
-    }
-
-    private void gambarGrafik() {
-        grafik.removeAll();
-        String satuan = (String) comboSatuanGrafik.getSelectedItem();
-        List<String> nama = new ArrayList<>();
-        List<Integer> nilai = new ArrayList<>();
-        boolean adaPositif = false;
-        for (Barang barang : konteks.getDaftarBarang()) {
-            if (satuan == null || !satuan.equals(barang.getSatuan())) {
-                continue;
-            }
-            int saldo = barang.hitungSaldo();
-            nama.add(barang.getNama());
-            nilai.add(saldo);
-            adaPositif |= saldo > 0;
-        }
-        if (nama.isEmpty() || !adaPositif) {
-            JLabel kosongGrafik = Ui.keterangan(
-                    "Belum ada stok untuk ditampilkan");
-            kosongGrafik.setHorizontalAlignment(
-                    javax.swing.SwingConstants.CENTER);
-            kosongGrafik.setBorder(new EmptyBorder(
-                    Ui.skala(28), Ui.skala(8), Ui.skala(28), Ui.skala(8)));
-            grafik.add(kosongGrafik, BorderLayout.CENTER);
-        } else {
-            CategoryChart chart = new CategoryChartBuilder()
-                    .width(460)
-                    .height(230)
-                    .yAxisTitle("Stok fisik")
-                    .build();
-            chart.addSeries("Stok", nama, nilai);
-            chart.getStyler().setLegendVisible(false);
-            chart.getStyler().setChartBackgroundColor(Ui.KARTU);
-            chart.getStyler().setPlotBackgroundColor(Ui.KARTU);
-            chart.getStyler().setPlotBorderVisible(false);
-            chart.getStyler().setPlotGridVerticalLinesVisible(false);
-            chart.getStyler().setPlotGridLinesColor(Ui.GARIS);
-            chart.getStyler().setAxisTickLabelsColor(Ui.TEKS_LEMBUT);
-            chart.getStyler().setAxisTickLabelsFont(
-                    Ui.font(Font.PLAIN, Ui.FONT_KECIL));
-            chart.getStyler().setAxisTitleFont(
-                    Ui.font(Font.PLAIN, Ui.FONT_KECIL));
-            chart.getStyler().setChartFontColor(Ui.TEKS_LEMBUT);
-            chart.getStyler().setAvailableSpaceFill(0.55);
-            chart.getStyler().setOverlapped(false);
-            chart.getStyler().setSeriesColors(new Color[]{
-                Ui.AKSEN, Ui.HIJAU, Ui.KUNING, Ui.ORANYE
-            });
-            grafik.add(new XChartPanel<>(chart), BorderLayout.CENTER);
-        }
-        grafik.revalidate();
-        grafik.repaint();
     }
 
     private static final class PilihanBarang {
@@ -872,33 +849,6 @@ public class PanelRingkasan extends PanelKantin {
             return barang == null
                     ? "Semua Barang"
                     : barang.getNama() + " (" + barang.getSatuan() + ")";
-        }
-    }
-
-    private static final class PenyajiStatus extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable tabel,
-                Object nilai, boolean dipilih, boolean fokus, int baris,
-                int kolom) {
-            super.getTableCellRendererComponent(
-                    tabel, nilai, dipilih, fokus, baris, kolom);
-            setOpaque(true);
-            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
-                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
-            setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-            setVerticalAlignment(javax.swing.SwingConstants.CENTER);
-            setFont(tabel.getFont().deriveFont(Font.BOLD));
-            int hover = tabel instanceof TabelKantin
-                    ? ((TabelKantin) tabel).getBarisHover() : -1;
-            if (dipilih) {
-                setForeground(tabel.getSelectionForeground());
-                setBackground(tabel.getSelectionBackground());
-            } else {
-                setForeground("Perlu restok".equals(String.valueOf(nilai))
-                        ? Ui.MERAH : Ui.HIJAU);
-                setBackground(baris == hover ? Ui.HOVER : Ui.KARTU);
-            }
-            return this;
         }
     }
 

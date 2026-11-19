@@ -2,8 +2,14 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -28,11 +34,10 @@ import kantinflow.StokTidakCukupException;
 public class PanelPembuangan extends PanelBarangTerpilih {
     private final JComboBox<BatchStok> comboBatch = Ui.combo();
     private final JTextField fieldJumlah = Ui.field(6);
-    private final JLabel labelJumlah = Ui.labelField("Jumlah *");
+    private final JLabel labelJumlah = Ui.labelField("Jumlah");
     private final PemilihTanggal tanggalPembuangan = new PemilihTanggal();
     private final JTextField fieldAlasan = Ui.field(16);
     private final JButton tombolBuang = Ui.bahaya("Buang Stok");
-    private final JLabel petunjukBatch = Ui.keterangan(" ");
     private final JLabel pesanTanggal = Ui.pesan();
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel ringkasan = Ui.kosong(
@@ -53,8 +58,10 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         tombolBuang.setIconTextGap(7);
         tanggalAwal = LocalDate.now();
         tanggalPembuangan.setTanggal(tanggalAwal);
+        kosongkanPesan(pesanTanggal);
+        kosongkanPesan(pesanValidasi);
         tanggalPembuangan.tambahPerubahan(() -> {
-            pesanTanggal.setText(" ");
+            kosongkanPesan(pesanTanggal);
             perbaruiRingkasan();
         });
         comboBatch.setRenderer(new DefaultListCellRenderer() {
@@ -81,25 +88,45 @@ public class PanelPembuangan extends PanelBarangTerpilih {
 
     private void bangunIsi() {
         JPanel form = Ui.kartu("Form Pembuangan", "trash");
-        JPanel isian = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
-                fieldBarang("Barang *"),
-                Ui.field("Batch *", comboBatch, petunjukBatch),
-                Ui.field(labelJumlah, fieldJumlah),
-                Ui.field("Tanggal pembuangan *", tanggalPembuangan,
-                        pesanTanggal),
-                Ui.field("Alasan *", fieldAlasan));
+        JPanel[] kolom = {
+            fieldBarang("Barang"),
+            Ui.field("Batch", comboBatch),
+            Ui.field(labelJumlah, fieldJumlah),
+            Ui.field("Tanggal pembuangan", tanggalPembuangan, pesanTanggal),
+            Ui.field("Alasan", fieldAlasan)
+        };
+        JPanel isian = new JPanel();
+        isian.setOpaque(false);
+        aturGridIsian(isian, kolom, false);
+        isian.addComponentListener(new ComponentAdapter() {
+            private boolean sempit;
+
+            @Override
+            public void componentResized(ComponentEvent event) {
+                boolean sekarang = isian.getWidth() > 0
+                        && isian.getWidth() < Ui.skala(Ui.AMBANG_FORM_SEMPIT);
+                if (sekarang == sempit) {
+                    return;
+                }
+                sempit = sekarang;
+                aturGridIsian(isian, kolom, sempit);
+                isian.revalidate();
+                isian.repaint();
+            }
+        });
         JPanel formIsi = new JPanel();
         formIsi.setOpaque(false);
         formIsi.setLayout(new javax.swing.BoxLayout(
                 formIsi, javax.swing.BoxLayout.Y_AXIS));
         isian.setAlignmentX(LEFT_ALIGNMENT);
         formIsi.add(isian);
-        formIsi.add(javax.swing.Box.createVerticalStrut(6));
         pesanValidasi.setAlignmentX(LEFT_ALIGNMENT);
+        pesanValidasi.setBorder(new EmptyBorder(Ui.skala(6), 0, 0, 0));
         formIsi.add(pesanValidasi);
         JPanel aksi = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         aksi.setOpaque(false);
         aksi.setAlignmentX(LEFT_ALIGNMENT);
+        aksi.setBorder(new EmptyBorder(Ui.skala(16), 0, 0, 0));
         aksi.add(tombolBuang);
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
@@ -125,42 +152,69 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         add(isi, BorderLayout.CENTER);
     }
 
+    private void aturGridIsian(JPanel panel, JPanel[] kolom,
+            boolean sempit) {
+        panel.removeAll();
+        panel.setLayout(new GridBagLayout());
+        int jarak = Ui.skala(Ui.GAP_FORM);
+        if (sempit) {
+            for (int i = 0; i < kolom.length; i++) {
+                GridBagConstraints c = new GridBagConstraints();
+                c.gridx = 0;
+                c.gridy = i;
+                c.weightx = 1;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.anchor = GridBagConstraints.NORTH;
+                c.insets = new Insets(i == 0 ? 0 : jarak, 0, 0, 0);
+                panel.add(kolom[i], c);
+            }
+            return;
+        }
+        for (int i = 0; i < kolom.length; i++) {
+            GridBagConstraints c = new GridBagConstraints();
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.anchor = GridBagConstraints.NORTH;
+            c.weightx = 1;
+            if (i == 0) {
+                c.gridx = 0;
+                c.gridy = 0;
+                c.gridwidth = 2;
+                c.insets = new Insets(0, 0, 0, 0);
+            } else {
+                c.gridx = (i - 1) % 2;
+                c.gridy = 1 + (i - 1) / 2;
+                c.gridwidth = 1;
+                c.insets = new Insets(jarak,
+                        c.gridx == 0 ? 0 : jarak / 2,
+                        0, c.gridx == 1 ? 0 : jarak / 2);
+            }
+            panel.add(kolom[i], c);
+        }
+    }
+
     private void perbaruiLabelJumlah() {
         labelJumlah.setText(Ui.teksJumlah(barang));
     }
 
-    private void perbaruiPetunjukBatch() {
-        if (barang == null) {
-            petunjukBatch.setText("Pilih barang terlebih dahulu.");
-            return;
+    private void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        if (tampil) {
+            label.setPreferredSize(null);
+            label.setMinimumSize(null);
+            label.setMaximumSize(null);
+        } else {
+            Dimension kosong = new Dimension(0, 0);
+            label.setPreferredSize(kosong);
+            label.setMinimumSize(kosong);
+            label.setMaximumSize(kosong);
         }
-        if (comboBatch.getItemCount() == 0) {
-            petunjukBatch.setText(
-                    "Tidak ada batch bersisa untuk barang ini.");
-            return;
-        }
-        BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
-        if (batch == null) {
-            petunjukBatch.setText("Pilih batch untuk melihat sisa.");
-            return;
-        }
-        petunjukBatch.setText("Sisa batch terpilih: "
-                + batch.getSisaJumlah() + " " + barang.getSatuan() + ". "
-                + kelayakanBatch(batch));
+        label.revalidate();
     }
 
-    private String kelayakanBatch(BatchStok batch) {
-        LocalDate dipilih = tanggalPembuangan.getTanggal();
-        if (dipilih == null) {
-            return "Isi tanggal pembuangan untuk memeriksa kelayakan.";
-        }
-        if (dipilih.isBefore(batch.getTanggalMasuk())) {
-            return "Tanggal pembuangan sebelum tanggal masuk batch.";
-        }
-        if (batch.statusPada(dipilih) != StatusKedaluwarsa.KEDALUWARSA) {
-            return "Batch belum kedaluwarsa pada tanggal pembuangan.";
-        }
-        return "Batch kedaluwarsa pada tanggal pembuangan.";
+    private void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
     }
 
     private String ringkasanKelayakan(BatchStok batch) {
@@ -178,7 +232,6 @@ public class PanelPembuangan extends PanelBarangTerpilih {
     }
 
     private void perbaruiRingkasan() {
-        perbaruiPetunjukBatch();
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (barang == null) {
             ringkasan.setForeground(Ui.TEKS_LEMBUT);
@@ -199,16 +252,16 @@ public class PanelPembuangan extends PanelBarangTerpilih {
     }
 
     private void buang() {
-        pesanValidasi.setText(" ");
-        pesanTanggal.setText(" ");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggal);
         if (barang == null) {
-            pesanValidasi.setText(
+            aturPesan(pesanValidasi,
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
-            pesanValidasi.setText("Pilih batch terlebih dahulu.");
+            aturPesan(pesanValidasi, "Pilih batch terlebih dahulu.");
             comboBatch.requestFocusInWindow();
             return;
         }
@@ -216,7 +269,7 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         try {
             jumlah = Integer.parseInt(fieldJumlah.getText().trim());
         } catch (NumberFormatException exception) {
-            pesanValidasi.setText("Jumlah harus berupa angka bulat.");
+            aturPesan(pesanValidasi, "Jumlah harus berupa angka bulat.");
             fieldJumlah.requestFocusInWindow();
             return;
         }
@@ -224,14 +277,14 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         if (tanggal == null) {
             boolean kosong = tanggalPembuangan.komponenTeks()
                     .getText().trim().isEmpty();
-            pesanTanggal.setText(kosong
+            aturPesan(pesanTanggal, kosong
                     ? "Tanggal pembuangan wajib diisi."
                     : "Format tanggal pembuangan tidak valid.");
             tanggalPembuangan.komponenTeks().requestFocusInWindow();
             return;
         }
         if (fieldAlasan.getText().trim().isEmpty()) {
-            pesanValidasi.setText("Alasan pembuangan wajib diisi.");
+            aturPesan(pesanValidasi, "Alasan pembuangan wajib diisi.");
             fieldAlasan.requestFocusInWindow();
             return;
         }
@@ -249,7 +302,8 @@ public class PanelPembuangan extends PanelBarangTerpilih {
             pembuangan.buang(barang, batch, jumlah, fieldAlasan.getText());
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             konteks.muatUlang();
-            pesanValidasi.setText("Pembuangan ditolak: " + exception.getMessage());
+            aturPesan(pesanValidasi,
+                    "Pembuangan ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pembuangan gagal: "
                     + exception.getMessage(), false);
             return;
@@ -263,10 +317,11 @@ public class PanelPembuangan extends PanelBarangTerpilih {
             fieldAlasan.setText("");
             tanggalAwal = LocalDate.now();
             tanggalPembuangan.setTanggal(tanggalAwal);
-            pesanTanggal.setText(" ");
-            pesanValidasi.setText(" ");
+            kosongkanPesan(pesanTanggal);
+            kosongkanPesan(pesanValidasi);
         } else {
-            pesanValidasi.setText("Pembuangan gagal disimpan. Lihat status.");
+            aturPesan(pesanValidasi,
+                    "Pembuangan gagal disimpan. Lihat status.");
         }
     }
 
@@ -303,8 +358,8 @@ public class PanelPembuangan extends PanelBarangTerpilih {
 
         fieldJumlah.setText("");
         fieldAlasan.setText("");
-        pesanValidasi.setText(" ");
-        pesanTanggal.setText(" ");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggal);
         tanggalAwal = tanggal;
         tanggalPembuangan.setTanggal(tanggal);
 
@@ -330,8 +385,8 @@ public class PanelPembuangan extends PanelBarangTerpilih {
     protected void saatBarangBerubah() {
         fieldJumlah.setText("");
         fieldAlasan.setText("");
-        pesanValidasi.setText(" ");
-        pesanTanggal.setText(" ");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggal);
         perbaruiLabelJumlah();
         comboBatch.removeAllItems();
         tanggalAwal = LocalDate.now();
@@ -344,7 +399,6 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         perbaruiLabelJumlah();
         if (!adaBarang) {
             comboBatch.removeAllItems();
-            perbaruiPetunjukBatch();
             tombolBuang.setEnabled(false);
             ringkasan.setForeground(Ui.TEKS_LEMBUT);
             ringkasan.setText(

@@ -31,6 +31,14 @@ public interface KonteksKantin {
     boolean simpanTransaksi(Barang barang, Transaksi transaksi,
             String pesanSukses);
 
+    /**
+     * Kode batch internal untuk barang dan tanggal masuk, dihitung dari
+     * batch yang sudah tersimpan.
+     */
+    default String kodeBatchOtomatis(Barang barang, LocalDate tanggalMasuk) {
+        return null;
+    }
+
     boolean tambahBarang(String nama, String satuan);
 
     boolean simpanStokMinimum(Barang barang, int minimum);

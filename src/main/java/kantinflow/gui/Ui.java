@@ -16,6 +16,8 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.RenderingHints;
+import java.awt.geom.Area;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.net.URL;
@@ -37,11 +39,13 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.formdev.flatlaf.ui.FlatLineBorder;
+import com.formdev.flatlaf.ui.FlatTableHeaderUI;
 import com.formdev.flatlaf.util.UIScale;
 
 import kantinflow.Barang;
@@ -212,9 +216,9 @@ final class Ui {
     static String teksJumlah(Barang barang) {
         String satuan = barang == null ? null : barang.getSatuan();
         if (satuan == null || satuan.isBlank()) {
-            return "Jumlah *";
+            return "Jumlah";
         }
-        return "Jumlah (" + satuan + ") *";
+        return "Jumlah (" + satuan + ")";
     }
 
     static JLabel pesan() {
@@ -382,10 +386,27 @@ final class Ui {
         return scrollTabel(tabel, TINGGI_TABEL_DEFAULT);
     }
 
+    static void sesuaikanTinggiTabel(JScrollPane gulir, JTable tabel,
+            int maksBaris) {
+        if (gulir == null) {
+            return;
+        }
+        int baris = Math.min(tabel.getRowCount(), maksBaris);
+        int tinggi = tabel.getTableHeader().getPreferredSize().height
+                + baris * tabel.getRowHeight() + 2;
+        gulir.setPreferredSize(new Dimension(0, tinggi));
+        gulir.revalidate();
+    }
+
     static JScrollPane scrollTabel(JTable tabel, int tinggi) {
         JScrollPane scroll = new JScrollPane(tabel);
-        scroll.setBorder(BorderFactory.createLineBorder(GARIS));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setViewportBorder(null);
         scroll.getViewport().setBackground(KARTU);
+        if (scroll.getColumnHeader() != null) {
+            scroll.getColumnHeader().setOpaque(true);
+            scroll.getColumnHeader().setBackground(KARTU);
+        }
         scroll.setPreferredSize(new Dimension(600, skala(tinggi)));
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         return scroll;
@@ -606,7 +627,8 @@ final class Ui {
         @Override
         public void doLayout() {
             int lebar = Math.min(getWidth(), skala(maks));
-            isi.setBounds(0, 0, lebar, getHeight());
+            int tinggi = Math.min(getHeight(), isi.getPreferredSize().height);
+            isi.setBounds(0, 0, lebar, tinggi);
         }
 
         @Override
@@ -658,7 +680,7 @@ final class Ui {
                 c.weightx = i == 0 && !wrap ? 1 : 0;
                 c.weighty = 0;
                 c.fill = GridBagConstraints.HORIZONTAL;
-                c.anchor = GridBagConstraints.SOUTH;
+                c.anchor = GridBagConstraints.NORTH;
                 c.insets = new Insets(0, i == 0 || (wrap && i == 1)
                         ? 0 : jarak, 0, 0);
                 ((GridBagLayout) getLayout()).setConstraints(bagian[i], c);
@@ -689,7 +711,7 @@ final class Ui {
                             table.getTableHeader();
                     setFont(header.getFont());
                     setForeground(header.getForeground());
-                    setBackground(header.getBackground());
+                    setOpaque(false);
                 }
                 setHorizontalAlignment(rataKanan
                         ? SwingConstants.RIGHT : SwingConstants.LEFT);
@@ -716,9 +738,13 @@ final class Ui {
         tabel.setBackground(KARTU);
         tabel.setSelectionBackground(AKSEN_LEMBUT);
         tabel.setSelectionForeground(TEKS);
+        tabel.getTableHeader().setUI(new KepalaMembulat());
+        tabel.getTableHeader().setOpaque(false);
+        tabel.getTableHeader().setBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, GARIS));
         tabel.getTableHeader().setFont(font(Font.BOLD, FONT_LABEL));
         tabel.getTableHeader().setForeground(TEKS_LEMBUT);
-        tabel.getTableHeader().setBackground(LATAR);
+        tabel.getTableHeader().setBackground(NETRAL_LEMBUT);
         tabel.getTableHeader().setDefaultRenderer(penyajiHeader(false));
         int tinggiHeader = Math.max(skala(TINGGI_HEADER_TABEL),
                 tabel.getFontMetrics(tabel.getFont()).getHeight()
@@ -880,5 +906,53 @@ final class Ui {
                     ukuran.left + skala(jarak), ukuran.bottom, ukuran.right));
         }
         return komponen;
+    }
+
+    private static final class KepalaMembulat extends FlatTableHeaderUI {
+        private final int busur = skala(9);
+
+        @Override
+        public void paint(Graphics graphics, JComponent komponen) {
+            if (komponen.getWidth() <= 0 || komponen.getHeight() <= 0) {
+                return;
+            }
+            Graphics2D latar = (Graphics2D) graphics.create();
+            try {
+                latar.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                latar.setColor(NETRAL_LEMBUT);
+                latar.fillRoundRect(0, 0, komponen.getWidth() - 1,
+                        komponen.getHeight() - 1, busur, busur);
+            } finally {
+                latar.dispose();
+            }
+
+            Graphics2D isi = (Graphics2D) graphics.create();
+            try {
+                isi.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                isi.clip(new RoundRectangle2D.Float(
+                        0, 0, komponen.getWidth(), komponen.getHeight(),
+                        busur, busur));
+                super.paint(isi, komponen);
+            } finally {
+                isi.dispose();
+            }
+
+            Graphics2D sudut = (Graphics2D) graphics.create();
+            try {
+                sudut.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                Area luar = new Area(new java.awt.Rectangle(
+                        0, 0, komponen.getWidth(), komponen.getHeight()));
+                luar.subtract(new Area(new RoundRectangle2D.Float(
+                        0, 0, komponen.getWidth() - 1,
+                        komponen.getHeight() - 1, busur, busur)));
+                sudut.setColor(KARTU);
+                sudut.fill(luar);
+            } finally {
+                sudut.dispose();
+            }
+        }
     }
 }

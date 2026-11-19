@@ -2,6 +2,11 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -9,6 +14,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
@@ -20,9 +26,8 @@ import kantinflow.PenerimaanStok;
  * Halaman penerimaan stok dan daftar batch barang terpilih.
  */
 public class PanelStokMasuk extends PanelBarangTerpilih {
-    private final JTextField fieldKode = Ui.field(16);
     private final JTextField fieldJumlah = Ui.field(8);
-    private final JLabel labelJumlah = Ui.labelField("Jumlah *");
+    private final JLabel labelJumlah = Ui.labelField("Jumlah");
     private final PemilihTanggal tanggalMasuk = new PemilihTanggal();
     private final PemilihTanggal tanggalKedaluwarsa = new PemilihTanggal();
     private final JButton tombolSimpan = Ui.utama("Simpan Penerimaan");
@@ -37,16 +42,12 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
             "Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa",
             "Status");
     private final JTable tabel = Ui.tabel(model);
+    private JScrollPane gulirTabel;
 
     public PanelStokMasuk(KonteksKantin konteks) {
         super(konteks, "Stok Masuk",
                 "Terima batch baru untuk barang terpilih.");
         pilihanBarang.setName("barangStokMasuk");
-        fieldKode.setName("kodeBatch");
-        fieldKode.putClientProperty("JTextField.placeholderText",
-                "Contoh: B01 atau SUSU-001");
-        fieldKode.setToolTipText(
-                "Kode untuk mengenali satu kelompok stok yang diterima.");
         fieldJumlah.setName("jumlah");
         tanggalMasuk.komponenTeks().setName("tanggalMasuk");
         tanggalKedaluwarsa.komponenTeks().setName("tanggalKedaluwarsa");
@@ -57,20 +58,20 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         tombolSimpan.setIconTextGap(7);
         tabel.setName("tabelBatch");
         tanggalMasuk.tambahPerubahan(() -> {
-            pesanTanggalMasuk.setText(" ");
+            kosongkanPesan(pesanTanggalMasuk);
             LocalDate masuk = tanggalMasuk.getTanggal();
             tanggalKedaluwarsa.setTanggalMinimum(masuk);
             LocalDate kedaluwarsa = tanggalKedaluwarsa.getTanggal();
             if (masuk != null && kedaluwarsa != null
                     && kedaluwarsa.isBefore(masuk)) {
-                pesanKedaluwarsa.setText(
+                aturPesan(pesanKedaluwarsa,
                         "Tanggal kedaluwarsa tidak boleh sebelum tanggal masuk.");
             } else {
-                pesanKedaluwarsa.setText(" ");
+                kosongkanPesan(pesanKedaluwarsa);
             }
         });
         tanggalKedaluwarsa.tambahPerubahan(
-                () -> pesanKedaluwarsa.setText(" "));
+                () -> kosongkanPesan(pesanKedaluwarsa));
         tombolSimpan.addActionListener(event -> simpan());
         kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
@@ -89,42 +90,69 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         tanggalMasuk.setTanggal(tanggalMasukAwal);
         tanggalKedaluwarsa.setTanggal(null);
         tanggalKedaluwarsa.setTanggalMinimum(tanggalMasukAwal);
-        pesanTanggalMasuk.setText(" ");
-        pesanKedaluwarsa.setText(" ");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggalMasuk);
+        kosongkanPesan(pesanKedaluwarsa);
+    }
+
+    private void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        label.revalidate();
+    }
+
+    private void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
     }
 
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel kolomKedaluwarsa = new JPanel(new BorderLayout(0, 2));
-        kolomKedaluwarsa.setOpaque(false);
-        kolomKedaluwarsa.add(Ui.field("Tanggal kedaluwarsa *",
-                tanggalKedaluwarsa, pesanKedaluwarsa),
-                BorderLayout.CENTER);
-        JLabel petunjukKedaluwarsa = Ui.keterangan(
-                "Isi sesuai tanggal kedaluwarsa barang.");
-        petunjukKedaluwarsa.setName("petunjukTanggalKedaluwarsa");
-        kolomKedaluwarsa.add(petunjukKedaluwarsa, BorderLayout.SOUTH);
-
         JPanel form = Ui.kartu("Form Penerimaan", "stock-in");
-        JPanel isian = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
-                fieldBarang("Barang *"),
-                Ui.field("Kode batch *", fieldKode),
-                Ui.field(labelJumlah, fieldJumlah),
-                Ui.field("Tanggal masuk *", tanggalMasuk, pesanTanggalMasuk),
-                kolomKedaluwarsa);
+        JPanel kolomBarang = fieldBarang("Barang");
+        JPanel kolomJumlah = Ui.field(labelJumlah, fieldJumlah);
+        JPanel kolomMasuk = Ui.field("Tanggal masuk",
+                tanggalMasuk, pesanTanggalMasuk);
+        JPanel kolomKedaluwarsa = Ui.field("Tanggal kedaluwarsa",
+                tanggalKedaluwarsa, pesanKedaluwarsa);
+        JPanel[] kolom = {kolomBarang, kolomJumlah,
+                kolomMasuk, kolomKedaluwarsa};
+        JPanel isian = new JPanel();
+        isian.setOpaque(false);
+        aturGridIsian(isian, kolom, false);
+        isian.addComponentListener(new ComponentAdapter() {
+            private boolean sempit;
+
+            @Override
+            public void componentResized(ComponentEvent event) {
+                boolean sekarang = isian.getWidth() > 0
+                        && isian.getWidth() < Ui.skala(Ui.AMBANG_FORM_SEMPIT);
+                if (sekarang == sempit) {
+                    return;
+                }
+                sempit = sekarang;
+                aturGridIsian(isian, kolom, sempit);
+                isian.revalidate();
+                isian.repaint();
+            }
+        });
+
         JPanel formIsi = new JPanel();
         formIsi.setOpaque(false);
         formIsi.setLayout(new BoxLayout(formIsi, BoxLayout.Y_AXIS));
         isian.setAlignmentX(LEFT_ALIGNMENT);
         formIsi.add(isian);
-        formIsi.add(javax.swing.Box.createVerticalStrut(6));
         pesanValidasi.setAlignmentX(LEFT_ALIGNMENT);
+        pesanValidasi.setBorder(new javax.swing.border.EmptyBorder(
+                Ui.skala(6), 0, 0, 0));
         formIsi.add(pesanValidasi);
         JPanel aksi = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         aksi.setOpaque(false);
         aksi.setAlignmentX(LEFT_ALIGNMENT);
+        aksi.setBorder(new javax.swing.border.EmptyBorder(
+                Ui.skala(16), 0, 0, 0));
         aksi.add(tombolSimpan);
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
@@ -132,8 +160,8 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         JPanel daftar = Ui.kartu("Batch Barang", "package");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_STOK_MASUK),
-                BorderLayout.CENTER);
+        gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_STOK_MASUK);
+        daftarIsi.add(gulirTabel, BorderLayout.CENTER);
         daftarIsi.add(kosong, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
@@ -142,42 +170,74 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         add(isi, BorderLayout.CENTER);
     }
 
+    private void aturGridIsian(JPanel panel, JPanel[] kolom,
+            boolean sempit) {
+        panel.removeAll();
+        panel.setLayout(new GridBagLayout());
+        int jarak = Ui.skala(Ui.GAP_FORM);
+        for (int i = 0; i < kolom.length; i++) {
+            GridBagConstraints c = new GridBagConstraints();
+            if (sempit) {
+                c.gridx = 0;
+                c.gridy = i;
+                c.insets = new Insets(i == 0 ? 0 : jarak, 0, 0, 0);
+            } else {
+                c.gridx = i % 2;
+                c.gridy = i / 2;
+                c.insets = new Insets(c.gridy == 0 ? 0 : jarak,
+                        c.gridx == 0 ? 0 : jarak / 2,
+                        0, c.gridx == 1 ? 0 : jarak / 2);
+            }
+            c.weightx = 1;
+            c.weighty = 0;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.anchor = GridBagConstraints.NORTH;
+            panel.add(kolom[i], c);
+        }
+    }
+
     private void simpan() {
-        pesanValidasi.setText(" ");
-        pesanTanggalMasuk.setText(" ");
-        pesanKedaluwarsa.setText(" ");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggalMasuk);
+        kosongkanPesan(pesanKedaluwarsa);
         if (barang == null) {
-            pesanValidasi.setText(
+            aturPesan(pesanValidasi,
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
-        String kode = fieldKode.getText().trim();
         int jumlah;
         try {
             jumlah = Integer.parseInt(fieldJumlah.getText().trim());
         } catch (NumberFormatException exception) {
-            pesanValidasi.setText("Jumlah harus berupa angka bulat.");
+            aturPesan(pesanValidasi, "Jumlah harus berupa angka bulat.");
             fieldJumlah.requestFocusInWindow();
             return;
         }
 
         LocalDate masuk = tanggalMasuk.getTanggal();
         if (masuk == null) {
-            pesanTanggalMasuk.setText("Tanggal masuk wajib diisi.");
+            aturPesan(pesanTanggalMasuk, "Tanggal masuk wajib diisi.");
             tanggalMasuk.komponenTeks().requestFocusInWindow();
             return;
         }
 
         LocalDate kedaluwarsa = tanggalKedaluwarsa.getTanggal();
         if (kedaluwarsa == null) {
-            pesanKedaluwarsa.setText("Tanggal kedaluwarsa wajib diisi.");
+            aturPesan(pesanKedaluwarsa, "Tanggal kedaluwarsa wajib diisi.");
             tanggalKedaluwarsa.komponenTeks().requestFocusInWindow();
             return;
         }
         if (kedaluwarsa.isBefore(masuk)) {
-            pesanKedaluwarsa.setText(
+            aturPesan(pesanKedaluwarsa,
                     "Tanggal kedaluwarsa tidak boleh sebelum tanggal masuk.");
             tanggalKedaluwarsa.komponenTeks().requestFocusInWindow();
+            return;
+        }
+
+        String kode = konteks.kodeBatchOtomatis(barang, masuk);
+        if (kode == null || kode.isBlank()) {
+            aturPesan(pesanValidasi,
+                    "Kode batch otomatis tidak dapat dibentuk.");
             return;
         }
 
@@ -186,7 +246,8 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
             penerimaan.terima(barang, kode, jumlah, masuk, kedaluwarsa);
         } catch (IllegalArgumentException exception) {
             konteks.muatUlang();
-            pesanValidasi.setText("Penerimaan ditolak: " + exception.getMessage());
+            aturPesan(pesanValidasi,
+                    "Penerimaan ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Penerimaan gagal: "
                     + exception.getMessage(), false);
             return;
@@ -194,20 +255,18 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
 
         if (konteks.simpanTransaksi(barang, penerimaan, "Penerimaan berhasil: "
                 + kode + ", " + jumlah + " " + barang.getSatuan() + ".")) {
-            fieldKode.setText("");
             fieldJumlah.setText("");
             aturTanggalAwal();
-            pesanValidasi.setText(" ");
         } else {
-            pesanValidasi.setText("Penerimaan gagal disimpan. Lihat status.");
+            aturPesan(pesanValidasi,
+                    "Penerimaan gagal disimpan. Lihat status.");
         }
     }
 
     @Override
     protected void saatBarangBerubah() {
-        fieldKode.setText("");
         fieldJumlah.setText("");
-        pesanValidasi.setText(" ");
+        kosongkanPesan(pesanValidasi);
         perbaruiLabelJumlah();
         aturTanggalAwal();
     }
@@ -223,6 +282,9 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
                     "Tambahkan barang melalui halaman Barang untuk mencatat "
                     + "penerimaan.");
             kosong.setVisible(true);
+            if (gulirTabel != null) {
+                gulirTabel.setVisible(false);
+            }
             tombolSimpan.setEnabled(false);
             return;
         }
@@ -240,16 +302,20 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
                 status
             });
         }
+        boolean kosongTabel = model.getRowCount() == 0;
         kosong.setTitle("Belum ada batch");
         kosong.setDescription(
                 "Batch baru akan muncul di sini setelah penerimaan pertama.");
-        kosong.setVisible(model.getRowCount() == 0);
+        kosong.setVisible(kosongTabel);
+        if (gulirTabel != null) {
+            gulirTabel.setVisible(!kosongTabel);
+        }
+        Ui.sesuaikanTinggiTabel(gulirTabel, tabel, 8);
     }
 
     @Override
     public boolean adaIsianBelumDisimpan() {
-        return !fieldKode.getText().trim().isEmpty()
-                || !fieldJumlah.getText().trim().isEmpty()
+        return !fieldJumlah.getText().trim().isEmpty()
                 || !Objects.equals(tanggalMasuk.getTanggal(), tanggalMasukAwal)
                 || tanggalKedaluwarsa.getTanggal() != null
                 || !tanggalKedaluwarsa.komponenTeks().getText().trim().isEmpty();

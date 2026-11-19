@@ -10,7 +10,10 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
@@ -63,8 +66,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final JTextArea status = new JTextArea(2, 40);
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
-    private JLabel judulHalaman;
-    private JLabel keteranganHalaman;
+    private final Map<String, JScrollPane> gulirHalaman = new LinkedHashMap<>();
     private JPanel indikatorNav;
     private JPanel pembungkusNav;
     private String halamanAktif = "ringkasan";
@@ -290,82 +292,71 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         panel.put("riwayat", new PanelRiwayat(this));
 
         for (Map.Entry<String, PanelKantin> entry : panel.entrySet()) {
+            JPanel header = buatHeaderHalaman(
+                    entry.getKey(), entry.getValue());
             HalamanScroll tampilan = new HalamanScroll(entry.getValue(),
-                    entry.getValue().lebarMaksimum());
+                    header, entry.getValue().lebarMaksimum());
             JScrollPane scroll = new JScrollPane(tampilan,
                     ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                     ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
             scroll.setBorder(null);
             scroll.getViewport().setBackground(Ui.LATAR);
             scroll.getVerticalScrollBar().setUnitIncrement(16);
+            gulirHalaman.put(entry.getKey(), scroll);
             kartu.add(scroll, entry.getKey());
         }
 
-        status.setName("status");
-        status.setEditable(false);
-        status.setLineWrap(true);
-        status.setWrapStyleWord(true);
-        status.setFont(Ui.font(Font.PLAIN, Ui.FONT_STATUS));
-        status.setBorder(new EmptyBorder(9, 26, 9, 26));
-        status.setBackground(Ui.KARTU);
-        status.setForeground(Ui.TEKS);
-        status.setRows(2);
-        status.setVisible(false);
-
-        JPanel kaki = new JPanel(new BorderLayout(12, 0));
-        kaki.setBackground(Ui.KARTU);
-        kaki.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, Ui.GARIS),
-                new EmptyBorder(8, Ui.skala(24), 8, Ui.skala(24))));
-        JLabel versi = new JLabel("KantinFlow · antarmuka persediaan");
-        versi.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
-        versi.setForeground(Ui.TEKS_LEMBUT);
-        kaki.add(versi, BorderLayout.WEST);
-        kaki.add(status, BorderLayout.EAST);
-
         JPanel konten = new JPanel(new BorderLayout());
         konten.setBackground(Ui.LATAR);
-        konten.add(buatHeader(), BorderLayout.NORTH);
         konten.add(kartu, BorderLayout.CENTER);
-        konten.add(kaki, BorderLayout.SOUTH);
         return konten;
     }
 
-    private JPanel buatHeader() {
-        JPanel header = new JPanel(new BorderLayout(24, 0));
-        header.setBackground(Ui.KARTU);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Ui.GARIS),
-                new EmptyBorder(12, Ui.skala(24), 11, Ui.skala(24))));
+    /**
+     * Header bersama per halaman. Header berada di dalam area scroll dan
+     * memakai layout manager, bukan posisi absolut.
+     */
+    private JPanel buatHeaderHalaman(String kunci, PanelKantin halaman) {
+        JPanel header = new JPanel(new GridBagLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(
+                Ui.skala(24), Ui.skala(24), 0, Ui.skala(24)));
 
-        JPanel kiri = new JPanel();
-        kiri.setOpaque(false);
-        kiri.setLayout(new BoxLayout(kiri, BoxLayout.Y_AXIS));
-        judulHalaman = new JLabel("Ringkasan");
-        judulHalaman.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
-        judulHalaman.setForeground(Ui.TEKS);
-        keteranganHalaman = new JLabel(" ");
-        keteranganHalaman.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
-        keteranganHalaman.setForeground(Ui.TEKS_LEMBUT);
-        kiri.add(judulHalaman);
-        kiri.add(Box.createVerticalStrut(3));
-        kiri.add(keteranganHalaman);
-        header.add(kiri, BorderLayout.CENTER);
+        JLabel ikon = new JLabel(Ui.ikonMenu(kunci, 24, Ui.AKSEN));
+        ikon.setVerticalAlignment(SwingConstants.CENTER);
+        JLabel judul = new JLabel(halaman.getJudul());
+        judul.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
+        judul.setForeground(Ui.TEKS);
+        JLabel keterangan = new JLabel(halaman.getKeterangan());
+        keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
+        keterangan.setForeground(Ui.TEKS_LEMBUT);
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = 0;
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = new Insets(0, 0, 0, Ui.skala(12));
+        header.add(ikon, c);
+
+        c.gridx = 1;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(0, 0, 0, 0);
+        header.add(judul, c);
+
+        c.gridy = 1;
+        c.insets = new Insets(Ui.skala(6), 0, 0, 0);
+        header.add(keterangan, c);
         return header;
     }
 
     private void tampilkanHalaman(String kunci) {
-        PanelKantin halaman = panel.get(kunci);
-        if (halaman != null) {
-            if (judulHalaman != null) {
-                judulHalaman.setText(halaman.getJudul());
-            }
-            if (keteranganHalaman != null) {
-                keteranganHalaman.setText(halaman.getKeterangan());
-            }
-        }
         halamanAktif = kunci;
         cardLayout.show(kartu, kunci);
+        JScrollPane gulir = gulirHalaman.get(kunci);
+        if (gulir != null) {
+            gulir.getViewport().setViewPosition(new java.awt.Point(0, 0));
+        }
         JToggleButton tombol = tombolNavigasi.get(kunci);
         if (tombol != null) {
             tombol.setSelected(true);
@@ -544,6 +535,20 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     @Override
+    public String kodeBatchOtomatis(Barang target, LocalDate tanggalMasuk) {
+        if (target == null) {
+            return null;
+        }
+        try {
+            return penyimpanan.kodeBatchBerikutnya(target, tanggalMasuk);
+        } catch (RuntimeException exception) {
+            tampilkanPesan("Gagal membentuk kode batch: "
+                    + exception.getMessage(), false);
+            return null;
+        }
+    }
+
+    @Override
     public boolean simpanTransaksi(Barang target, Transaksi transaksi,
             String pesanSukses) {
         if (target == null) {
@@ -647,28 +652,35 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     private static final class HalamanScroll extends JPanel
             implements Scrollable {
-        private final PanelKantin halaman;
+        private final JPanel kolom;
         private final int maksimum;
 
-        private HalamanScroll(PanelKantin halaman, int maksimum) {
+        private HalamanScroll(PanelKantin halaman, JPanel header,
+                int maksimum) {
             super(null);
-            this.halaman = halaman;
             this.maksimum = maksimum;
             setOpaque(false);
-            add(halaman);
+            kolom = new JPanel();
+            kolom.setOpaque(false);
+            kolom.setLayout(new BoxLayout(kolom, BoxLayout.Y_AXIS));
+            header.setAlignmentX(Component.LEFT_ALIGNMENT);
+            halaman.setAlignmentX(Component.LEFT_ALIGNMENT);
+            kolom.add(header);
+            kolom.add(halaman);
+            add(kolom);
         }
 
         @Override
         public void doLayout() {
             int lebar = Math.min(getWidth(), Ui.skala(maksimum));
             int tinggi = Math.max(getHeight(),
-                    halaman.getPreferredSize().height);
-            halaman.setBounds(0, 0, lebar, tinggi);
+                    kolom.getPreferredSize().height);
+            kolom.setBounds(0, 0, lebar, tinggi);
         }
 
         @Override
         public Dimension getPreferredSize() {
-            Dimension isi = halaman.getPreferredSize();
+            Dimension isi = kolom.getPreferredSize();
             return new Dimension(Math.min(isi.width, Ui.skala(maksimum)),
                     isi.height);
         }

@@ -2,7 +2,6 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.FlowLayout;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +26,8 @@ import kantinflow.StatusKedaluwarsa;
 public class PanelPemantauan extends PanelKantin {
     private final JComboBox<PilihanFilter> pilihanFilter = Ui.combo();
     private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
-    private static final String TOOLTIP_BUKA_NONAKTIF =
-            "Pilih batch kedaluwarsa yang masih bersisa.";
 
     private final JButton tombolPeriksa = Ui.utama("Periksa");
-    private final JButton tombolBukaPembuangan = Ui.sekunder("Buka Pembuangan");
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel pesanTanggal = Ui.pesan();
     private LocalDate tanggalTerakhir;
@@ -41,6 +37,7 @@ public class PanelPemantauan extends PanelKantin {
     private final DefaultTableModel model = Ui.model(
             "Barang", "Kode Batch", "Sisa", "Satuan", "Kedaluwarsa", "Status");
     private final JTable tabel = Ui.tabel(model);
+    private JScrollPane gulirTabel;
     private final TableRowSorter<DefaultTableModel> sorter =
             new TableRowSorter<>(model);
     private final List<BarisPemantauan> barisModel = new ArrayList<>();
@@ -70,19 +67,12 @@ public class PanelPemantauan extends PanelKantin {
         tombolPeriksa.setName("tombolPeriksa");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
-        tombolBukaPembuangan.setName("tombolBukaPembuangan");
-        tombolBukaPembuangan.setEnabled(false);
-        tombolBukaPembuangan.setToolTipText(TOOLTIP_BUKA_NONAKTIF);
-        tombolBukaPembuangan.addActionListener(event -> bukaPembuangan());
         tabel.setName("tabelPemantauan");
         tabel.setRowSorter(sorter);
-        tabel.getSelectionModel().addListSelectionListener(event -> {
-            if (!event.getValueIsAdjusting()) {
-                perbaruiTombolBuka();
-            }
-        });
         labelInfo.setName("infoPemantauan");
         pesanValidasi.setName("pesanPemantauan");
+        kosongkanPesan(pesanValidasi);
+        kosongkanPesan(pesanTanggal);
         kosong.setName("kosongPemantauan");
         kosongBarang.setName("kosongBarangPemantauan");
         hasil.setName("hasilPemantauan");
@@ -90,7 +80,7 @@ public class PanelPemantauan extends PanelKantin {
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 2);
         Ui.pasangTeksStatus(tabel, 5);
-        Ui.aturKolom(tabel, 150, 120, 80, 85, 120, 150);
+        Ui.aturKolom(tabel, 150, 160, 80, 85, 120, 150);
 
         bangunIsi();
     }
@@ -100,11 +90,13 @@ public class PanelPemantauan extends PanelKantin {
         isi.setOpaque(false);
 
         JPanel kontrol = Ui.kartu("Filter pemantauan", "monitor");
-        JPanel kontrolIsi = new JPanel(new BorderLayout(0, 8));
+        JPanel kontrolIsi = new JPanel(new BorderLayout(0, 0));
         kontrolIsi.setOpaque(false);
+        pesanValidasi.setBorder(new javax.swing.border.EmptyBorder(
+                Ui.skala(6), 0, 0, 0));
         JPanel baris = Ui.barisFilter(
-                Ui.field("Barang *", pilihanFilter),
-                Ui.field("Tanggal pemeriksaan *", tanggalPilihan, pesanTanggal),
+                Ui.field("Barang", pilihanFilter),
+                Ui.field("Tanggal pemeriksaan", tanggalPilihan, pesanTanggal),
                 Ui.field(" ", tombolPeriksa));
         kontrolIsi.add(baris, BorderLayout.NORTH);
         kontrolIsi.add(pesanValidasi, BorderLayout.CENTER);
@@ -114,16 +106,11 @@ public class PanelPemantauan extends PanelKantin {
         JPanel daftar = Ui.kartu("Status Batch", "alert-triangle");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        JScrollPane gulir = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN);
-        hasil.add(gulir, "tabel");
+        gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN);
+        hasil.add(gulirTabel, "tabel");
         hasil.add(kosong, "kosong");
         hasil.add(kosongBarang, "kosongBarang");
         daftarIsi.add(hasil, BorderLayout.CENTER);
-
-        JPanel aksi = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        aksi.setOpaque(false);
-        aksi.add(tombolBukaPembuangan);
-        daftarIsi.add(aksi, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
         isi.add(kontrol, BorderLayout.NORTH);
@@ -140,34 +127,36 @@ public class PanelPemantauan extends PanelKantin {
             return;
         }
         idFilter = dipilih.idBarang();
-        pesanValidasi.setText(" ");
+        kosongkanPesan(pesanValidasi);
         perbarui();
     }
 
     private void periksa() {
         if (konteks.getDaftarBarang().isEmpty()) {
-            pesanValidasi.setText(
+            aturPesan(pesanValidasi,
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
         if (tanggalPilihan.ambilTeksTidakValid()) {
-            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            aturPesan(pesanTanggal,
+                    "Tanggal tidak valid. Pilih tanggal yang benar.");
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
         LocalDate dipilih = tanggalPilihan.getTanggal();
         if (dipilih == null) {
-            pesanTanggal.setText("Tanggal pemeriksaan wajib diisi.");
+            aturPesan(pesanTanggal, "Tanggal pemeriksaan wajib diisi.");
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
         if (!tanggalPilihan.isTextFieldValid()) {
-            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            aturPesan(pesanTanggal,
+                    "Tanggal tidak valid. Pilih tanggal yang benar.");
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
-        pesanTanggal.setText(" ");
-        pesanValidasi.setText(" ");
+        kosongkanPesan(pesanTanggal);
+        kosongkanPesan(pesanValidasi);
         tanggalTerakhir = dipilih;
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);
@@ -232,7 +221,7 @@ public class PanelPemantauan extends PanelKantin {
         LocalDate dariKonteks = konteks.getTanggalAcuan();
         if (!dariKonteks.equals(tanggalKonteksTerakhir)) {
             tanggalPilihan.setTanggal(dariKonteks);
-            pesanTanggal.setText(" ");
+            kosongkanPesan(pesanTanggal);
         }
         tanggalKonteksTerakhir = dariKonteks;
         tanggalTerakhir = dariKonteks;
@@ -244,10 +233,9 @@ public class PanelPemantauan extends PanelKantin {
             model.setRowCount(0);
             labelInfo.setText("Tambahkan barang melalui halaman Barang "
                     + "untuk mulai memantau kedaluwarsa.");
-            pesanValidasi.setText(" ");
+            kosongkanPesan(pesanValidasi);
             tombolPeriksa.setEnabled(false);
             tampilkanHasil("kosongBarang");
-            perbaruiTombolBuka();
             return;
         }
 
@@ -275,13 +263,13 @@ public class PanelPemantauan extends PanelKantin {
             tambahBaris(barang, acuan);
         }
 
+        Ui.sesuaikanTinggiTabel(gulirTabel, tabel, 8);
         if (model.getRowCount() == 0) {
             siapkanKosong();
             tampilkanHasil("kosong");
         } else {
             tampilkanHasil("tabel");
         }
-        perbaruiTombolBuka();
     }
 
     private void tambahBaris(Barang barang, LocalDate acuan) {
@@ -325,24 +313,15 @@ public class PanelPemantauan extends PanelKantin {
         return barisModel.get(modelIndex);
     }
 
-    private void perbaruiTombolBuka() {
-        BarisPemantauan baris = barisTerpilih();
-        boolean bisaDibuka = baris != null && baris.bisaDibuang();
-        tombolBukaPembuangan.setEnabled(bisaDibuka);
-        tombolBukaPembuangan.setToolTipText(bisaDibuka
-                ? "Buka formulir Pembuangan untuk batch ini."
-                : TOOLTIP_BUKA_NONAKTIF);
+    private void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        label.revalidate();
     }
 
-    private void bukaPembuangan() {
-        BarisPemantauan baris = barisTerpilih();
-        if (baris == null || !baris.bisaDibuang()) {
-            perbaruiTombolBuka();
-            return;
-        }
-        pesanValidasi.setText(" ");
-        konteks.bukaPembuanganDariPemantauan(
-                baris.idBarang(), baris.kodeBatch(), baris.tanggalAcuan());
+    private void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
     }
 
     private void siapkanKosong() {
