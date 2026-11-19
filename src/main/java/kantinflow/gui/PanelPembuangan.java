@@ -16,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import kantinflow.Barang;
 import kantinflow.BatchStok;
 import kantinflow.PembuanganStok;
 import kantinflow.StatusKedaluwarsa;
@@ -267,6 +268,62 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         } else {
             pesanValidasi.setText("Pembuangan gagal disimpan. Lihat status.");
         }
+    }
+
+    boolean siapkanDariPemantauan(
+            int idBarangTarget, String kodeBatch, LocalDate tanggal) {
+        if (idBarangTarget < 0 || kodeBatch == null
+                || kodeBatch.isBlank() || tanggal == null) {
+            return false;
+        }
+
+        Barang target = null;
+        for (Barang item : konteks.getDaftarBarang()) {
+            if (item.getId() == idBarangTarget) {
+                target = item;
+                break;
+            }
+        }
+        if (target == null) {
+            return false;
+        }
+
+        BatchStok batchTarget = null;
+        for (BatchStok item : target.getDaftarBatch()) {
+            if (item.getKode().equals(kodeBatch)) {
+                batchTarget = item;
+                break;
+            }
+        }
+        if (batchTarget == null || batchTarget.getSisaJumlah() <= 0
+                || batchTarget.statusPada(tanggal)
+                        != StatusKedaluwarsa.KEDALUWARSA) {
+            return false;
+        }
+
+        fieldJumlah.setText("");
+        fieldAlasan.setText("");
+        pesanValidasi.setText(" ");
+        pesanTanggal.setText(" ");
+        tanggalAwal = tanggal;
+        tanggalPembuangan.setTanggal(tanggal);
+
+        pilihanBarang.setSelectedItem(target);
+        if (barang == null || barang.getId() != idBarangTarget) {
+            return false;
+        }
+
+        tanggalAwal = tanggal;
+        tanggalPembuangan.setTanggal(tanggal);
+        for (int i = 0; i < comboBatch.getItemCount(); i++) {
+            if (comboBatch.getItemAt(i).getKode().equals(kodeBatch)) {
+                comboBatch.setSelectedIndex(i);
+                perbaruiLabelJumlah();
+                perbaruiRingkasan();
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -5,9 +5,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -17,47 +14,47 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Kartu statistik dengan ikon berwarna, angka besar, label, dan strip status.
+ * Kartu statistik ringkas dengan ikon kecil, angka utama, dan satu keterangan.
  */
 public class StatCard extends CardPanel {
     private final JLabel nilai = new JLabel("-");
     private final JLabel judul;
     private final JLabel keterangan;
+    private final JLabel ikon;
     private final JPanel strip;
-    private final IconCircle ikon;
+    private final String ikonNama;
 
     public StatCard(String judul, String ikonNama, Color aksen) {
-        super(new BorderLayout(0, 10));
-        setBorder(new EmptyBorder(Ui.skala(16), Ui.skala(18),
-                Ui.skala(14), Ui.skala(18)));
+        super(new BorderLayout(0, 7));
+        this.ikonNama = ikonNama;
+        setBorder(new EmptyBorder(Ui.skala(12), Ui.skala(14),
+                Ui.skala(12), Ui.skala(14)));
         this.judul = new JLabel(judul);
         this.judul.setFont(Ui.font(Font.BOLD, Ui.FONT_LABEL));
         this.judul.setForeground(Ui.TEKS_LEMBUT);
         this.keterangan = new JLabel(" ");
         this.keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
         this.keterangan.setForeground(Ui.TEKS_LEMBUT);
-        this.nilai.setFont(Ui.font(Font.BOLD, 30f));
+        this.nilai.setFont(Ui.font(Font.BOLD, 26f));
         this.nilai.setForeground(Ui.TEKS);
-        this.ikon = new IconCircle(Ui.ikonAksi(ikonNama, 20, Color.WHITE),
-                aksen);
+        this.ikon = new JLabel(Ui.ikonAksi(ikonNama, 16, aksen));
+        this.ikon.setVerticalAlignment(SwingConstants.TOP);
         this.strip = new JPanel();
         this.strip.setOpaque(false);
 
-        JPanel atas = new JPanel(new BorderLayout(10, 0));
+        JPanel atas = new JPanel(new BorderLayout(8, 0));
         atas.setOpaque(false);
         JPanel teks = new JPanel();
         teks.setOpaque(false);
         teks.setLayout(new BoxLayout(teks, BoxLayout.Y_AXIS));
         teks.add(this.judul);
-        teks.add(Box.createVerticalStrut(6));
+        teks.add(Box.createVerticalStrut(4));
         teks.add(this.nilai);
         atas.add(teks, BorderLayout.CENTER);
-        JPanel kanan = new JPanel(new java.awt.FlowLayout(
-                java.awt.FlowLayout.RIGHT, 0, 0));
+        JPanel kanan = new JPanel(new FlowLayout(
+                FlowLayout.RIGHT, 0, 0));
         kanan.setOpaque(false);
         kanan.add(this.ikon);
-        kanan.setPreferredSize(new Dimension(Ui.skala(48), Ui.skala(48)));
-        kanan.setMaximumSize(new Dimension(Ui.skala(48), Ui.skala(48)));
         atas.add(kanan, BorderLayout.EAST);
 
         JPanel bawah = new JPanel(new BorderLayout(0, 4));
@@ -87,7 +84,7 @@ public class StatCard extends CardPanel {
     public void setStatus(String teks) {
         strip.removeAll();
         if (teks == null || teks.isBlank()) {
-            strip.setPreferredSize(new Dimension(0, Ui.skala(6)));
+            strip.setPreferredSize(new Dimension(0, 0));
             return;
         }
         Badge badge = Badge.status(teks);
@@ -97,41 +94,6 @@ public class StatCard extends CardPanel {
     }
 
     public void setAksen(Color warna) {
-        ikon.setWarna(warna);
-    }
-
-    private static final class IconCircle extends JPanel {
-        private final javax.swing.Icon ikon;
-        private Color warna;
-
-        private IconCircle(javax.swing.Icon ikon, Color warna) {
-            this.ikon = ikon;
-            this.warna = warna;
-            setOpaque(false);
-            setPreferredSize(new Dimension(Ui.skala(48), Ui.skala(48)));
-            setMinimumSize(getPreferredSize());
-        }
-
-        void setWarna(Color warna) {
-            this.warna = warna;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            try {
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(warna);
-                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-            } finally {
-                g2.dispose();
-            }
-            int x = (getWidth() - ikon.getIconWidth()) / 2;
-            int y = (getHeight() - ikon.getIconHeight()) / 2;
-            ikon.paintIcon(this, graphics, x, y);
-            super.paintComponent(graphics);
-        }
+        ikon.setIcon(Ui.ikonAksi(ikonNama, 16, warna));
     }
 }

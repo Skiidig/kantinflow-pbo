@@ -35,6 +35,15 @@ public interface KonteksKantin {
 
     boolean simpanStokMinimum(Barang barang, int minimum);
 
+    /**
+     * Membuka formulir Pembuangan untuk batch dari Pemantauan tanpa
+     * menjalankan transaksi.
+     */
+    default boolean bukaPembuanganDariPemantauan(
+            int idBarang, String kodeBatch, LocalDate tanggal) {
+        return false;
+    }
+
     boolean muatUlang();
 
     void tampilkanPesan(String pesan, boolean sukses);

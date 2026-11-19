@@ -43,6 +43,8 @@ import javax.swing.JComponent;
 import javax.swing.border.EmptyBorder;
 
 import kantinflow.Barang;
+import kantinflow.BatchStok;
+import kantinflow.StatusKedaluwarsa;
 import kantinflow.Transaksi;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
@@ -334,24 +336,19 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         header.setBackground(Ui.KARTU);
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, Ui.GARIS),
-                new EmptyBorder(16, Ui.skala(24), 15, Ui.skala(24))));
+                new EmptyBorder(12, Ui.skala(24), 11, Ui.skala(24))));
 
         JPanel kiri = new JPanel();
         kiri.setOpaque(false);
         kiri.setLayout(new BoxLayout(kiri, BoxLayout.Y_AXIS));
-        JLabel eyebrow = new JLabel("KANTINFLOW · MANAJEMEN PERSEDIAAN");
-        eyebrow.setFont(Ui.font(Font.BOLD, Ui.FONT_EYEBROW));
-        eyebrow.setForeground(Ui.AKSEN);
         judulHalaman = new JLabel("Ringkasan");
         judulHalaman.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
         judulHalaman.setForeground(Ui.TEKS);
         keteranganHalaman = new JLabel(" ");
         keteranganHalaman.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
         keteranganHalaman.setForeground(Ui.TEKS_LEMBUT);
-        kiri.add(eyebrow);
-        kiri.add(Box.createVerticalStrut(2));
         kiri.add(judulHalaman);
-        kiri.add(Box.createVerticalStrut(2));
+        kiri.add(Box.createVerticalStrut(3));
         kiri.add(keteranganHalaman);
         header.add(kiri, BorderLayout.CENTER);
         return header;
@@ -459,6 +456,91 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         perbaruiPanel("ringkasan");
         perbaruiPanel("stok-masuk");
         perbaruiPanel("pemantauan");
+    }
+
+    @Override
+    public boolean bukaPembuanganDariPemantauan(
+            int idBarangTarget, String kodeBatch, LocalDate tanggal) {
+        if (idBarangTarget < 0 || kodeBatch == null
+                || kodeBatch.isBlank() || tanggal == null) {
+            tampilkanPesan("Batch dari Pemantauan tidak valid. "
+                    + "Pilih batch lain di Pemantauan.", false);
+            return false;
+        }
+
+        PanelKantin halaman = panel.get("pembuangan");
+        if (!(halaman instanceof PanelPembuangan pembuangan)) {
+            tampilkanPesan("Halaman Pembuangan tidak tersedia.", false);
+            return false;
+        }
+
+        List<Barang> terbaru;
+        try {
+            terbaru = penyimpanan.muatSemuaBarang();
+        } catch (PenyimpananException exception) {
+            tampilkanPesan("Gagal memuat ulang data untuk Pembuangan: "
+                    + exception.getMessage(), false);
+            return false;
+        }
+
+        Barang target = null;
+        for (Barang item : terbaru) {
+            if (item.getId() == idBarangTarget) {
+                target = item;
+                break;
+            }
+        }
+        if (target == null) {
+            tampilkanPesan("Barang untuk batch ini sudah tidak tersedia. "
+                    + "Pilih batch lain di Pemantauan.", false);
+            return false;
+        }
+
+        BatchStok batch = null;
+        for (BatchStok item : target.getDaftarBatch()) {
+            if (item.getKode().equals(kodeBatch)) {
+                batch = item;
+                break;
+            }
+        }
+        if (batch == null || batch.getSisaJumlah() <= 0) {
+            tampilkanPesan("Batch " + kodeBatch + " sudah tidak tersedia "
+                    + "atau sisanya sudah habis. Pilih batch lain di Pemantauan.",
+                    false);
+            return false;
+        }
+        if (batch.statusPada(tanggal) != StatusKedaluwarsa.KEDALUWARSA) {
+            tampilkanPesan("Batch " + kodeBatch + " tidak berstatus kedaluwarsa "
+                    + "pada tanggal pemeriksaan. Periksa ulang tanggal.", false);
+            return false;
+        }
+
+        if (pembuangan.adaIsianBelumDisimpan()
+                && !DialogKonfirmasi.tampilkan(this, "Ganti isian Pembuangan",
+                        "Formulir Pembuangan masih berisi isian yang belum "
+                        + "disimpan. Ganti isian tersebut dengan batch "
+                        + kodeBatch + "?",
+                        "Buka Pembuangan")) {
+            tampilkanPesan("Pembukaan Pembuangan dibatalkan. "
+                    + "Isian formulir dipertahankan.", true);
+            return false;
+        }
+
+        daftarBarang.clear();
+        daftarBarang.addAll(terbaru);
+        perbaruiSemua();
+        if (!pembuangan.siapkanDariPemantauan(
+                idBarangTarget, kodeBatch, tanggal)) {
+            tampilkanPesan("Formulir Pembuangan tidak dapat diisi untuk batch "
+                    + kodeBatch + ". Pilih batch lain di Pemantauan.", false);
+            return false;
+        }
+
+        tampilkanHalaman("pembuangan");
+        tampilkanPesan("Pembuangan siap untuk batch " + kodeBatch + " pada "
+                + PemilihTanggal.format(tanggal)
+                + ". Isi jumlah dan alasan, lalu tekan Buang Stok.", true);
+        return true;
     }
 
     @Override
