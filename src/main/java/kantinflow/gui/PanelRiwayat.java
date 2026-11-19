@@ -38,17 +38,19 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
+import kantinflow.Barang;
 import kantinflow.RincianTransaksi;
 import kantinflow.Transaksi;
 
 /**
  * Halaman riwayat dengan pencarian, filter, dan detail transaksi.
  */
-public class PanelRiwayat extends PanelBarangTerpilih {
+public class PanelRiwayat extends PanelKantin {
     private static final String SEMUA = "Semua";
     private static final String MANUAL = "Pengeluaran Manual";
     private static final String FEFO = "Pengeluaran FEFO";
 
+    private final JComboBox<PilihanBarang> pilihanBarang = Ui.combo();
     private final JTextField fieldCari = Ui.field(16);
     private final PemilihTanggal tanggalMulai = new PemilihTanggal();
     private final PemilihTanggal tanggalAkhir = new PemilihTanggal();
@@ -70,10 +72,14 @@ public class PanelRiwayat extends PanelBarangTerpilih {
             "Belum ada transaksi untuk barang aktif ini.");
     private final JLabel infoBarang = Ui.keterangan(" ");
     private final DefaultTableModel model = Ui.model(
-            "Tanggal", "Jenis", "Kode Batch", "Jumlah", "Alasan");
+            "Tanggal", "Barang", "Jenis", "Kode Batch",
+            "Jumlah", "Satuan", "Alasan");
     private final JTable tabel = Ui.tabel(model);
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
     private final List<BarisRiwayat> barisModel = new ArrayList<>();
+    private Barang barang;
+    private int idBarang = -1;
+    private boolean memperbaruiPilihan;
     private boolean mengekspor;
     private String cariAktif = "";
     private String jenisAktif = SEMUA;
@@ -84,6 +90,7 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         super(konteks, "Riwayat",
                 "Cari, filter, dan periksa rincian transaksi barang aktif.");
         pilihanBarang.setName("barangRiwayat");
+        pilihanBarang.addActionListener(event -> pilihDariPengguna());
         fieldCari.setName("cariRiwayat");
         infoBarang.setName("konteksRiwayat");
         tanggalMulai.komponenTeks().setName("tanggalAwalRiwayat");
@@ -139,10 +146,10 @@ public class PanelRiwayat extends PanelBarangTerpilih {
                 }
             }
         });
-        Ui.rataKanan(tabel, 3);
-        Ui.pasangTeksStatus(tabel, 1);
-        Ui.aturKolom(tabel, 100, 140, 95, 95, 210);
-        Ui.jarakKiriKolom(tabel, 4, 20);
+        Ui.rataKanan(tabel, 4);
+        Ui.pasangTeksStatus(tabel, 2);
+        Ui.aturKolom(tabel, 100, 140, 130, 110, 70, 70, 210);
+        Ui.jarakKiriKolom(tabel, 6, 20);
         bangunIsi();
     }
 
@@ -157,7 +164,7 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         aksi.add(tombolTerapkan);
         aksi.add(tombolReset);
         JPanel isian = Ui.gridForm(2, 520,
-                fieldBarang("Barang *"),
+                Ui.field("Barang *", pilihanBarang),
                 Ui.field("Cari kode batch atau alasan", fieldCari),
                 Ui.field("Jenis transaksi", comboJenis),
                 Ui.field("Tanggal mulai", tanggalMulai, pesanTanggalMulai),
@@ -237,25 +244,29 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         String jenis = jenisAktif;
         List<BarisRiwayat> hasil = new ArrayList<>();
         Set<Transaksi> transaksiUnik = new LinkedHashSet<>();
-        List<Transaksi> riwayat = barang == null
-                ? List.of() : konteks.getRiwayat(barang);
-
-        for (Transaksi transaksi : riwayat) {
-            if (!cocokJenis(transaksi, jenis)
-                    || !cocokTanggal(transaksi, dari, sampai)) {
-                continue;
+        boolean adaRiwayat = false;
+        for (Barang item : lingkupBarang()) {
+            List<Transaksi> riwayat = konteks.getRiwayat(item);
+            if (!riwayat.isEmpty()) {
+                adaRiwayat = true;
             }
-            String alasan = transaksi.getAlasan() == null
-                    ? "" : transaksi.getAlasan();
-            for (RincianTransaksi rincian : transaksi.getRincian()) {
-                String batch = rincian.getBatch().getKode();
-                if (!cari.isEmpty()
-                        && !batch.toLowerCase(Locale.ROOT).contains(cari)
-                        && !alasan.toLowerCase(Locale.ROOT).contains(cari)) {
+            for (Transaksi transaksi : riwayat) {
+                if (!cocokJenis(transaksi, jenis)
+                        || !cocokTanggal(transaksi, dari, sampai)) {
                     continue;
                 }
-                hasil.add(new BarisRiwayat(transaksi, rincian));
-                transaksiUnik.add(transaksi);
+                String alasan = transaksi.getAlasan() == null
+                        ? "" : transaksi.getAlasan();
+                for (RincianTransaksi rincian : transaksi.getRincian()) {
+                    String batch = rincian.getBatch().getKode();
+                    if (!cari.isEmpty()
+                            && !batch.toLowerCase(Locale.ROOT).contains(cari)
+                            && !alasan.toLowerCase(Locale.ROOT).contains(cari)) {
+                        continue;
+                    }
+                    hasil.add(new BarisRiwayat(item, transaksi, rincian));
+                    transaksiUnik.add(transaksi);
+                }
             }
         }
 
@@ -265,12 +276,14 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         for (BarisRiwayat baris : hasil) {
             Transaksi transaksi = baris.transaksi();
             RincianTransaksi rincian = baris.rincian();
+            Barang asal = baris.barang();
             model.addRow(new Object[]{
                 transaksi.getTanggal().toString(),
+                asal.getNama(),
                 jenisTampil(transaksi),
                 rincian.getBatch().getKode(),
-                rincian.getJumlah() + " "
-                + (barang == null ? "-" : barang.getSatuan()),
+                rincian.getJumlah(),
+                asal.getSatuan(),
                 transaksi.getAlasan() == null ? "" : transaksi.getAlasan()
             });
             barisModel.add(baris);
@@ -282,13 +295,18 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         }
         labelJumlah.setText(transaksiUnik.size() + " transaksi · "
                 + hasil.size() + " rincian ditampilkan");
-        boolean adaRiwayat = !riwayat.isEmpty();
         if (hasil.isEmpty()) {
-            if (barang == null) {
+            if (konteks.getDaftarBarang().isEmpty()) {
                 kosong.setTitle("Belum ada barang");
                 kosong.setDescription(
                         "Tambahkan barang melalui halaman Barang untuk "
                         + "melihat riwayatnya.");
+            } else if (barang == null) {
+                kosong.setTitle(adaRiwayat
+                        ? "Tidak ada hasil filter" : "Belum ada riwayat");
+                kosong.setDescription(adaRiwayat
+                        ? "Tidak ada riwayat yang cocok dengan filter."
+                        : "Belum ada transaksi untuk seluruh barang.");
             } else {
                 kosong.setTitle(adaRiwayat
                         ? "Tidak ada hasil filter" : "Belum ada riwayat");
@@ -303,11 +321,9 @@ public class PanelRiwayat extends PanelBarangTerpilih {
     }
 
     private void perbaruiTombolAksi() {
-        boolean adaBarang = barang != null;
-        tombolEkspor.setEnabled(adaBarang && !mengekspor
-                && !barisModel.isEmpty());
-        tombolPdf.setEnabled(adaBarang && !mengekspor
-                && !barisModel.isEmpty());
+        boolean adaBaris = !barisModel.isEmpty();
+        tombolEkspor.setEnabled(adaBaris && !mengekspor);
+        tombolPdf.setEnabled(adaBaris && !mengekspor);
         perbaruiDetail();
     }
 
@@ -383,13 +399,9 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         if (tujuan == null) {
             return;
         }
-        if (barang == null) {
-            perbaruiTombolAksi();
-            return;
-        }
         RiwayatPdfExporter.Info info = new RiwayatPdfExporter.Info(
-                barang.getNama(),
-                barang.getSatuan(),
+                lingkupNama(),
+                barang == null ? "Berbagai satuan" : barang.getSatuan(),
                 LocalDateTime.now(),
                 snapshot.cari(),
                 snapshot.jenis(),
@@ -465,12 +477,6 @@ public class PanelRiwayat extends PanelBarangTerpilih {
     }
 
     private SnapshotTampilan snapshotTampilan() {
-        if (barang == null) {
-            return new SnapshotTampilan(List.of(), 0,
-                    cariAktif, jenisAktif, dariAktif, sampaiAktif);
-        }
-        String namaBarang = barang.getNama();
-        String satuan = barang.getSatuan();
         List<RiwayatCsvExporter.Baris> hasil = new ArrayList<>();
         Set<Transaksi> unik = new LinkedHashSet<>();
         for (int tampilan = 0; tampilan < tabel.getRowCount(); tampilan++) {
@@ -479,12 +485,13 @@ public class PanelRiwayat extends PanelBarangTerpilih {
                 continue;
             }
             BarisRiwayat baris = barisModel.get(modelIndex);
+            Barang asal = baris.barang();
             Transaksi transaksi = baris.transaksi();
             RincianTransaksi rincian = baris.rincian();
             unik.add(transaksi);
             hasil.add(new RiwayatCsvExporter.Baris(
-                    namaBarang,
-                    satuan,
+                    asal.getNama(),
+                    asal.getSatuan(),
                     transaksi.getTanggal(),
                     jenisTampil(transaksi),
                     rincian.getBatch().getKode(),
@@ -496,7 +503,7 @@ public class PanelRiwayat extends PanelBarangTerpilih {
     }
 
     private String namaAwalEkspor(String ekstensi) {
-        String nama = sanitasiNamaFile(barang == null ? null : barang.getNama());
+        String nama = sanitasiNamaFile(lingkupNama());
         return "kantinflow-riwayat-" + nama + "-"
                 + LocalDate.now() + "." + ekstensi;
     }
@@ -629,7 +636,9 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         if (barisData < 0 || barisData >= barisModel.size()) {
             return;
         }
-        Transaksi transaksi = barisModel.get(barisData).transaksi();
+        BarisRiwayat baris = barisModel.get(barisData);
+        Transaksi transaksi = baris.transaksi();
+        Barang asal = baris.barang();
         JDialog dialog = new JDialog(
                 SwingUtilities.getWindowAncestor(this), "Detail Transaksi",
                 Dialog.ModalityType.APPLICATION_MODAL);
@@ -639,24 +648,18 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         konten.setBorder(new EmptyBorder(18, 18, 18, 18));
 
         JPanel info = Ui.kartu("Informasi transaksi");
-        JPanel nilai = new JPanel(new GridLayout(5, 2, 10, 6));
+        JPanel nilai = new JPanel(new GridLayout(6, 2, 10, 6));
         nilai.setOpaque(false);
         nilai.add(Ui.labelField("Jenis"));
         nilai.add(new JLabel(jenisTampil(transaksi)));
         nilai.add(Ui.labelField("Tanggal"));
         nilai.add(new JLabel(transaksi.getTanggal().toString()));
-        if (barang != null) {
-            nilai.add(Ui.labelField("Barang"));
-            nilai.add(new JLabel(barang.getNama()));
-            nilai.add(Ui.labelField("Jumlah transaksi"));
-            nilai.add(new JLabel(transaksi.getJumlah() + " "
-                    + barang.getSatuan()));
-        } else {
-            nilai.add(Ui.labelField("Barang"));
-            nilai.add(new JLabel("Tidak ada barang dipilih"));
-            nilai.add(Ui.labelField("Jumlah transaksi"));
-            nilai.add(new JLabel(String.valueOf(transaksi.getJumlah())));
-        }
+        nilai.add(Ui.labelField("Barang"));
+        nilai.add(new JLabel(asal.getNama() + " (" + asal.getSatuan() + ")"));
+        nilai.add(Ui.labelField("Jumlah transaksi"));
+        nilai.add(new JLabel(transaksi.getJumlah() + " " + asal.getSatuan()));
+        nilai.add(Ui.labelField("Rincian"));
+        nilai.add(new JLabel(transaksi.getRincian().size() + " batch"));
         nilai.add(Ui.labelField("Alasan"));
         nilai.add(new JLabel(transaksi.getAlasan() == null
                 || transaksi.getAlasan().isBlank()
@@ -664,15 +667,17 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         info.add(nilai, BorderLayout.CENTER);
 
         JPanel rincian = Ui.kartu("Rincian per batch");
-        DefaultTableModel modelDetail = Ui.model("Kode Batch", "Jumlah");
+        DefaultTableModel modelDetail = Ui.model(
+                "Kode Batch", "Jumlah", "Satuan");
         JTable tabelDetail = Ui.tabel(modelDetail);
         tabelDetail.setName("tabelDetailRiwayat");
         Ui.rataKanan(tabelDetail, 1);
+        Ui.aturKolom(tabelDetail, 160, 90, 90);
         for (RincianTransaksi item : transaksi.getRincian()) {
             modelDetail.addRow(new Object[]{
                 item.getBatch().getKode(),
-                barang == null ? String.valueOf(item.getJumlah())
-                        : item.getJumlah() + " " + barang.getSatuan()
+                item.getJumlah(),
+                asal.getSatuan()
             });
         }
         rincian.add(Ui.scrollTabel(tabelDetail, 150), BorderLayout.CENTER);
@@ -696,23 +701,115 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         dialog.setVisible(true);
     }
 
-    @Override
-    protected void saatBarangBerubah() {
+    private void pilihDariPengguna() {
+        if (memperbaruiPilihan) {
+            return;
+        }
+        PilihanBarang dipilih = (PilihanBarang) pilihanBarang.getSelectedItem();
+        if (dipilih == null || dipilih.idBarang() == idBarang) {
+            return;
+        }
+        barang = dipilih.barang();
+        idBarang = dipilih.idBarang();
+        saatBarangBerubah();
+        perbarui();
+    }
+
+    private boolean perbaruiPilihanBarang() {
+        List<Barang> daftar = konteks.getDaftarBarang();
+        memperbaruiPilihan = true;
+        try {
+            pilihanBarang.removeAllItems();
+            pilihanBarang.addItem(PilihanBarang.SEMUA);
+            for (Barang item : daftar) {
+                pilihanBarang.addItem(new PilihanBarang(item));
+            }
+            if (daftar.isEmpty()) {
+                barang = null;
+                idBarang = -1;
+                pilihanBarang.setSelectedIndex(0);
+                pilihanBarang.setEnabled(false);
+                pilihanBarang.setToolTipText(
+                        "Belum ada barang. Tambahkan melalui halaman Barang.");
+                return false;
+            }
+            pilihanBarang.setEnabled(true);
+            int indeks = 0;
+            if (idBarang >= 0) {
+                for (int i = 1; i < pilihanBarang.getItemCount(); i++) {
+                    if (pilihanBarang.getItemAt(i).idBarang() == idBarang) {
+                        indeks = i;
+                        break;
+                    }
+                }
+            }
+            if (indeks == 0) {
+                idBarang = -1;
+            }
+            pilihanBarang.setSelectedIndex(indeks);
+            PilihanBarang dipilih = pilihanBarang.getItemAt(indeks);
+            barang = dipilih == null ? null : dipilih.barang();
+            idBarang = dipilih == null ? -1 : dipilih.idBarang();
+            pilihanBarang.setToolTipText(null);
+            return true;
+        } finally {
+            memperbaruiPilihan = false;
+        }
+    }
+
+    private List<Barang> lingkupBarang() {
+        return barang == null ? konteks.getDaftarBarang() : List.of(barang);
+    }
+
+    private String lingkupNama() {
+        return barang == null ? "Semua Barang" : barang.getNama();
+    }
+
+    private void saatBarangBerubah() {
         pesanFilter.setText(" ");
         bersihkanSeleksiDetail();
     }
 
     @Override
     public void perbarui() {
-        boolean adaBarang = perbaruiBarangTerpilih();
-        infoBarang.setText(adaBarang
-                ? "Riwayat untuk " + barang.getNama() + " · "
-                + barang.getSatuan()
-                : "Belum ada barang. Tambahkan melalui halaman Barang.");
+        boolean adaBarang = perbaruiPilihanBarang();
+        if (!adaBarang) {
+            infoBarang.setText(
+                    "Belum ada barang. Tambahkan melalui halaman Barang.");
+        } else if (barang == null) {
+            infoBarang.setText("Riwayat seluruh barang · berbagai satuan");
+        } else {
+            infoBarang.setText("Riwayat untuk " + barang.getNama() + " · "
+                    + barang.getSatuan());
+        }
         terapkanFilter();
     }
 
-    private record BarisRiwayat(Transaksi transaksi, RincianTransaksi rincian) {
+    private record BarisRiwayat(
+            Barang barang, Transaksi transaksi, RincianTransaksi rincian) {
+    }
+
+    private static final class PilihanBarang {
+        private static final PilihanBarang SEMUA = new PilihanBarang(null);
+        private final Barang barang;
+
+        private PilihanBarang(Barang barang) {
+            this.barang = barang;
+        }
+
+        private int idBarang() {
+            return barang == null ? -1 : barang.getId();
+        }
+
+        private Barang barang() {
+            return barang;
+        }
+
+        @Override
+        public String toString() {
+            return barang == null ? "Semua Barang"
+                    : barang.getNama() + " (" + barang.getSatuan() + ")";
+        }
     }
 
 }

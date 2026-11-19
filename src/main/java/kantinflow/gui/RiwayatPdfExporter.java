@@ -45,9 +45,11 @@ public final class RiwayatPdfExporter {
     private static final float MARGIN = 36f;
     private static final float FOOTER = 24f;
     private static final float LEBAR_TABEL = LEBAR - (2 * MARGIN);
-    private static final float[] KOLOM = {24f, 62f, 105f, 105f, 46f, 55f, 0f};
+    private static final float[] KOLOM = {
+        24f, 58f, 105f, 92f, 88f, 42f, 42f, 0f
+    };
     private static final String[] JUDUL_KOLOM = {
-        "No", "Tanggal", "Jenis transaksi", "Kode batch",
+        "No", "Tanggal", "Barang", "Jenis transaksi", "Kode batch",
         "Jumlah", "Satuan", "Alasan"
     };
     private static final float LINE = 9.5f;
@@ -77,8 +79,10 @@ public final class RiwayatPdfExporter {
         boolean berhasil = false;
         try {
             try (PDDocument dokumen = new PDDocument()) {
-                dokumen.getDocumentInformation().setTitle(
-                        "Laporan Riwayat Stok - KantinFlow");
+                String judul = "Semua Barang".equals(info.barang())
+                        ? "Laporan Riwayat Stok - Semua Barang - KantinFlow"
+                        : "Laporan Riwayat Stok - KantinFlow";
+                dokumen.getDocumentInformation().setTitle(judul);
                 dokumen.getDocumentInformation().setCreator("KantinFlow");
                 new Laporan(dokumen, info).tulis();
                 dokumen.save(sementara.toFile());
@@ -203,7 +207,7 @@ public final class RiwayatPdfExporter {
             for (int i = 0; i < JUDUL_KOLOM.length; i++) {
                 float lebar = lebarKolom(i);
                 tulisSel(JUDUL_KOLOM[i], tebal, 8f, x, atas, lebar,
-                        i == 4 ? 1 : 0);
+                        i == 5 ? 1 : 0);
                 x += lebar;
             }
             garisHorizontal(atas, kiri, LEBAR_TABEL);
@@ -216,6 +220,7 @@ public final class RiwayatPdfExporter {
             String[] nilai = {
                 Integer.toString(nomor),
                 baris.tanggal().toString(),
+                baris.barang(),
                 baris.jenis(),
                 baris.kodeBatch(),
                 Integer.toString(baris.jumlah()),
@@ -227,7 +232,7 @@ public final class RiwayatPdfExporter {
             int jumlahBaris = 1;
             for (int i = 0; i < nilai.length; i++) {
                 List<String> potongan = pecah(
-                        nilai[i], i == 4 ? tebal : biasa, 8f,
+                        nilai[i], i == 5 ? tebal : biasa, 8f,
                         lebarKolom(i) - (2 * PADDING));
                 barisTerbungkus.add(potongan);
                 jumlahBaris = Math.max(jumlahBaris, potongan.size());
@@ -285,8 +290,8 @@ public final class RiwayatPdfExporter {
                 if (i == 0 && lanjutan) {
                     potongan = List.of("");
                 }
-                tulisSel(potongan, i == 4 ? tebal : biasa, 8f, x, atas,
-                        lebar, i == 4 ? 1 : 0);
+                tulisSel(potongan, i == 5 ? tebal : biasa, 8f, x, atas,
+                        lebar, i == 5 ? 1 : 0);
                 x += lebar;
             }
             garisHorizontal(atas, MARGIN, LEBAR_TABEL);
