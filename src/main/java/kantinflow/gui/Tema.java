@@ -1,29 +1,18 @@
 package kantinflow.gui;
 
-import java.awt.Color;
 import java.awt.Font;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Properties;
 
 import javax.swing.UIManager;
 
-import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.fonts.inter.FlatInterFont;
 
 /**
- * Tema terang/gelap KantinFlow dan preferensi tampilan pengguna.
+ * Inisialisasi tema terang KantinFlow.
  */
 public final class Tema {
-    private static final String KUNCI_GELAP = "temaGelap";
-    private static final Path FILE = Path.of("data", "kantinflow-tema.properties");
     private static boolean siap;
-    private static boolean gelap;
 
     private Tema() {
     }
@@ -32,50 +21,8 @@ public final class Tema {
         if (siap) {
             return;
         }
-        gelap = bacaPreferensi();
         pasangLaf();
         siap = true;
-    }
-
-    public static boolean gelap() {
-        return gelap;
-    }
-
-    public static void terapkan(boolean modeGelap) {
-        gelap = modeGelap;
-        pasangLaf();
-        simpanPreferensi();
-        siap = true;
-    }
-
-    public static void simpanPreferensi() {
-        Properties properti = new Properties();
-        properti.setProperty(KUNCI_GELAP, Boolean.toString(gelap));
-        try {
-            Path induk = FILE.toAbsolutePath().getParent();
-            if (induk != null) {
-                Files.createDirectories(induk);
-            }
-            try (OutputStream output = Files.newOutputStream(FILE)) {
-                properti.store(output, "KantinFlow theme preference");
-            }
-        } catch (IOException | RuntimeException exception) {
-            // Preferensi tidak boleh menggagalkan aplikasi.
-        }
-    }
-
-    private static boolean bacaPreferensi() {
-        if (!Files.isRegularFile(FILE)) {
-            return false;
-        }
-        Properties properti = new Properties();
-        try (InputStream input = Files.newInputStream(FILE)) {
-            properti.load(input);
-            return Boolean.parseBoolean(properti.getProperty(
-                    KUNCI_GELAP, "false"));
-        } catch (IOException | RuntimeException exception) {
-            return false;
-        }
     }
 
     private static void pasangLaf() {
@@ -87,14 +34,9 @@ public final class Tema {
         }
         UIManager.put("defaultFont",
                 new Font(fontFamily(), Font.PLAIN, 13));
-        if (gelap) {
-            FlatDarkLaf.setup();
-        } else {
-            FlatLightLaf.setup();
-        }
+        FlatLightLaf.setup();
         UIManager.put("defaultFont",
                 new Font(fontFamily(), Font.PLAIN, 13));
-        Ui.pakaiTema(gelap);
         UIManager.put("Panel.background", Ui.LATAR);
         UIManager.put("Viewport.background", Ui.LATAR);
         UIManager.put("ScrollPane.background", Ui.LATAR);
@@ -109,9 +51,9 @@ public final class Tema {
         UIManager.put("TextField.foreground", Ui.TEKS);
         UIManager.put("ComboBox.background", Ui.KARTU);
         UIManager.put("ComboBox.foreground", Ui.TEKS);
-        UIManager.put("Component.arc", 10);
-        UIManager.put("Button.arc", 10);
-        UIManager.put("TextComponent.arc", 10);
+        UIManager.put("Component.arc", Ui.RADIUS_KONTROL);
+        UIManager.put("Button.arc", Ui.RADIUS_KONTROL);
+        UIManager.put("TextComponent.arc", Ui.RADIUS_KONTROL);
         UIManager.put("ScrollBar.width", 8);
         UIManager.put("Table.showVerticalLines", false);
         UIManager.put("Table.showHorizontalLines", true);

@@ -69,7 +69,7 @@ public class PanelPemantauan extends PanelKantin {
         fieldTanggal.setText(LocalDate.now().toString());
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 1);
-        Ui.pasangBadge(tabel, 3);
+        Ui.pasangTeksStatus(tabel, 3);
         Ui.aturKolom(tabel, 135, 75, 140, 165);
 
         bangunIsi();

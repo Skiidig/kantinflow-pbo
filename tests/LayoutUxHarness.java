@@ -7,7 +7,6 @@ import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JScrollBar;
@@ -17,7 +16,6 @@ import javax.swing.SwingUtilities;
 
 import kantinflow.Barang;
 import kantinflow.gui.JendelaKantinFlow;
-import kantinflow.gui.Tema;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
 /**
@@ -35,15 +33,11 @@ public class LayoutUxHarness {
 
     public static void main(String[] args) throws Exception {
         Path database = Path.of("data/layout-ux.db");
-        Path tema = Path.of("data", "kantinflow-tema.properties");
-        byte[] temaAwal = Files.isRegularFile(tema)
-                ? Files.readAllBytes(tema) : null;
         Files.deleteIfExists(database);
         Files.deleteIfExists(database.resolveSibling(
                 database.getFileName() + ".ui"));
         SwingRiwayatHarness.seed(database.toString());
 
-        Tema.terapkan(false);
         SwingUtilities.invokeAndWait(() -> {
             try {
                 aplikasi = new JendelaKantinFlow(
@@ -64,12 +58,6 @@ public class LayoutUxHarness {
         ujiLebar2560();
 
         SwingUtilities.invokeAndWait(() -> aplikasi.tutup());
-        Tema.terapkan(false);
-        if (temaAwal == null) {
-            Files.deleteIfExists(tema);
-        } else {
-            Files.write(tema, temaAwal);
-        }
         Files.deleteIfExists(database);
         Files.deleteIfExists(database.resolveSibling(
                 database.getFileName() + ".ui"));
@@ -81,7 +69,6 @@ public class LayoutUxHarness {
 
     private static void ujiUkuran(int lebar, int tinggi, String label,
             boolean ambilScreenshot) throws Exception {
-        aturTema(false);
         SwingUtilities.invokeAndWait(() -> frame.setSize(lebar, tinggi));
         Thread.sleep(450);
         for (String halaman : HALAMAN) {
@@ -91,18 +78,9 @@ public class LayoutUxHarness {
                 snap("ux-" + halaman + "-" + label + "-terang.png");
             }
         }
-        aturTema(true);
-        for (String halaman : HALAMAN) {
-            pilihHalaman(halaman);
-            periksaHalaman(halaman, label);
-            if (ambilScreenshot) {
-                snap("ux-" + halaman + "-" + label + "-gelap.png");
-            }
-        }
     }
 
     private static void ujiLebar2560() throws Exception {
-        aturTema(true);
         SwingUtilities.invokeAndWait(() -> frame.setSize(2560, 1000));
         Thread.sleep(550);
         for (String halaman : HALAMAN) {
@@ -110,18 +88,9 @@ public class LayoutUxHarness {
             periksaHalaman(halaman, "2560");
             if ("ringkasan".equals(halaman) || "stok-masuk".equals(halaman)
                     || "riwayat".equals(halaman)) {
-                snap("ux-" + halaman + "-2560-gelap.png");
+                snap("ux-" + halaman + "-2560-terang.png");
             }
         }
-    }
-
-    private static void aturTema(boolean mauGelap) throws Exception {
-        if (Tema.gelap() == mauGelap) {
-            return;
-        }
-        SwingUtilities.invokeAndWait(() -> ((JButton) find(
-                frame.getContentPane(), "tombolTema")).doClick());
-        Thread.sleep(850);
     }
 
     private static void periksaHalaman(String halaman, String ukuran) {

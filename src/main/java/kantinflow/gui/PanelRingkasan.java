@@ -3,7 +3,6 @@ package kantinflow.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
@@ -78,7 +77,6 @@ public class PanelRingkasan extends PanelKantin {
         Ui.rataKanan(tabel, 2, 3);
         tabel.getColumnModel().getColumn(4)
                 .setCellRenderer(new PenyajiStatus());
-        tabel.setRowHeight(Ui.skala(40));
         Ui.aturKolom(tabel, 230, 85, 110, 105, 110);
         bangunIsi();
     }
@@ -96,7 +94,6 @@ public class PanelRingkasan extends PanelKantin {
         JPanel baris = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         baris.setOpaque(false);
         fieldTanggal.setColumns(10);
-        samakanTinggi(fieldTanggal, tombolPeriksa);
         baris.add(fieldTanggal);
         baris.add(tombolPeriksa);
         JPanel kontrolIsi = new JPanel(new BorderLayout(0, 6));
@@ -308,15 +305,6 @@ public class PanelRingkasan extends PanelKantin {
         grafik.repaint();
     }
 
-    private static void samakanTinggi(javax.swing.JComponent... komponen) {
-        int tinggi = Ui.skala(Ui.TINGGI_INPUT);
-        for (javax.swing.JComponent bagian : komponen) {
-            Dimension ukuran = bagian.getPreferredSize();
-            bagian.setPreferredSize(new Dimension(ukuran.width, tinggi));
-            bagian.setMinimumSize(new Dimension(ukuran.width, tinggi));
-        }
-    }
-
     private static final class PenyajiStatus extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable tabel,
@@ -324,14 +312,21 @@ public class PanelRingkasan extends PanelKantin {
                 int kolom) {
             super.getTableCellRendererComponent(
                     tabel, nilai, dipilih, fokus, baris, kolom);
-            setOpaque(false);
-            setBorder(noFocusBorder);
+            setOpaque(true);
+            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
+                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
+            setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            setVerticalAlignment(javax.swing.SwingConstants.CENTER);
             setFont(tabel.getFont().deriveFont(Font.BOLD));
+            int hover = tabel instanceof TabelKantin
+                    ? ((TabelKantin) tabel).getBarisHover() : -1;
             if (dipilih) {
                 setForeground(tabel.getSelectionForeground());
+                setBackground(tabel.getSelectionBackground());
             } else {
                 setForeground("Perlu restok".equals(String.valueOf(nilai))
                         ? Ui.MERAH : Ui.HIJAU);
+                setBackground(baris == hover ? Ui.HOVER : Ui.KARTU);
             }
             return this;
         }

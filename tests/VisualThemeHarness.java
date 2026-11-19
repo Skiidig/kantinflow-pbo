@@ -4,24 +4,20 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import javax.imageio.ImageIO;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 
-import kantinflow.gui.EmptyState;
 import kantinflow.gui.JendelaKantinFlow;
 import kantinflow.gui.PanelRingkasan;
-import kantinflow.gui.Tema;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
 /**
- * Uji visual tema terang/gelap pada 1366x768 dan 1000x650.
+ * Uji visual tema terang pada 1366x768 dan 1000x650.
  * Screenshot diambil dari komponen aplikasi, bukan seluruh layar.
  */
 public class VisualThemeHarness {
@@ -32,13 +28,11 @@ public class VisualThemeHarness {
     public static void main(String[] args) throws Exception {
         Path database = Path.of("data/visual-theme.db");
         Files.deleteIfExists(database);
-        Files.deleteIfExists(Path.of("data/kantinflow-tema.properties"));
         SwingRiwayatHarness.seed(database.toString());
         buka(database);
         pilihHalaman("nav-ringkasan");
         Thread.sleep(700);
 
-        check("MODE_AWAL_TERANG", !Tema.gelap(), "gelap=" + Tema.gelap());
         check("EMPAT_STAT_CARD", jumlahKomponen(
                 frame.getContentPane(), "StatCard") >= 4,
                 "cards=" + jumlahKomponen(frame.getContentPane(), "StatCard"));
@@ -62,38 +56,7 @@ public class VisualThemeHarness {
         Thread.sleep(250);
         snap("dashboard-1000-light-bawah.png");
 
-        SwingUtilities.invokeAndWait(() -> ((JButton) find(
-                frame.getContentPane(), "tombolTema")).doClick());
-        Thread.sleep(900);
-        pilihHalaman("nav-ringkasan");
-        Thread.sleep(450);
-        check("MODE_GELAP", Tema.gelap(), "gelap=" + Tema.gelap());
-        check("PREFERENSI_TEMA_TERTULIS",
-                Files.isRegularFile(Path.of("data",
-                        "kantinflow-tema.properties")), "file");
-        gulirAtas();
-        snap("dashboard-1000-dark.png");
-        gulirBawah();
-        Thread.sleep(250);
-        snap("dashboard-1000-dark-bawah.png");
-
-        SwingUtilities.invokeAndWait(() -> frame.setSize(1366, 768));
-        Thread.sleep(450);
-        gulirAtas();
-        snap("dashboard-1366-dark.png");
-        gulirBawah();
-        Thread.sleep(250);
-        snap("dashboard-1366-dark-bawah.png");
-
         SwingUtilities.invokeAndWait(() -> aplikasi.tutup());
-        buka(database);
-        Thread.sleep(500);
-        check("PREFERENSI_TEMA_SETELAH_REOPEN", Tema.gelap(),
-                "gelap=" + Tema.gelap());
-
-        SwingUtilities.invokeAndWait(() -> aplikasi.tutup());
-        Tema.terapkan(false);
-        Files.deleteIfExists(Path.of("data/kantinflow-tema.properties"));
         Files.deleteIfExists(database);
         Files.deleteIfExists(database.resolveSibling(
                 database.getFileName() + ".ui"));

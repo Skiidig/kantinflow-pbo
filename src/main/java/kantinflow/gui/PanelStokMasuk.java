@@ -55,7 +55,7 @@ public class PanelStokMasuk extends PanelKantin {
         tombolSimpan.addActionListener(event -> simpan());
         kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
-        Ui.pasangBadge(tabel, 4);
+        Ui.pasangTeksStatus(tabel, 4);
         Ui.aturKolom(tabel, 120, 75, 120, 135, 140);
         aturTanggalAwal();
         bangunIsi();

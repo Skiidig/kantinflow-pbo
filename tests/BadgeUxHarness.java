@@ -10,38 +10,33 @@ import javax.swing.table.DefaultTableModel;
 import kantinflow.gui.Badge;
 import kantinflow.gui.BadgeRenderer;
 import kantinflow.gui.TabelKantin;
-import kantinflow.gui.Tema;
 
 /**
  * Pemeriksaan renderer badge: pemetaan warna, kontras latar, posisi vertikal,
- * serta keadaan normal, hover, terpilih, dan nonaktif pada tema terang/gelap.
+ * serta keadaan normal, hover, terpilih, dan nonaktif pada tema terang.
  */
 public class BadgeUxHarness {
     private static int gagal;
 
     public static void main(String[] args) throws Exception {
-        Tema.terapkan(false);
-        ujiTema(false);
-        Tema.terapkan(true);
-        ujiTema(true);
-        Tema.terapkan(false);
+        ujiTema();
         System.out.println(gagal == 0
                 ? "BADGE_UX_HARNESS_LULUS"
                 : "BADGE_UX_HARNESS_GAGAL=" + gagal);
         System.exit(gagal == 0 ? 0 : 1);
     }
 
-    private static void ujiTema(boolean gelap) {
-        String tema = gelap ? "gelap" : "terang";
-        int hijau = gelap ? 0x86EFAC : 0x15803D;
-        int kuning = gelap ? 0xFDE68A : 0xB45309;
-        int merah = gelap ? 0xFCA5A5 : 0xB91C1C;
-        int oranye = gelap ? 0xFDBA74 : 0xC2410C;
-        int netral = gelap ? 0x94A3B8 : 0x64748B;
-        int kartu = gelap ? 0x111827 : 0xFFFFFF;
-        int hover = gelap ? 0x1E293B : 0xEEF2FF;
-        int netralLembut = gelap ? 0x1E293B : 0xF1F5F9;
-        int pilihan = gelap ? 0x1E3A8A : 0xDBEAFE;
+    private static void ujiTema() {
+        String tema = "terang";
+        int hijau = 0x15803D;
+        int kuning = 0xB45309;
+        int merah = 0xB91C1C;
+        int oranye = 0xC2410C;
+        int netral = 0x64748B;
+        int kartu = 0xFFFFFF;
+        int hover = 0xEEF2FF;
+        int netralLembut = 0xF1F5F9;
+        int pilihan = 0xDBEAFE;
 
         cek("WARNA_PENERIMAAN_" + tema, hijau,
                 Badge.warnaUntuk("Penerimaan")[0]);
@@ -72,7 +67,7 @@ public class BadgeUxHarness {
         Badge badge = (Badge) normal.getComponent(0);
         cek("BADGE_VERTIKAL_" + tema, true, tengah(normal, badge));
         cek("BADGE_TINGGI_MINIMAL_" + tema, true,
-                badge.getPreferredSize().height >= (gelap ? 24 : 24));
+                badge.getPreferredSize().height >= 24);
 
         tabel.setRowSelectionInterval(0, 0);
         JPanel dipilih = (JPanel) renderer.getTableCellRendererComponent(

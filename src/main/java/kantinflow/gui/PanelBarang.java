@@ -77,7 +77,6 @@ public class PanelBarang extends PanelKantin {
         tombolTambah.setName("tombolTambahBarang");
         tombolTambah.setIcon(Ui.ikonAksi("plus", 16, java.awt.Color.WHITE));
         tombolTambah.setIconTextGap(7);
-        samakanTinggi(fieldCari, tombolTambah);
         tombolAktif.setName("jadikanBarangAktif");
         tombolAktif.setIcon(Ui.ikonAksi("check", 16, java.awt.Color.WHITE));
         tombolAktif.setIconTextGap(7);
@@ -93,6 +92,7 @@ public class PanelBarang extends PanelKantin {
         for (int i = 0; i < tabel.getColumnModel().getColumnCount(); i++) {
             tabel.getColumnModel().getColumn(i).setCellRenderer(new PenyajiBarang());
         }
+        Ui.rataKananHeader(tabel, 2, 3);
         Ui.aturKolom(tabel, 260, 100, 120, 130);
         tabel.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting() && !memperbaruiTabel) {
@@ -479,7 +479,7 @@ public class PanelBarang extends PanelKantin {
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(Ui.LATAR);
-        JPanel aksi = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel aksi = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         aksi.setOpaque(false);
         aksi.add(batal);
         aksi.add(simpan);
@@ -583,15 +583,6 @@ public class PanelBarang extends PanelKantin {
         perbaruiAksi();
     }
 
-    private static void samakanTinggi(JComponent... komponen) {
-        int tinggi = Ui.skala(Ui.TINGGI_INPUT);
-        for (JComponent bagian : komponen) {
-            Dimension ukuran = bagian.getPreferredSize();
-            bagian.setPreferredSize(new Dimension(ukuran.width, tinggi));
-            bagian.setMinimumSize(new Dimension(ukuran.width, tinggi));
-        }
-    }
-
     private abstract static class SimpleDocumentListener
             implements DocumentListener {
         protected abstract void berubah();
@@ -619,11 +610,12 @@ public class PanelBarang extends PanelKantin {
                 int row, int column) {
             super.getTableCellRendererComponent(
                     table, value, isSelected, hasFocus, row, column);
-            setBorder(new EmptyBorder(0, Ui.PADDING_SEL_TABEL,
-                    0, Ui.PADDING_SEL_TABEL));
+            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
+                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
             setHorizontalAlignment(column >= 2
                     ? javax.swing.SwingConstants.RIGHT
                     : javax.swing.SwingConstants.LEFT);
+            setVerticalAlignment(javax.swing.SwingConstants.CENTER);
             int modelRow = table.convertRowIndexToModel(row);
             Barang barang = modelRow >= 0 && modelRow < urutanBarang.size()
                     ? urutanBarang.get(modelRow) : null;

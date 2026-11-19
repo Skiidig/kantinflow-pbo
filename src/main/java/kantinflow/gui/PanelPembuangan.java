@@ -85,11 +85,14 @@ public class PanelPembuangan extends PanelKantin {
         infoBarang.setAlignmentX(LEFT_ALIGNMENT);
         infoBarang.setBorder(new EmptyBorder(0, 0, 6, 0));
         formIsi.add(infoBarang);
+        isian.setAlignmentX(LEFT_ALIGNMENT);
         formIsi.add(isian);
         formIsi.add(javax.swing.Box.createVerticalStrut(6));
+        pesanValidasi.setAlignmentX(LEFT_ALIGNMENT);
         formIsi.add(pesanValidasi);
         JPanel aksi = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         aksi.setOpaque(false);
+        aksi.setAlignmentX(LEFT_ALIGNMENT);
         aksi.add(tombolBuang);
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
@@ -98,7 +101,7 @@ public class PanelPembuangan extends PanelKantin {
         JPanel tindakanIsi = new JPanel(new BorderLayout(0, 6));
         tindakanIsi.setOpaque(false);
         ringkasan.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-        ringkasan.setForeground(Ui.MERAH);
+        ringkasan.setForeground(Ui.TEKS_LEMBUT);
         tindakanIsi.add(ringkasan, BorderLayout.NORTH);
         JLabel catatan = Ui.keterangan(
                 "Hanya batch berstatus Kedaluwarsa pada tanggal pembuangan yang "
@@ -118,9 +121,11 @@ public class PanelPembuangan extends PanelKantin {
     private void perbaruiRingkasan() {
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
+            ringkasan.setForeground(Ui.TEKS_LEMBUT);
             ringkasan.setText("Pilih batch untuk melihat ringkasan tindakan.");
             return;
         }
+        ringkasan.setForeground(Ui.TEKS);
         ringkasan.setText("Buang " + batch.getKode() + " · sisa "
                 + batch.getSisaJumlah() + " "
                 + konteks.getBarangAktif().getSatuan()

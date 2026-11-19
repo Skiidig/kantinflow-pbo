@@ -34,7 +34,7 @@ public class PanelStokKeluar extends PanelKantin {
     private final JButton tombolFefo = Ui.utama("Keluarkan FEFO");
     private final JLabel pesanManual = Ui.pesan();
     private final JLabel pesanFefo = Ui.pesan();
-    private final JLabel hasilAlokasi = Ui.kosong(
+    private final JLabel hasilAlokasi = Ui.keterangan(
             "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
     private final JLabel infoBarang = Ui.keterangan(" ");
     private int idBarangTerakhir = -1;
@@ -78,88 +78,108 @@ public class PanelStokKeluar extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel manual = Ui.kartu("Pengeluaran Manual", "stock-out");
-        JPanel manualIsi = new JPanel();
-        manualIsi.setOpaque(false);
-        manualIsi.setLayout(new javax.swing.BoxLayout(
-                manualIsi, javax.swing.BoxLayout.Y_AXIS));
-        manualIsi.add(Ui.field("Batch *", comboBatch));
+        JPanel manualIsi = isiMode();
+        manualIsi.add(bantuanMode(
+                "Pilih batch sumber, lalu masukkan jumlah yang dikeluarkan."));
+        JPanel formManual = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
+                Ui.field("Batch *", comboBatch),
+                Ui.field("Jumlah *", fieldJumlahManual));
+        formManual.setAlignmentX(LEFT_ALIGNMENT);
+        manualIsi.add(formManual);
+
         labelSisa.setName("sisaBatch");
-        labelSisa.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-        labelSisa.setForeground(Ui.AKSEN);
-        labelSisa.setBorder(new EmptyBorder(8, 0, 8, 0));
+        siapkanInfoMode(labelSisa);
         manualIsi.add(labelSisa);
-        manualIsi.add(Ui.field("Jumlah *", fieldJumlahManual, pesanManual));
+
+        pesanManual.setAlignmentX(LEFT_ALIGNMENT);
+        manualIsi.add(pesanManual);
         manualIsi.add(javax.swing.Box.createVerticalStrut(6));
-        JPanel aksiManual = new JPanel(new BorderLayout());
-        aksiManual.setOpaque(false);
-        aksiManual.add(tombolManual, BorderLayout.EAST);
-        manualIsi.add(aksiManual);
-        manual.add(manualIsi, BorderLayout.CENTER);
+        manualIsi.add(aksiKiri(tombolManual));
 
-        JPanel fefo = Ui.kartu("Pengeluaran FEFO", "stock-out");
-        JPanel fefoIsi = new JPanel();
-        fefoIsi.setOpaque(false);
-        fefoIsi.setLayout(new javax.swing.BoxLayout(
-                fefoIsi, javax.swing.BoxLayout.Y_AXIS));
-        JLabel bantuan = Ui.keterangan(
-                "Batch layak dengan kedaluwarsa terdekat digunakan lebih dahulu.");
-        bantuan.setBorder(new EmptyBorder(0, 0, 8, 0));
-        fefoIsi.add(bantuan);
-        fefoIsi.add(Ui.field("Jumlah *", fieldJumlahFefo));
-        fefoIsi.add(javax.swing.Box.createVerticalStrut(8));
-        fefoIsi.add(Ui.field("Tanggal pengeluaran * (yyyy-MM-dd)",
-                fieldTanggalFefo, pesanFefo));
-        fefoIsi.add(javax.swing.Box.createVerticalStrut(6));
-        JPanel aksiFefo = new JPanel(new BorderLayout());
-        aksiFefo.setOpaque(false);
-        aksiFefo.add(tombolFefo, BorderLayout.EAST);
-        fefoIsi.add(aksiFefo);
-        hasilAlokasi.setBorder(new EmptyBorder(10, 0, 0, 0));
+        JPanel fefoIsi = isiMode();
+        fefoIsi.add(bantuanMode(
+                "Batch layak dengan kedaluwarsa terdekat digunakan lebih dahulu."));
+
+        JPanel formFefo = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
+                Ui.field("Jumlah *", fieldJumlahFefo),
+                Ui.field("Tanggal pengeluaran * (yyyy-MM-dd)",
+                        fieldTanggalFefo));
+        formFefo.setAlignmentX(LEFT_ALIGNMENT);
+        fefoIsi.add(formFefo);
+
+        siapkanInfoMode(hasilAlokasi);
         fefoIsi.add(hasilAlokasi);
-        fefo.add(fefoIsi, BorderLayout.CENTER);
 
-        JPanel manualWrap = new JPanel(new java.awt.FlowLayout(
-                java.awt.FlowLayout.LEFT, 0, 0));
-        manualWrap.setOpaque(true);
-        manualWrap.setBackground(Ui.KARTU);
-        manual.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
-        manual.setPreferredSize(new java.awt.Dimension(
-                Ui.skala(Ui.LEBAR_FORM_KELUAR), Ui.skala(Ui.TINGGI_FORM_MANUAL)));
-        manualWrap.add(manual);
-        JPanel fefoWrap = new JPanel(new java.awt.FlowLayout(
-                java.awt.FlowLayout.LEFT, 0, 0));
-        fefoWrap.setOpaque(true);
-        fefoWrap.setBackground(Ui.KARTU);
-        fefo.setMaximumSize(new java.awt.Dimension(Ui.LEBAR_FORM_KELUAR, Integer.MAX_VALUE));
-        fefo.setPreferredSize(new java.awt.Dimension(
-                Ui.skala(Ui.LEBAR_FORM_KELUAR), Ui.skala(Ui.TINGGI_FORM_FEFO)));
-        fefoWrap.add(fefo);
+        pesanFefo.setAlignmentX(LEFT_ALIGNMENT);
+        fefoIsi.add(pesanFefo);
+        fefoIsi.add(javax.swing.Box.createVerticalStrut(6));
+        fefoIsi.add(aksiKiri(tombolFefo));
 
         JTabbedPane mode = new JTabbedPane();
         mode.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         mode.setBackground(Ui.KARTU);
         mode.setOpaque(true);
-        mode.addTab("Manual", manualWrap);
-        mode.addTab("FEFO", fefoWrap);
+        mode.addTab("Manual", manualIsi);
+        mode.addTab("FEFO", fefoIsi);
 
-        JPanel isi = new JPanel(new BorderLayout(0, 8));
+        JPanel isi = new JPanel();
         isi.setOpaque(false);
-        infoBarang.setBorder(new EmptyBorder(0, 0, 2, 0));
-        isi.add(infoBarang, BorderLayout.NORTH);
-        isi.add(mode, BorderLayout.CENTER);
-        add(isi, BorderLayout.CENTER);
+        isi.setLayout(new javax.swing.BoxLayout(
+                isi, javax.swing.BoxLayout.Y_AXIS));
+        infoBarang.setAlignmentX(LEFT_ALIGNMENT);
+        infoBarang.setBorder(new EmptyBorder(0, 0, 6, 0));
+        isi.add(infoBarang);
+        mode.setAlignmentX(LEFT_ALIGNMENT);
+        isi.add(mode);
+
+        JPanel kartu = Ui.kartu("Pengeluaran Stok", "stock-out");
+        kartu.add(isi, BorderLayout.CENTER);
+        add(kartu, BorderLayout.NORTH);
+    }
+
+    private JLabel bantuanMode(String teks) {
+        JLabel label = Ui.keterangan(teks);
+        label.setAlignmentX(LEFT_ALIGNMENT);
+        label.setBorder(new EmptyBorder(0, 0, 10, 0));
+        return label;
+    }
+
+    private void siapkanInfoMode(JLabel label) {
+        label.setAlignmentX(LEFT_ALIGNMENT);
+        label.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
+        label.setForeground(Ui.TEKS_LEMBUT);
+        label.setBorder(new EmptyBorder(6, 0, 0, 0));
+    }
+
+    private JPanel isiMode() {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new javax.swing.BoxLayout(
+                panel, javax.swing.BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(16, 0, 0, 0));
+        return panel;
+    }
+
+    private JPanel aksiKiri(JButton tombol) {
+        JPanel panel = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.LEFT, 0, 0));
+        panel.setOpaque(false);
+        panel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.add(tombol);
+        return panel;
     }
 
     private void perbaruiSisa() {
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (batch == null) {
             labelSisa.setText("Tidak ada batch bersisa.");
+            labelSisa.setForeground(Ui.TEKS_LEMBUT);
             tombolManual.setEnabled(false);
         } else {
             labelSisa.setText("Sisa: " + batch.getSisaJumlah() + " "
                     + konteks.getBarangAktif().getSatuan()
                     + " pada batch " + batch.getKode());
+            labelSisa.setForeground(Ui.AKSEN);
             tombolManual.setEnabled(true);
         }
     }

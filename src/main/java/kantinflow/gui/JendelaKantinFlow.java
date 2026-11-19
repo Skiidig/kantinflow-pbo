@@ -35,7 +35,6 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListCellRenderer;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -70,7 +69,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final Map<String, PanelKantin> panel = new LinkedHashMap<>();
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel kartu = new JPanel(cardLayout);
-    private final JComboBox<Barang> comboBarang = new JComboBox<>();
+    private final JComboBox<Barang> comboBarang = Ui.combo();
     private final JTextArea status = new JTextArea(2, 40);
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
@@ -239,18 +238,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         pembungkusNav.setMaximumSize(new Dimension(Integer.MAX_VALUE,
                 nav.getPreferredSize().height));
         isi.add(pembungkusNav);
-        isi.add(Box.createVerticalStrut(12));
-
-        JButton tema = Ui.sekunder(Tema.gelap() ? "Mode terang" : "Mode gelap");
-        tema.setName("tombolTema");
-        tema.setIcon(Ui.ikonAksi(Tema.gelap() ? "sun" : "moon", 16,
-                Ui.TEKS_LEMBUT));
-        tema.setIconTextGap(8);
-        tema.setAlignmentX(Component.LEFT_ALIGNMENT);
-        tema.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-                tema.getPreferredSize().height));
-        tema.addActionListener(event -> gantiTema());
-        isi.add(tema);
 
         JScrollPane scroll = new JScrollPane(isi,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -491,40 +478,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             }
         });
         timer.start();
-    }
-
-    private void gantiTema() {
-        if (adaIsianTransaksiBelumDisimpan()
-                && !DialogKonfirmasi.tampilkan(this, "Ganti tema",
-                        "Formulir transaksi masih berisi isian. Mengganti tema "
-                        + "akan membangun ulang tampilan dan membuang isian "
-                        + "formulir. Lanjutkan?",
-                        "Ganti tema")) {
-            Notifikasi.peringatan("Perubahan tema dibatalkan.");
-            return;
-        }
-        Tema.terapkan(!Tema.gelap());
-        bangunUlangTampilan();
-        tampilkanPesan(Tema.gelap()
-                ? "Mode gelap diaktifkan." : "Mode terang diaktifkan.", true);
-    }
-
-    private void bangunUlangTampilan() {
-        String halaman = halamanAktif;
-        panel.clear();
-        tombolNavigasi.clear();
-        grupNavigasi.clearSelection();
-        kartu.removeAll();
-        getContentPane().removeAll();
-        setGlassPane(fade);
-        fade.setVisible(false);
-        bangunTampilan();
-        Notifikasi.pasang(this);
-        perbaruiComboBarang();
-        perbaruiSemua();
-        tampilkanHalaman(halaman == null ? "ringkasan" : halaman);
-        revalidate();
-        repaint();
     }
 
     public void tampilkan() {

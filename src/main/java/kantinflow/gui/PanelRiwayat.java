@@ -106,8 +106,6 @@ public class PanelRiwayat extends PanelKantin {
         comboJenis.addItem(FEFO);
         comboJenis.addItem("Pembuangan");
         comboJenis.setSelectedIndex(0);
-        comboJenis.setPreferredSize(new java.awt.Dimension(
-                Ui.skala(180), comboJenis.getPreferredSize().height));
         tombolDetail.setEnabled(false);
         tombolEkspor.setEnabled(false);
         tombolPdf.setEnabled(false);
@@ -136,7 +134,7 @@ public class PanelRiwayat extends PanelKantin {
             }
         });
         Ui.rataKanan(tabel, 3);
-        Ui.pasangBadge(tabel, 1);
+        Ui.pasangTeksStatus(tabel, 1);
         Ui.aturKolom(tabel, 100, 140, 95, 95, 210);
         bangunIsi();
     }

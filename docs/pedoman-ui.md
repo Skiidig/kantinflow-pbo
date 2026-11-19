@@ -81,8 +81,7 @@ Ukuran aktual yang dipakai:
 
 ### Sidebar
 
-- Latar permukaan tema (putih di mode terang, gelap di mode gelap), lebar
-  240 px, border kanan `Ui.GARIS`.
+- Latar permukaan terang (putih), lebar 240 px, border kanan `Ui.GARIS`.
 - Brand: kotak biru `KF` 32 × 32, nama **KantinFlow**, subjudul
   **Manajemen Persediaan**.
 - Di bawah brand, sebelum menu, ada label **Barang aktif** dan dropdown
@@ -156,8 +155,8 @@ Ukuran aktual yang dipakai:
 - Sumber tema ada di `src/main/resources/kantinflow/KantinFlow.properties`;
   panggil `FlatLaf.registerCustomDefaultsSource("kantinflow")` sebelum setup.
 - Font antarmuka adalah Inter (`FlatInterFont`), bukan font sistem.
-- Tombol mode gelap/terang berada di sidebar; preferensi disimpan di
-  `data/kantinflow-tema.properties`. Jangan mengubah preferensi DPI Windows.
+- KantinFlow hanya memakai tema terang (`FlatLightLaf`). Jangan menambahkan
+  tombol atau preferensi pergantian tema. Jangan mengubah preferensi DPI Windows.
 - Pesan hasil memakai `Notifikasi`/swing-toast-notifications; status footer
   tidak lagi menjadi tempat pesan utama. Status aksesibilitas tetap disimpan
   secara tersembunyi untuk harness.
@@ -201,9 +200,9 @@ Ukuran aktual yang dipakai:
 - Header memakai latar halaman dan teks sekunder; tingginya mengikuti
   metrik font dengan minimum 44 px.
 - Baris terpilih memakai `Ui.AKSEN_LEMBUT`; teks terpilih harus memakai
-  `Ui.TEKS` agar tetap kontras di tema terang dan gelap.
-- Baris aktif pada tabel Barang memakai `Ui.AKSEN_LEMBUT`; pada tema gelap
-  teksnya memakai `Ui.TEKS`, bukan aksen biru.
+  `Ui.TEKS` agar tetap kontras pada tema terang.
+- Baris aktif pada tabel Barang memakai `Ui.AKSEN_LEMBUT`; teksnya memakai
+  `Ui.TEKS`, bukan aksen biru.
 - Sediakan `Ui.kosong("...")` dan tampilkan hanya saat model kosong; jangan
   menampilkan tabel kosong dan EmptyState bersamaan.
 - Gunakan `yyyy-MM-dd` untuk tanggal dan sertakan satuan pada jumlah.
