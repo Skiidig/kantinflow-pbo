@@ -23,12 +23,16 @@
 hs_err_pid*
 replay_pid*
 
-# Local SQLite database
-data/
+# Database contoh kelompok; backup dan preferensi UI tetap lokal
 *.db
+!data/kantinflow.db
+data/backup/
+data/*.ui
+data/*.properties
 *.db-journal
 *.db-wal
 *.db-shm
 
 # Build output dan artefak pengujian lokal
 out/
+out-seed/

@@ -246,3 +246,7 @@ implementation 'org.xerial:sqlite-jdbc:3.54.1.0'
 ```
 
 PDFBox 3.0.8/FontBox/PDFBox IO/Commons Logging tetap diperlukan untuk ekspor PDF seperti pada `setup.ps1`.
+
+## Database contoh kelompok
+
+`data/kantinflow.db` disertakan untuk kebutuhan kelompok. Setiap komputer memiliki salinan database sendiri; Git tidak menggabungkan transaksi SQLite. Hindari mengedit database di beberapa komputer lalu melakukan push bersamaan. Perbarui database saat aplikasi sudah ditutup.
