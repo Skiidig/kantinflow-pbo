@@ -36,3 +36,4 @@ data/*.properties
 # Build output dan artefak pengujian lokal
 out/
 out-seed/
+out-tools/

@@ -5,7 +5,6 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -14,7 +13,10 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -25,8 +27,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 
 import org.knowm.xchart.CategoryChart;
 import org.knowm.xchart.CategoryChartBuilder;
@@ -78,15 +82,19 @@ public class PanelRingkasan extends PanelKantin {
     private final DefaultTabel model = new DefaultTabel(
             "Barang", "Satuan", "Stok fisik", "Stok minimum", "Status");
     private final JTable tabel = Ui.tabel(model);
-    private final JPanel daftarPeringatan = new JPanel();
+    private final DefaultTabel modelPeringatan = new DefaultTabel(
+            "Barang / Batch", "Sisa", "Kedaluwarsa", "Status");
+    private final JTable tabelPeringatan = Ui.tabel(modelPeringatan);
+    private final JPanel wadahPeringatan = new JPanel(new CardLayout());
+    private JScrollPane gulirPeringatan;
     private final JPanel grafik = new JPanel(new BorderLayout());
     private final EmptyState kosongBarang = new EmptyState(
             "boxes", "Belum ada barang",
             "Tambahkan barang terlebih dahulu melalui halaman Barang.");
-    private final EmptyState kosongPeringatan = new EmptyState(
-            "circle-check", "Tidak ada peringatan",
-            "Semua batch bersisa masih aman pada tanggal acuan.");
+    private final JLabel kosongPeringatan = Ui.keterangan(" ");
     private final JLabel ringkasanPeringatan = Ui.keterangan(" ");
+    private final JComboBox<String> comboSatuanGrafik = Ui.combo();
+    private boolean memperbaruiSatuanGrafik;
 
     public PanelRingkasan(KonteksKantin konteks) {
         super(konteks, "Ringkasan",
@@ -102,6 +110,16 @@ public class PanelRingkasan extends PanelKantin {
         tombolPeriksa.setName("periksaRingkasan");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
+        comboSatuanGrafik.setName("satuanGrafik");
+        comboSatuanGrafik.setToolTipText(
+                "Pilih satuan yang dibandingkan pada grafik.");
+        comboSatuanGrafik.setPreferredSize(new Dimension(
+                Ui.skala(110), Ui.tinggiKontrol()));
+        comboSatuanGrafik.addActionListener(event -> {
+            if (!memperbaruiSatuanGrafik) {
+                gambarGrafik();
+            }
+        });
         kartuFisik.getNilai().setName("ringkasanFisik");
         kartuLayak.getNilai().setName("ringkasanLayak");
         kartuMinimum.getNilai().setName("ringkasanMinimum");
@@ -116,7 +134,32 @@ public class PanelRingkasan extends PanelKantin {
         tabel.getColumnModel().getColumn(4)
                 .setCellRenderer(new PenyajiStatus());
         Ui.aturKolom(tabel, 230, 85, 110, 105, 110);
+        pasangTabelPeringatan();
         bangunIsi();
+    }
+
+    private void pasangTabelPeringatan() {
+        tabelPeringatan.setName("tabelPeringatan");
+        tabelPeringatan.setRowHeight(Ui.skala(52));
+        tabelPeringatan.setFillsViewportHeight(false);
+        tabelPeringatan.getColumnModel().getColumn(0)
+                .setCellRenderer(new PenyajiBarangBatch());
+        tabelPeringatan.getColumnModel().getColumn(1)
+                .setCellRenderer(new PenyajiTeksPeringatan(true));
+        tabelPeringatan.getColumnModel().getColumn(2)
+                .setCellRenderer(new PenyajiTeksPeringatan(false));
+        tabelPeringatan.getColumnModel().getColumn(3)
+                .setCellRenderer(new PenyajiStatusPeringatan());
+        Ui.rataKananHeader(tabelPeringatan, 1);
+        int[] lebar = {420, 150, 160, 170};
+        int[] minimum = {170, 70, 100, 135};
+        tabelPeringatan.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        for (int i = 0; i < lebar.length; i++) {
+            tabelPeringatan.getColumnModel().getColumn(i)
+                    .setPreferredWidth(Ui.skala(lebar[i]));
+            tabelPeringatan.getColumnModel().getColumn(i)
+                    .setMinWidth(Ui.skala(minimum[i]));
+        }
     }
 
     @Override
@@ -128,11 +171,11 @@ public class PanelRingkasan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, 16));
         isi.setOpaque(false);
 
-        JPanel kontrol = Ui.kartu();
+        JPanel kontrol = Ui.kartu("Filter barang", "search");
         kontrol.setBorder(new EmptyBorder(Ui.skala(12), Ui.skala(14),
                 Ui.skala(12), Ui.skala(14)));
-        JLabel labelBarang = Ui.labelField("Barang *");
-        JLabel labelTanggal = Ui.labelField("Tanggal acuan *");
+        JLabel labelBarang = Ui.labelField("Barang");
+        JLabel labelTanggal = Ui.labelField("Tanggal acuan");
         kontrol.add(buatBarisFilter(labelBarang, labelTanggal),
                 BorderLayout.CENTER);
 
@@ -149,24 +192,34 @@ public class PanelRingkasan extends PanelKantin {
         JPanel peringatanIsi = new JPanel(new BorderLayout(0, 8));
         peringatanIsi.setOpaque(false);
         peringatanIsi.add(ringkasanPeringatan, BorderLayout.NORTH);
-        daftarPeringatan.setOpaque(false);
-        daftarPeringatan.setLayout(new BoxLayout(
-                daftarPeringatan, BoxLayout.Y_AXIS));
-        peringatanIsi.add(daftarPeringatan, BorderLayout.CENTER);
+        gulirPeringatan = Ui.scrollTabel(tabelPeringatan, 120);
+        gulirPeringatan.setPreferredSize(null);
+        gulirPeringatan.setMinimumSize(new Dimension(0, 0));
+        gulirPeringatan.setVerticalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        gulirPeringatan.setHorizontalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        wadahPeringatan.setOpaque(false);
+        wadahPeringatan.add(gulirPeringatan, "tabel");
+        wadahPeringatan.add(kosongPeringatan, "kosong");
+        peringatanIsi.add(wadahPeringatan, BorderLayout.CENTER);
         peringatan.add(peringatanIsi, BorderLayout.CENTER);
+        kosongPeringatan.setBorder(new EmptyBorder(
+                Ui.skala(12), 0, Ui.skala(12), 0));
 
         JPanel grafikKartu = Ui.kartu("Stok fisik per barang", "chart-column");
+        JPanel kepalaGrafik = (JPanel) ((BorderLayout) grafikKartu.getLayout())
+                .getLayoutComponent(BorderLayout.NORTH);
+        if (kepalaGrafik != null) {
+            kepalaGrafik.add(comboSatuanGrafik, BorderLayout.EAST);
+        }
         grafik.setOpaque(false);
         grafikKartu.add(grafik, BorderLayout.CENTER);
 
-        JPanel samping = new JPanel();
+        JPanel samping = new JPanel(new BorderLayout(0, 12));
         samping.setOpaque(false);
-        samping.setLayout(new BoxLayout(samping, BoxLayout.Y_AXIS));
-        peringatan.setAlignmentX(LEFT_ALIGNMENT);
-        grafikKartu.setAlignmentX(LEFT_ALIGNMENT);
-        samping.add(peringatan);
-        samping.add(Box.createVerticalStrut(12));
-        samping.add(grafikKartu);
+        samping.add(peringatan, BorderLayout.NORTH);
+        samping.add(grafikKartu, BorderLayout.CENTER);
 
         JPanel semua = Ui.kartu("Semua barang", "package");
         JPanel semuaIsi = new JPanel(new BorderLayout(0, 6));
@@ -305,7 +358,7 @@ public class PanelRingkasan extends PanelKantin {
         area.setOpaque(false);
         area.add(tabelKartu, BorderLayout.CENTER);
         area.add(samping, BorderLayout.EAST);
-        samping.setPreferredSize(new Dimension(Ui.skala(340),
+        samping.setPreferredSize(new Dimension(Ui.skala(560),
                 samping.getPreferredSize().height));
         area.addComponentListener(new ComponentAdapter() {
             private boolean sempit;
@@ -321,12 +374,11 @@ public class PanelRingkasan extends PanelKantin {
                 area.removeAll();
                 if (sempit) {
                     samping.setPreferredSize(null);
-                    area.setLayout(new BoxLayout(area, BoxLayout.Y_AXIS));
-                    area.add(tabelKartu);
-                    area.add(Box.createVerticalStrut(16));
-                    area.add(samping);
+                    area.setLayout(new BorderLayout(0, 16));
+                    area.add(tabelKartu, BorderLayout.NORTH);
+                    area.add(samping, BorderLayout.CENTER);
                 } else {
-                    samping.setPreferredSize(new Dimension(Ui.skala(340),
+                    samping.setPreferredSize(new Dimension(Ui.skala(560),
                             samping.getPreferredSize().height));
                     area.setLayout(new BorderLayout(16, 0));
                     area.add(tabelKartu, BorderLayout.CENTER);
@@ -539,92 +591,229 @@ public class PanelRingkasan extends PanelKantin {
     }
 
     private void perbaruiPeringatan(LocalDate tanggal) {
-        daftarPeringatan.removeAll();
         List<Barang> daftar = konteks.getDaftarBarang();
         if (daftar.isEmpty()) {
-            kosongPeringatan.setTitle("Belum ada barang");
-            kosongPeringatan.setDescription(
-                    "Tambahkan barang melalui halaman Barang untuk melihat "
-                    + "peringatan kedaluwarsa.");
-            daftarPeringatan.add(kosongPeringatan);
+            modelPeringatan.setRowCount(0);
+            kosongPeringatan.setText("Belum ada barang untuk dipantau.");
+            ((CardLayout) wadahPeringatan.getLayout())
+                    .show(wadahPeringatan, "kosong");
             ringkasanPeringatan.setText(" ");
-            daftarPeringatan.revalidate();
-            daftarPeringatan.repaint();
+            sesuaikanTinggiPeringatan();
             return;
         }
 
         boolean semua = barang == null;
         List<Barang> lingkup = semua ? daftar : List.of(barang);
-        kosongPeringatan.setTitle("Tidak ada peringatan");
-        kosongPeringatan.setDescription(semua
-                ? "Semua batch bersisa dari seluruh barang masih aman "
-                        + "pada tanggal acuan."
-                : "Semua batch bersisa " + barang.getNama()
-                        + " masih aman pada tanggal acuan.");
-        int jumlah = 0;
+        List<BarisPeringatan> hasil = new ArrayList<>();
         for (Barang item : lingkup) {
             for (BatchStok batch : item.getDaftarBatch()) {
                 if (batch.getSisaJumlah() <= 0) {
                     continue;
                 }
                 StatusKedaluwarsa status = batch.statusPada(tanggal);
-                if (status == StatusKedaluwarsa.AMAN) {
-                    continue;
+                if (status != StatusKedaluwarsa.AMAN) {
+                    hasil.add(new BarisPeringatan(item, batch, status));
                 }
-                jumlah++;
-                daftarPeringatan.add(barisPeringatan(item, batch, status));
-                daftarPeringatan.add(Box.createVerticalStrut(6));
             }
         }
-        if (jumlah == 0) {
-            daftarPeringatan.add(kosongPeringatan);
+        hasil.sort(Comparator
+                .comparingInt((BarisPeringatan baris) ->
+                        baris.status() == StatusKedaluwarsa.KEDALUWARSA
+                                ? 0 : 1)
+                .thenComparing(baris -> baris.batch()
+                        .getTanggalKedaluwarsa())
+                .thenComparing(baris -> baris.barang().getNama(),
+                        String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(baris -> baris.batch().getKode(),
+                        String.CASE_INSENSITIVE_ORDER));
+
+        modelPeringatan.setRowCount(0);
+        for (BarisPeringatan baris : hasil) {
+            modelPeringatan.addRow(new Object[]{
+                baris,
+                baris.batch().getSisaJumlah() + " "
+                        + baris.barang().getSatuan(),
+                PemilihTanggal.format(
+                        baris.batch().getTanggalKedaluwarsa()),
+                baris.status()
+            });
+        }
+
+        if (hasil.isEmpty()) {
+            kosongPeringatan.setText(
+                    "Tidak ada peringatan pada tanggal ini.");
+            ((CardLayout) wadahPeringatan.getLayout())
+                    .show(wadahPeringatan, "kosong");
             ringkasanPeringatan.setText(" ");
         } else {
+            ((CardLayout) wadahPeringatan.getLayout())
+                    .show(wadahPeringatan, "tabel");
             ringkasanPeringatan.setText(semua
-                    ? jumlah + " batch dari seluruh barang perlu perhatian "
-                            + "pada tanggal acuan."
-                    : jumlah + " batch " + barang.getNama()
+                    ? hasil.size() + " batch dari seluruh barang perlu "
+                            + "perhatian pada tanggal acuan."
+                    : hasil.size() + " batch " + barang.getNama()
                             + " perlu perhatian pada tanggal acuan.");
         }
-        daftarPeringatan.revalidate();
-        daftarPeringatan.repaint();
+        sesuaikanTinggiPeringatan();
+        wadahPeringatan.revalidate();
+        wadahPeringatan.repaint();
     }
 
-    private JPanel barisPeringatan(Barang barang, BatchStok batch,
+    private void sesuaikanTinggiPeringatan() {
+        if (gulirPeringatan == null) {
+            return;
+        }
+        int baris = Math.min(modelPeringatan.getRowCount(), 5);
+        int tinggi = tabelPeringatan.getTableHeader()
+                .getPreferredSize().height
+                + baris * tabelPeringatan.getRowHeight() + 2;
+        gulirPeringatan.setPreferredSize(new Dimension(0, tinggi));
+        gulirPeringatan.revalidate();
+    }
+
+    private record BarisPeringatan(Barang barang, BatchStok batch,
             StatusKedaluwarsa status) {
-        JPanel baris = new JPanel(new BorderLayout(8, 0));
-        baris.setOpaque(true);
-        baris.setBackground(Ui.NETRAL_LEMBUT);
-        baris.setBorder(new EmptyBorder(Ui.skala(8), Ui.skala(10),
-                Ui.skala(8), Ui.skala(10)));
-        JLabel teks = new JLabel(barang.getNama() + " · " + batch.getKode()
-                + " · sisa " + batch.getSisaJumlah() + " "
-                + barang.getSatuan()
-                + " · " + batch.getTanggalKedaluwarsa());
-        teks.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
-        teks.setForeground(Ui.KARTU.getRed() < 100
-                ? new Color(0xE2E8F0) : Ui.TEKS);
-        JPanel kanan = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        kanan.setOpaque(false);
-        kanan.add(Badge.status(status.getLabel()));
-        baris.add(teks, BorderLayout.CENTER);
-        baris.add(kanan, BorderLayout.EAST);
-        return baris;
+    }
+
+    private static final class PenyajiBarangBatch extends JPanel
+            implements TableCellRenderer {
+        private final JLabel nama = new JLabel();
+        private final JLabel batch = new JLabel();
+
+        private PenyajiBarangBatch() {
+            super();
+            setOpaque(true);
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBorder(new EmptyBorder(Ui.skala(6), Ui.skala(
+                    Ui.PADDING_SEL_TABEL), Ui.skala(6), Ui.skala(
+                    Ui.PADDING_SEL_TABEL)));
+            nama.setFont(Ui.font(Font.BOLD, Ui.FONT_BODY));
+            nama.setForeground(Ui.TEKS);
+            batch.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
+            batch.setForeground(Ui.TEKS_LEMBUT);
+            add(nama);
+            add(Box.createVerticalStrut(2));
+            add(batch);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable tabel,
+                Object nilai, boolean dipilih, boolean fokus, int baris,
+                int kolom) {
+            if (nilai instanceof BarisPeringatan data) {
+                nama.setText(data.barang().getNama());
+                batch.setText(data.batch().getKode());
+            }
+            int hover = tabel instanceof TabelKantin
+                    ? ((TabelKantin) tabel).getBarisHover() : -1;
+            setBackground(dipilih ? tabel.getSelectionBackground()
+                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            return this;
+        }
+    }
+
+    private static final class PenyajiTeksPeringatan
+            extends DefaultTableCellRenderer {
+        private final boolean kanan;
+
+        private PenyajiTeksPeringatan(boolean kanan) {
+            this.kanan = kanan;
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable tabel,
+                Object nilai, boolean dipilih, boolean fokus, int baris,
+                int kolom) {
+            super.getTableCellRendererComponent(
+                    tabel, nilai, dipilih, fokus, baris, kolom);
+            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
+                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
+            setHorizontalAlignment(kanan
+                    ? SwingConstants.RIGHT : SwingConstants.LEFT);
+            setVerticalAlignment(SwingConstants.CENTER);
+            setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
+            int hover = tabel instanceof TabelKantin
+                    ? ((TabelKantin) tabel).getBarisHover() : -1;
+            setForeground(Ui.TEKS);
+            setBackground(dipilih ? tabel.getSelectionBackground()
+                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            return this;
+        }
+    }
+
+    private static final class PenyajiStatusPeringatan
+            extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable tabel,
+                Object nilai, boolean dipilih, boolean fokus, int baris,
+                int kolom) {
+            super.getTableCellRendererComponent(
+                    tabel, nilai, dipilih, fokus, baris, kolom);
+            StatusKedaluwarsa status = nilai instanceof StatusKedaluwarsa s
+                    ? s : StatusKedaluwarsa.AMAN;
+            setText(status.getLabel());
+            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
+                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
+            setHorizontalAlignment(SwingConstants.LEFT);
+            setVerticalAlignment(SwingConstants.CENTER);
+            setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
+            int hover = tabel instanceof TabelKantin
+                    ? ((TabelKantin) tabel).getBarisHover() : -1;
+            setForeground(dipilih ? tabel.getSelectionForeground()
+                    : status == StatusKedaluwarsa.KEDALUWARSA
+                            ? Ui.MERAH : Ui.KUNING_BADGE);
+            setBackground(dipilih ? tabel.getSelectionBackground()
+                    : (baris == hover ? Ui.HOVER : Ui.KARTU));
+            return this;
+        }
     }
 
     private void perbaruiGrafik() {
+        perbaruiPilihanSatuanGrafik();
+        gambarGrafik();
+    }
+
+    private void perbaruiPilihanSatuanGrafik() {
+        String terpilih = (String) comboSatuanGrafik.getSelectedItem();
+        Set<String> satuan = new LinkedHashSet<>();
+        for (Barang barang : konteks.getDaftarBarang()) {
+            satuan.add(barang.getSatuan());
+        }
+        memperbaruiSatuanGrafik = true;
+        try {
+            comboSatuanGrafik.removeAllItems();
+            for (String item : satuan) {
+                comboSatuanGrafik.addItem(item);
+            }
+            if (terpilih != null && satuan.contains(terpilih)) {
+                comboSatuanGrafik.setSelectedItem(terpilih);
+            } else if (barang != null && satuan.contains(barang.getSatuan())) {
+                comboSatuanGrafik.setSelectedItem(barang.getSatuan());
+            } else if (comboSatuanGrafik.getItemCount() > 0) {
+                comboSatuanGrafik.setSelectedIndex(0);
+            }
+            comboSatuanGrafik.setEnabled(!satuan.isEmpty());
+        } finally {
+            memperbaruiSatuanGrafik = false;
+        }
+    }
+
+    private void gambarGrafik() {
         grafik.removeAll();
-        List<Barang> daftar = konteks.getDaftarBarang();
+        String satuan = (String) comboSatuanGrafik.getSelectedItem();
         List<String> nama = new ArrayList<>();
         List<Integer> nilai = new ArrayList<>();
         boolean adaPositif = false;
-        for (Barang barang : daftar) {
+        for (Barang barang : konteks.getDaftarBarang()) {
+            if (satuan == null || !satuan.equals(barang.getSatuan())) {
+                continue;
+            }
             int saldo = barang.hitungSaldo();
             nama.add(barang.getNama());
             nilai.add(saldo);
             adaPositif |= saldo > 0;
         }
-        if (daftar.isEmpty() || !adaPositif) {
+        if (nama.isEmpty() || !adaPositif) {
             JLabel kosongGrafik = Ui.keterangan(
                     "Belum ada stok untuk ditampilkan");
             kosongGrafik.setHorizontalAlignment(
