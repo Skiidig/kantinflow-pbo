@@ -4,7 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Font;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
+import java.util.Objects;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -32,13 +32,14 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     private final JButton tombolManual = Ui.utama("Keluarkan Manual");
     private final JTextField fieldJumlahFefo = Ui.field(8);
     private final JLabel labelJumlahFefo = Ui.labelField("Jumlah *");
-    private final JTextField fieldTanggalFefo = Ui.field(12);
+    private final PemilihTanggal tanggalFefo = new PemilihTanggal();
     private final JButton tombolFefo = Ui.utama("Keluarkan FEFO");
     private final JLabel pesanManual = Ui.pesan();
     private final JLabel pesanFefo = Ui.pesan();
+    private final JLabel pesanTanggalFefo = Ui.pesan();
     private final JLabel hasilAlokasi = Ui.keterangan(
             "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
-    private String tanggalFefoAwal;
+    private LocalDate tanggalFefoAwal;
 
     public PanelStokKeluar(KonteksKantin konteks) {
         super(konteks, "Stok Keluar",
@@ -48,9 +49,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
         fieldJumlahFefo.setName("jumlahFefo");
-        fieldTanggalFefo.setName("tanggalFefo");
-        fieldTanggalFefo.putClientProperty("JTextField.placeholderText",
-                "yyyy-MM-dd");
+        tanggalFefo.komponenTeks().setName("tanggalFefo");
+        pesanTanggalFefo.setName("pesanTanggalFefo");
         tombolFefo.setName("tombolFefo");
         tombolFefo.setIcon(Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
         tombolFefo.setIconTextGap(7);
@@ -74,8 +74,10 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         comboBatch.addActionListener(event -> perbaruiSisa());
         tombolManual.addActionListener(event -> keluarkanManual());
         tombolFefo.addActionListener(event -> keluarkanFefo());
-        tanggalFefoAwal = LocalDate.now().toString();
-        fieldTanggalFefo.setText(tanggalFefoAwal);
+        tanggalFefoAwal = LocalDate.now();
+        tanggalFefo.setTanggal(tanggalFefoAwal);
+        tanggalFefo.tambahPerubahan(
+                () -> pesanTanggalFefo.setText(" "));
         bangunIsi();
     }
 
@@ -104,8 +106,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
 
         JPanel formFefo = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field(labelJumlahFefo, fieldJumlahFefo),
-                Ui.field("Tanggal pengeluaran * (yyyy-MM-dd)",
-                        fieldTanggalFefo));
+                Ui.field("Tanggal pengeluaran *",
+                        tanggalFefo, pesanTanggalFefo));
         formFefo.setAlignmentX(LEFT_ALIGNMENT);
         fefoIsi.add(formFefo);
 
@@ -238,6 +240,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
 
     private void keluarkanFefo() {
         pesanFefo.setText(" ");
+        pesanTanggalFefo.setText(" ");
         if (barang == null) {
             pesanFefo.setText(
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
@@ -252,12 +255,14 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             return;
         }
 
-        LocalDate tanggal;
-        try {
-            tanggal = LocalDate.parse(fieldTanggalFefo.getText().trim());
-        } catch (DateTimeParseException exception) {
-            pesanFefo.setText("Format tanggal harus yyyy-MM-dd.");
-            fieldTanggalFefo.requestFocusInWindow();
+        LocalDate tanggal = tanggalFefo.getTanggal();
+        if (tanggal == null) {
+            boolean kosong = tanggalFefo.komponenTeks()
+                    .getText().trim().isEmpty();
+            pesanTanggalFefo.setText(kosong
+                    ? "Tanggal pengeluaran wajib diisi."
+                    : "Format tanggal pengeluaran tidak valid.");
+            tanggalFefo.komponenTeks().requestFocusInWindow();
             return;
         }
 
@@ -277,7 +282,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 "Pengeluaran FEFO berhasil: " + alokasi + ". Saldo: "
                 + barang.hitungSaldo() + " " + barang.getSatuan() + ".")) {
             fieldJumlahFefo.setText("");
-            fieldTanggalFefo.setText(LocalDate.now().toString());
+            tanggalFefoAwal = LocalDate.now();
+            tanggalFefo.setTanggal(tanggalFefoAwal);
             pesanFefo.setText(" ");
             hasilAlokasi.setText("Alokasi: " + alokasi);
         } else {
@@ -311,10 +317,11 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         fieldJumlahManual.setText("");
         fieldJumlahFefo.setText("");
         perbaruiLabelJumlah();
-        tanggalFefoAwal = LocalDate.now().toString();
-        fieldTanggalFefo.setText(tanggalFefoAwal);
+        tanggalFefoAwal = LocalDate.now();
+        tanggalFefo.setTanggal(tanggalFefoAwal);
         pesanManual.setText(" ");
         pesanFefo.setText(" ");
+        pesanTanggalFefo.setText(" ");
         hasilAlokasi.setText(
                 "Alokasi FEFO akan tampil di sini setelah transaksi berhasil.");
         comboBatch.removeAllItems();
@@ -358,6 +365,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     public boolean adaIsianBelumDisimpan() {
         return !fieldJumlahManual.getText().trim().isEmpty()
                 || !fieldJumlahFefo.getText().trim().isEmpty()
-                || !fieldTanggalFefo.getText().equals(tanggalFefoAwal);
+                || !Objects.equals(tanggalFefo.getTanggal(), tanggalFefoAwal);
     }
 }
