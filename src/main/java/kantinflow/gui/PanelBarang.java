@@ -59,14 +59,14 @@ public class PanelBarang extends PanelKantin {
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
     private final List<Barang> urutanBarang = new ArrayList<>();
     private final JTextField fieldCari = Ui.field(18);
-    private final JButton tombolTambah = Ui.utama("+ Tambah Barang");
+    private final JButton tombolTambah = Ui.utama("Tambah Barang");
     private final JButton tombolAktif = Ui.utama("Jadikan Barang Aktif");
     private final JButton tombolMinimum = Ui.sekunder("Atur Minimum");
     private final JLabel labelAktif = Ui.keterangan("Barang aktif: -");
     private final JLabel labelDipilih = Ui.keterangan("Belum ada barang dipilih.");
     private final EmptyState kosong = new EmptyState(
             "package", "Belum ada barang",
-            "Tambahkan barang pertama melalui tombol + Tambah Barang.");
+            "Tambahkan barang pertama melalui tombol Tambah Barang.");
     private boolean memperbaruiTabel;
 
     public PanelBarang(KonteksKantin konteks) {
@@ -77,6 +77,7 @@ public class PanelBarang extends PanelKantin {
         tombolTambah.setName("tombolTambahBarang");
         tombolTambah.setIcon(Ui.ikonAksi("plus", 16, java.awt.Color.WHITE));
         tombolTambah.setIconTextGap(7);
+        samakanTinggi(fieldCari, tombolTambah);
         tombolAktif.setName("jadikanBarangAktif");
         tombolAktif.setIcon(Ui.ikonAksi("check", 16, java.awt.Color.WHITE));
         tombolAktif.setIconTextGap(7);
@@ -92,6 +93,7 @@ public class PanelBarang extends PanelKantin {
         for (int i = 0; i < tabel.getColumnModel().getColumnCount(); i++) {
             tabel.getColumnModel().getColumn(i).setCellRenderer(new PenyajiBarang());
         }
+        Ui.aturKolom(tabel, 260, 100, 120, 130);
         tabel.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting() && !memperbaruiTabel) {
                 perbaruiAksi();
@@ -141,7 +143,7 @@ public class PanelBarang extends PanelKantin {
         cariBaris.setAlignmentX(Component.LEFT_ALIGNMENT);
         cariBaris.add(Ui.field("Cari nama barang", fieldCari),
                 BorderLayout.CENTER);
-        cariBaris.add(tombolTambah, BorderLayout.EAST);
+        cariBaris.add(Ui.field(" ", tombolTambah), BorderLayout.EAST);
         atasIsi.add(petunjuk);
         atasIsi.add(Box.createVerticalStrut(10));
         atasIsi.add(cariBaris);
@@ -207,7 +209,7 @@ public class PanelBarang extends PanelKantin {
             kosong.setTitle(tanpaData
                     ? "Belum ada barang" : "Tidak ada hasil");
             kosong.setDescription(tanpaData
-                    ? "Tambahkan barang pertama melalui tombol + Tambah Barang."
+                    ? "Tambahkan barang pertama melalui tombol Tambah Barang."
                     : "Tidak ada barang yang cocok dengan pencarian.");
         }
         kosong.setVisible(tanpaTampilan);
@@ -581,6 +583,15 @@ public class PanelBarang extends PanelKantin {
         perbaruiAksi();
     }
 
+    private static void samakanTinggi(JComponent... komponen) {
+        int tinggi = Ui.skala(Ui.TINGGI_INPUT);
+        for (JComponent bagian : komponen) {
+            Dimension ukuran = bagian.getPreferredSize();
+            bagian.setPreferredSize(new Dimension(ukuran.width, tinggi));
+            bagian.setMinimumSize(new Dimension(ukuran.width, tinggi));
+        }
+    }
+
     private abstract static class SimpleDocumentListener
             implements DocumentListener {
         protected abstract void berubah();
@@ -621,7 +632,8 @@ public class PanelBarang extends PanelKantin {
                     && barang.getId() == aktif.getId();
             if (iniAktif && !isSelected) {
                 setBackground(Ui.AKSEN_LEMBUT);
-                setForeground(Ui.AKSEN);
+                setForeground(Ui.KARTU.getRed() < 100
+                        ? Ui.TEKS : Ui.AKSEN);
                 setFont(Ui.font(Font.BOLD, Ui.FONT_BODY));
                 setToolTipText("Barang aktif");
             } else {
@@ -630,8 +642,7 @@ public class PanelBarang extends PanelKantin {
                 setBackground(isSelected
                         ? table.getSelectionBackground()
                         : (row == hover ? Ui.HOVER : Ui.KARTU));
-                setForeground(isSelected
-                        ? table.getSelectionForeground() : Ui.TEKS);
+                setForeground(Ui.TEKS);
                 setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
                 setToolTipText(null);
             }

@@ -73,7 +73,7 @@ public class PanelPembuangan extends PanelKantin {
 
     private void bangunIsi() {
         JPanel form = Ui.kartu("Form Pembuangan", "trash");
-        JPanel isian = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT,
+        JPanel isian = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Batch *", comboBatch),
                 Ui.field("Jumlah *", fieldJumlah),
                 Ui.field("Tanggal pembuangan * (yyyy-MM-dd)", fieldTanggal),

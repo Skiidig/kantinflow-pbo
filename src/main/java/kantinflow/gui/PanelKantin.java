@@ -33,6 +33,14 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
         return keterangan;
     }
 
+    /**
+     * Lebar maksimum area konten halaman dalam satuan FlatLaf. Halaman
+     * dashboard dapat memakai area yang sedikit lebih lebar.
+     */
+    public int lebarMaksimum() {
+        return Ui.LEBAR_KONTEN;
+    }
+
     @Override
     public Dimension getPreferredScrollableViewportSize() {
         return getPreferredSize();

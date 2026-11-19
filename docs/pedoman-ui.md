@@ -31,8 +31,9 @@ Warna status selalu disertai teks: `Perlu restok`, `Cukup`, `Aman`,
 
 ### Tipografi
 
-Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
-**Segoe UI** (fallback Arial). Ukuran aktual yang dipakai:
+Font utama adalah **Inter** dari `flatlaf-fonts-inter` 3.19
+(`FlatInterFont`), dengan fallback Segoe UI/Arial bila font gagal dimuat.
+Ukuran aktual yang dipakai:
 
 | Peran | Ukuran | Gaya |
 |---|---:|---|
@@ -56,24 +57,32 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 | Lebar sidebar | 240 px |
 | Jendela awal | 1180 × 720 |
 | Ukuran minimum | 960 × 640 |
-| Padding halaman | 22 px atas/bawah, 24 px kiri/kanan |
-| Padding kartu | 16 px atas/bawah, 18 px kiri/kanan |
+| Lebar maksimum konten | 1200 px |
+| Lebar maksimum Ringkasan | 1400 px |
+| Lebar maksimum input form | 460 px |
+| Lebar minimum kolom tabel | 84 px |
+| Jarak konten dari sidebar | 24 px |
+| Padding halaman | 24 px atas/bawah/kiri/kanan |
+| Padding kartu | 20 px |
 | Jarak internal kartu / padding | 20 px |
 | Jarak grid form | 16 px |
 | Tinggi input | 34 px |
 | Tinggi tombol | 36 px |
-| Tinggi baris tabel | 36 px |
-| Tinggi header tabel | 38 px |
+| Tinggi baris tabel | 40 px (minimum dari metrik font) |
+| Tinggi header tabel | 44 px (minimum dari metrik font) |
 | Padding horizontal sel | 12 px |
-| Radius kartu | 12 px |
+| Radius kartu | 16 px |
 | Radius kontrol/tombol | 8 px |
 | Ambang form satu kolom | lebar < 760 px |
+| Ambang filter Riwayat dua kolom | lebar < 520 px |
+| Ambang ringkasan Pemantauan | 4 kolom ≥ 900 px; 2 kolom ≥ 520 px; 1 kolom < 520 px |
 
 ## 2. Pola komponen
 
 ### Sidebar
 
-- Latar putih, lebar 240 px, border kanan `Ui.GARIS`.
+- Latar permukaan tema (putih di mode terang, gelap di mode gelap), lebar
+  240 px, border kanan `Ui.GARIS`.
 - Brand: kotak biru `KF` 32 × 32, nama **KantinFlow**, subjudul
   **Manajemen Persediaan**.
 - Di bawah brand, sebelum menu, ada label **Barang aktif** dan dropdown
@@ -115,7 +124,7 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 ### Kartu
 
 - Gunakan `Ui.kartu()` atau `Ui.kartu("Judul")`.
-- Permukaan putih, border `Ui.GARIS`, radius 12 px, padding 16/18 px.
+- Permukaan putih, border `Ui.GARIS`, radius 16 px, padding 20 px.
 - Kartu nilai memakai `Ui.kartuNilai(...)` agar urutan label–nilai–detail
   konsisten.
 - Jangan membuat kartu untuk elemen kecil; grupkan kontrol dalam satu kartu.
@@ -127,6 +136,16 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
   strip status. Ringkasan memakai empat StatCard.
 - `Badge` adalah pill status/jenis. Gunakan `Badge.status(teks)` atau
   `Ui.pasangBadge(tabel, kolom...)` agar warna konsisten.
+- `BadgeRenderer` dipakai ulang per kolom: badge disusun dengan
+  `GridBagLayout` dan `anchor=CENTER`, tinggi/padding mengikuti metrik font,
+  bukan tinggi baris yang dikunci. Renderer menyimpan cache badge per teks
+  dan satu border, sehingga tidak membuat komponen baru pada setiap paint.
+- Warna semantik: Penerimaan hijau; Pengeluaran Manual/FEFO oranye;
+  Pembuangan merah; Aman/Cukup hijau; Segera kedaluwarsa/Perlu restok
+  kuning; Kedaluwarsa merah; Habis netral. Teks tetap wajib ada, warna
+  bukan satu-satunya pembeda.
+- Badge harus terbaca pada keadaan normal, hover, baris terpilih, dan
+  nonaktif. Jangan menimpa warna teks badge dengan warna teks tabel.
 - `EmptyState` menampilkan ikon besar, judul, deskripsi, dan aksi opsional.
   Gunakan saat tabel/kartu tidak memiliki data.
 - Tabel memakai `TabelKantin` dari `Ui.tabel`; hover baris memakai
@@ -150,24 +169,43 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 - Gunakan `Ui.field(label, komponen, labelPesan)`.
 - Label selalu terlihat; tanda `*` untuk wajib isi.
 - Placeholder hanya contoh, bukan pengganti label.
-- Gunakan `Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT, ...)` untuk form dua
-  kolom yang berubah menjadi satu kolom pada jendela sempit.
+- Gunakan `Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT, ...)` untuk form dua
+  kolom yang berubah menjadi satu kolom pada jendela sempit. Setiap sel
+  input dibatasi `Ui.LEBAR_INPUT_MAKS` (460 px), tetapi tetap mengisi tinggi
+  sel agar sejajar dengan label/pesan.
+- Jangan memakai grid form untuk toolbar aksi atau dialog; di sana gunakan
+  `FlowLayout`/`BorderLayout` agar tombol dan label tidak melebar tanpa
+  batas.
+- Filter Riwayat memakai `Ui.gridForm(2, 520, ...)`: dua kolom pada 960,
+  satu kolom pada jendela yang lebih sempit. Ringkasan Pemantauan memakai
+  `Ui.gridBertahap(4, 900, 520, ...)`.
 - Tombol utama memakai `Ui.utama`; pemeriksaan memakai `Ui.sekunder`; tindakan
   pembuangan memakai `Ui.bahaya`.
 - Pesan validasi memakai `Ui.pesan()` dan diletakkan di bawah field atau
   formulir yang bermasalah.
-- Setelah sukses/gagal, pesan hasil tetap tampil di status bar; jangan
-  menggantinya dengan warna saja.
+- Setelah sukses/gagal, pesan hasil tampil sebagai notifikasi/toast; status
+  aksesibilitas tersembunyi tetap menyimpan teks yang sama untuk harness.
+  Jangan menggantinya dengan warna saja.
 
 ### Tabel
 
 - Gunakan `Ui.model(...)`, `Ui.tabel(model)`, dan `Ui.scrollTabel(tabel, tinggi)`.
+- Tetapkan lebar kolom secara eksplisit dengan `Ui.aturKolom(tabel, ...)`,
+  bukan membiarkan semua kolom sama lebar. Kolom angka lebih sempit dan
+  rata kanan; teks panjang (Alasan, Nama) mendapat porsi lebih besar;
+  batas minimum kolom 84 px agar tanggal/status tidak terpotong pada 960.
+- Tabel mengisi lebar kontainer; `JScrollPane` tabel hanya menggulir
+  vertikal. Halaman tidak boleh menggulir horizontal.
 - Tinggi tabel per halaman memakai konstanta `Ui.TINGGI_TABEL_*`.
 - Angka rata kanan dengan `Ui.rataKanan(tabel, indeksKolom...)`.
 - Header memakai latar halaman dan teks sekunder; tingginya mengikuti
   metrik font dengan minimum 44 px.
-- Baris terpilih memakai `Ui.AKSEN_LEMBUT`; jangan memilih warna baru.
-- Sediakan `Ui.kosong("...")` dan tampilkan hanya saat model kosong.
+- Baris terpilih memakai `Ui.AKSEN_LEMBUT`; teks terpilih harus memakai
+  `Ui.TEKS` agar tetap kontras di tema terang dan gelap.
+- Baris aktif pada tabel Barang memakai `Ui.AKSEN_LEMBUT`; pada tema gelap
+  teksnya memakai `Ui.TEKS`, bukan aksen biru.
+- Sediakan `Ui.kosong("...")` dan tampilkan hanya saat model kosong; jangan
+  menampilkan tabel kosong dan EmptyState bersamaan.
 - Gunakan `yyyy-MM-dd` untuk tanggal dan sertakan satuan pada jumlah.
 
 ### Halaman Barang
@@ -248,11 +286,32 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
   form dibersihkan. Reload internal setelah simpan tidak boleh memunculkan
   konfirmasi.
 
+### Halaman Pemantauan
+
+- Saat halaman pertama dibuka, tanggal acuan default adalah hari ini dan
+  tabel langsung terisi tanpa menunggu tombol **Periksa**.
+- Tanggal yang dipilih pengguna dipertahankan saat berpindah halaman,
+  mengganti barang, atau memuat ulang panel. Jangan mengosongkan field
+  tanggal di `perbarui()`.
+- Tombol **Periksa Kedaluwarsa** tetap ada. Tanggal yang tidak valid
+  menampilkan pesan di dekat field dan **mempertahankan hasil valid
+  sebelumnya**; jangan menggantinya dengan tabel kosong.
+- Hasil menampilkan tepat satu kondisi: tabel batch dengan `sisa > 0`
+  (termasuk batch yang sudah kedaluwarsa), EmptyState "Tidak ada batch
+  bersisa", atau EmptyState "Belum ada barang aktif" dengan arahan ke
+  halaman Barang. Jangan menampilkan tabel dan EmptyState bersamaan.
+- Batch dengan sisa 0 tidak ditampilkan; semua batch bersisa ditampilkan.
+- Ringkasan stok fisik, stok layak, minimum, dan status memakai tanggal
+  acuan yang sama. Batch yang kedaluwarsa tepat pada tanggal acuan masih
+  dihitung layak sesuai aturan domain; jangan mengubah aturan kedaluwarsa.
+- Memeriksa pemantauan tidak boleh mengubah saldo, batch, atau riwayat.
+
 ### Pesan dan status
 
 - Error field: `Ui.pesan()` berwarna `Ui.MERAH`, 11 px.
-- Status sukses/gagal global: `konteks.tampilkanPesan(...)`, teks tetap
-  terbaca di status bar dan tidak hanya mengandalkan warna.
+- Status sukses/gagal global: `konteks.tampilkanPesan(...)` memunculkan
+  toast; status aksesibilitas tersembunyi tetap menyimpan teks yang sama
+  dan tidak hanya mengandalkan warna.
 - Status proses: teks `Memproses...`, `Menyimpan...`, atau `Memuat...` selama
   operasi database; kontrol terkait dinonaktifkan.
 - Empty state: kalimat penjelas dan tindakan yang relevan, bukan tabel kosong
@@ -263,23 +322,43 @@ Font utama mengikuti font FlatLaf yang tersedia; pada Windows gunakan
 ### 1366 × 768
 
 - Sidebar mengikuti metrik dan skala; area konten luas.
-- Form dua kolom bila lebarnya ≥ 760 px.
-- Kartu Ringkasan tersusun 2 × 2.
+- Halaman dibungkus `HalamanScroll`: konten rata kiri, berjarak 24 px dari
+  area kerja setelah sidebar, dan lebarnya `min(viewport, 1200)`; Ringkasan
+  memakai batas 1400. Halaman tetap dapat menggulir vertikal.
+- Form dua kolom bila lebarnya ≥ 760 px; tiap input maksimal 460 px.
+- Kartu Ringkasan tersusun 2 × 2; ringkasan Pemantauan empat kolom bila
+  lebarnya ≥ 900 px. Filter Riwayat memakai dua kolom (ambang 520 px).
 - Barang menampilkan petunjuk, pencarian, tabel, dan area aksi terpilih;
   Stok Masuk menampilkan form dan tabel; Stok Keluar memakai tab Manual/FEFO.
-- Halaman tetap berada di dalam `JScrollPane`; konten panjang dapat digulir.
+- Halaman tidak memiliki scrollbar horizontal; konten panjang digulir
+  vertikal.
 
 ### 960 × 640
 
-- Panel mengimplementasikan `Scrollable` dan mengikuti lebar viewport.
-- Grid form berubah menjadi satu kolom pada lebar < 760 px.
+- Panel mengikuti lebar viewport (sekitar 696 px setelah sidebar dan
+  padding), bukan lebar tetap.
+- Grid form berubah menjadi satu kolom pada lebar < 760 px; filter Riwayat
+  tetap dua kolom karena ambangnya 520 px.
+- Ringkasan Pemantauan berubah menjadi 2 × 2; jangan memaksa empat kolom
+  yang membuat label terpotong.
 - Sidebar tetap dapat digulir; dropdown barang aktif dan seluruh menu tetap
   terjangkau.
 - Tombol dan field tetap berada dalam alur layout, bukan posisi absolut.
 - Tombol aksi Barang harus terbaca penuh; tabel memakai scroll vertikal bila
   daftar panjang.
-- Tabel yang lebih lebar dapat digulir di dalam `JScrollPane` tabel.
+- Tabel tidak boleh menggulir horizontal; lebar kolom minimum 84 px dan
+  kolom teks panjang mendapat porsi lebih besar.
 - Dialog tidak boleh melampaui area layar; isi dialog dapat digulir.
+
+### 2560 × 1000 (lebar)
+
+- Konten tetap rata kiri dengan jarak 24 px setelah sidebar; lebar maksimum
+  1200 px (Ringkasan 1400 px). Sisa ruang di kanan adalah latar halaman,
+  bukan stretched card atau input.
+- Form tetap dua kolom dengan input maksimal 460 px; tabel mengisi lebar
+  konten, bukan lebar monitor.
+- Tidak ada scrollbar horizontal pada halaman maupun tabel. Ukuran ini
+  adalah uji ukuran jendela, bukan simulasi DPI.
 
 ### Skala Windows 100%, 125%, dan 150%
 

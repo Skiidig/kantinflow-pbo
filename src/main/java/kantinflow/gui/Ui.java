@@ -55,6 +55,10 @@ final class Ui {
     static Color KUNING_LEMBUT = new Color(0xFEF3C7);
     static Color ORANYE = new Color(0xEA580C);
     static Color ORANYE_LEMBUT = new Color(0xFFEDD5);
+    static Color HIJAU_BADGE = new Color(0x15803D);
+    static Color KUNING_BADGE = new Color(0xB45309);
+    static Color MERAH_BADGE = new Color(0xB91C1C);
+    static Color ORANYE_BADGE = new Color(0xC2410C);
     static Color NETRAL_LEMBUT = new Color(0xF1F5F9);
     static Color HOVER = new Color(0xEEF2FF);
 
@@ -70,9 +74,12 @@ final class Ui {
     static final int TINGGI_JENDELA = 720;
     static final int LEBAR_MINIMUM = 960;
     static final int TINGGI_MINIMUM = 640;
+    static final int LEBAR_KONTEN = 1200;
+    static final int LEBAR_KONTEN_RINGKASAN = 1400;
+    static final int LEBAR_INPUT_MAKS = 460;
     static final int AMBANG_FORM_SEMPIT = 760;
     static final int AMBANG_FILTER_RIWAYAT = 600;
-    static final int LEBAR_FORM_KELUAR = 600;
+    static final int LEBAR_FORM_KELUAR = 460;
     static final int LEBAR_KOMBO_BARANG = 230;
     static final int TINGGI_FORM_MANUAL = 260;
     static final int TINGGI_FORM_FEFO = 300;
@@ -121,6 +128,10 @@ final class Ui {
             KUNING_LEMBUT = new Color(0x451A03);
             ORANYE = new Color(0xFB923C);
             ORANYE_LEMBUT = new Color(0x431407);
+            HIJAU_BADGE = new Color(0x86EFAC);
+            KUNING_BADGE = new Color(0xFDE68A);
+            MERAH_BADGE = new Color(0xFCA5A5);
+            ORANYE_BADGE = new Color(0xFDBA74);
             NETRAL_LEMBUT = new Color(0x1E293B);
             HOVER = new Color(0x1E293B);
         } else {
@@ -141,6 +152,10 @@ final class Ui {
             KUNING_LEMBUT = new Color(0xFEF3C7);
             ORANYE = new Color(0xEA580C);
             ORANYE_LEMBUT = new Color(0xFFEDD5);
+            HIJAU_BADGE = new Color(0x15803D);
+            KUNING_BADGE = new Color(0xB45309);
+            MERAH_BADGE = new Color(0xB91C1C);
+            ORANYE_BADGE = new Color(0xC2410C);
             NETRAL_LEMBUT = new Color(0xF1F5F9);
             HOVER = new Color(0xEEF2FF);
         }
@@ -427,6 +442,111 @@ final class Ui {
         return panel;
     }
 
+    /**
+     * Grid bertahap: empat kolom pada layar lebar, dua kolom pada lebar sedang,
+     * dan satu kolom saat ruang menyempit.
+     */
+    static JPanel gridBertahap(int kolomMaks, int ambangDua, int ambangSatu,
+            Component... komponen) {
+        int kolomAwal = Math.min(kolomMaks, komponen.length);
+        JPanel panel = new JPanel(new GridLayout(
+                Math.max(1, (komponen.length + kolomAwal - 1) / kolomAwal),
+                Math.max(1, kolomAwal), skala(GAP_FORM), skala(GAP_FORM)));
+        panel.setOpaque(false);
+        for (Component item : komponen) {
+            panel.add(item);
+        }
+        panel.addComponentListener(new ComponentAdapter() {
+            private int kolomTerakhir = kolomAwal;
+
+            @Override
+            public void componentResized(ComponentEvent event) {
+                int lebar = panel.getWidth();
+                if (lebar <= 0) {
+                    return;
+                }
+                int kolom = lebar < ambangSatu ? 1
+                        : lebar < ambangDua ? Math.min(2, komponen.length)
+                        : kolomAwal;
+                if (kolom == kolomTerakhir) {
+                    return;
+                }
+                kolomTerakhir = kolom;
+                int baris = Math.max(1,
+                        (komponen.length + kolom - 1) / kolom);
+                panel.setLayout(new GridLayout(baris, kolom,
+                        skala(GAP_FORM), skala(GAP_FORM)));
+                panel.revalidate();
+                panel.repaint();
+            }
+        });
+        return panel;
+    }
+
+    /**
+     * Form grid yang membatasi lebar tiap kolom input agar tidak melebar
+     * mengikuti kartu pada layar besar.
+     */
+    static JPanel gridForm(int kolomLebar, int ambang, Component... komponen) {
+        Component[] dibatasi = new Component[komponen.length];
+        for (int i = 0; i < komponen.length; i++) {
+            dibatasi[i] = lebarMaksimum(komponen[i], LEBAR_INPUT_MAKS);
+        }
+        return gridResponsif(kolomLebar, ambang, dibatasi);
+    }
+
+    static JPanel lebarMaksimum(Component isi, int maks) {
+        return new LebarMaksimum(isi, maks);
+    }
+
+    /**
+     * Mengatur lebar kolom tabel secara proporsional. Kolom angka tetap lebih
+     * sempit dan rata kanan; kolom teks panjang mendapat porsi lebih besar.
+     */
+    static void aturKolom(JTable tabel, int... lebar) {
+        tabel.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        int jumlah = Math.min(lebar.length,
+                tabel.getColumnModel().getColumnCount());
+        for (int i = 0; i < jumlah; i++) {
+            int nilai = skala(lebar[i]);
+            tabel.getColumnModel().getColumn(i).setPreferredWidth(nilai);
+            tabel.getColumnModel().getColumn(i).setMinWidth(
+                    skala(Math.min(lebar[i],
+                            Math.max(84, Math.round(lebar[i] * 0.6f)))));
+        }
+    }
+
+    private static final class LebarMaksimum extends JPanel {
+        private final Component isi;
+        private final int maks;
+
+        private LebarMaksimum(Component isi, int maks) {
+            super(null);
+            this.isi = isi;
+            this.maks = maks;
+            setOpaque(false);
+            add(isi);
+        }
+
+        @Override
+        public void doLayout() {
+            int lebar = Math.min(getWidth(), skala(maks));
+            isi.setBounds(0, 0, lebar, getHeight());
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension ukuran = isi.getPreferredSize();
+            return new Dimension(Math.min(ukuran.width, skala(maks)),
+                    ukuran.height);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(0, isi.getMinimumSize().height);
+        }
+    }
+
     static DefaultTableModel model(String... kolom) {
         return new DefaultTableModel(kolom, 0) {
             @Override
@@ -471,7 +591,11 @@ final class Ui {
                 int hover = table instanceof TabelKantin
                         ? ((TabelKantin) table).getBarisHover() : -1;
                 if (!isSelected) {
+                    setForeground(TEKS);
                     setBackground(row == hover ? HOVER : KARTU);
+                } else {
+                    setForeground(TEKS);
+                    setBackground(table.getSelectionBackground());
                 }
                 return this;
             }
@@ -504,7 +628,11 @@ final class Ui {
                 int hover = table instanceof TabelKantin
                         ? ((TabelKantin) table).getBarisHover() : -1;
                 if (!isSelected) {
+                    setForeground(TEKS);
                     setBackground(row == hover ? HOVER : KARTU);
+                } else {
+                    setForeground(TEKS);
+                    setBackground(table.getSelectionBackground());
                 }
                 return this;
             }

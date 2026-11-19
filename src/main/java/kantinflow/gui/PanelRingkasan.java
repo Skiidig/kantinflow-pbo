@@ -2,6 +2,8 @@ package kantinflow.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
@@ -19,6 +21,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import org.knowm.xchart.CategoryChart;
 import org.knowm.xchart.CategoryChartBuilder;
@@ -73,14 +76,16 @@ public class PanelRingkasan extends PanelKantin {
         tabel.setName("tabelRingkasan");
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 2, 3);
-        Ui.pasangBadge(tabel, 4);
+        tabel.getColumnModel().getColumn(4)
+                .setCellRenderer(new PenyajiStatus());
         tabel.setRowHeight(Ui.skala(40));
-        tabel.getColumnModel().getColumn(0).setPreferredWidth(230);
-        tabel.getColumnModel().getColumn(1).setPreferredWidth(90);
-        tabel.getColumnModel().getColumn(2).setPreferredWidth(120);
-        tabel.getColumnModel().getColumn(3).setPreferredWidth(130);
-        tabel.getColumnModel().getColumn(4).setPreferredWidth(140);
+        Ui.aturKolom(tabel, 230, 85, 110, 105, 110);
         bangunIsi();
+    }
+
+    @Override
+    public int lebarMaksimum() {
+        return Ui.LEBAR_KONTEN_RINGKASAN;
     }
 
     private void bangunIsi() {
@@ -91,6 +96,7 @@ public class PanelRingkasan extends PanelKantin {
         JPanel baris = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         baris.setOpaque(false);
         fieldTanggal.setColumns(10);
+        samakanTinggi(fieldTanggal, tombolPeriksa);
         baris.add(fieldTanggal);
         baris.add(tombolPeriksa);
         JPanel kontrolIsi = new JPanel(new BorderLayout(0, 6));
@@ -164,10 +170,7 @@ public class PanelRingkasan extends PanelKantin {
         if (aktif == null) {
             return;
         }
-        LocalDate tanggal = konteks.getTanggalPemantauan();
-        if (tanggal == null) {
-            tanggal = LocalDate.now();
-        }
+        LocalDate tanggal = konteks.getTanggalAcuan();
         fieldTanggal.setText(tanggal.toString());
 
         int fisik = aktif.hitungSaldo();
@@ -186,7 +189,6 @@ public class PanelRingkasan extends PanelKantin {
         kartuStatus.setKeterangan(perluRestok
                 ? "Stok layak sudah mencapai batas"
                 : "Stok layak masih di atas batas");
-        kartuStatus.setStatus(perluRestok ? "Perlu restok" : "Cukup");
         kartuStatus.setAksen(perluRestok ? Ui.MERAH : Ui.HIJAU);
 
         perbaruiTabel(tanggal);
@@ -304,6 +306,35 @@ public class PanelRingkasan extends PanelKantin {
         }
         grafik.revalidate();
         grafik.repaint();
+    }
+
+    private static void samakanTinggi(javax.swing.JComponent... komponen) {
+        int tinggi = Ui.skala(Ui.TINGGI_INPUT);
+        for (javax.swing.JComponent bagian : komponen) {
+            Dimension ukuran = bagian.getPreferredSize();
+            bagian.setPreferredSize(new Dimension(ukuran.width, tinggi));
+            bagian.setMinimumSize(new Dimension(ukuran.width, tinggi));
+        }
+    }
+
+    private static final class PenyajiStatus extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable tabel,
+                Object nilai, boolean dipilih, boolean fokus, int baris,
+                int kolom) {
+            super.getTableCellRendererComponent(
+                    tabel, nilai, dipilih, fokus, baris, kolom);
+            setOpaque(false);
+            setBorder(noFocusBorder);
+            setFont(tabel.getFont().deriveFont(Font.BOLD));
+            if (dipilih) {
+                setForeground(tabel.getSelectionForeground());
+            } else {
+                setForeground("Perlu restok".equals(String.valueOf(nilai))
+                        ? Ui.MERAH : Ui.HIJAU);
+            }
+            return this;
+        }
     }
 
     private static final class DefaultTabel

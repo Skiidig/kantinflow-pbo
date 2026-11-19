@@ -19,6 +19,15 @@ public interface KonteksKantin {
 
     LocalDate getTanggalPemantauan();
 
+    /**
+     * Tanggal acuan efektif. Sebelum pengguna memilih tanggal, halaman
+     * memakai hari ini agar ringkasan dan pemantauan langsung terisi.
+     */
+    default LocalDate getTanggalAcuan() {
+        LocalDate tanggal = getTanggalPemantauan();
+        return tanggal == null ? LocalDate.now() : tanggal;
+    }
+
     void setTanggalPemantauan(LocalDate tanggal);
 
     boolean simpanTransaksi(Transaksi transaksi, String pesanSukses);

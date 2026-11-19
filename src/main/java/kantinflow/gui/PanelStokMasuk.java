@@ -27,7 +27,6 @@ public class PanelStokMasuk extends PanelKantin {
     private final JTextField fieldTanggalMasuk = Ui.field(12);
     private final JTextField fieldTanggalKedaluwarsa = Ui.field(12);
     private final JButton tombolSimpan = Ui.utama("Simpan Penerimaan");
-    private final JLabel satuanJumlah = new JLabel("satuan");
     private final JLabel pesanValidasi = Ui.pesan();
     private final EmptyState kosong = new EmptyState(
             "package", "Belum ada batch",
@@ -57,6 +56,7 @@ public class PanelStokMasuk extends PanelKantin {
         kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
         Ui.pasangBadge(tabel, 4);
+        Ui.aturKolom(tabel, 120, 75, 120, 135, 140);
         aturTanggalAwal();
         bangunIsi();
     }
@@ -74,16 +74,9 @@ public class PanelStokMasuk extends PanelKantin {
         isi.setOpaque(false);
 
         JPanel form = Ui.kartu("Form Penerimaan", "stock-in");
-        JPanel jumlahBaris = new JPanel(new BorderLayout(8, 0));
-        jumlahBaris.setOpaque(false);
-        jumlahBaris.add(fieldJumlah, BorderLayout.CENTER);
-        satuanJumlah.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-        satuanJumlah.setForeground(Ui.TEKS_LEMBUT);
-        satuanJumlah.setBorder(new EmptyBorder(0, 4, 0, 0));
-        jumlahBaris.add(satuanJumlah, BorderLayout.EAST);
-        JPanel isian = Ui.gridResponsif(2, Ui.AMBANG_FORM_SEMPIT,
+        JPanel isian = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
                 Ui.field("Kode batch *", fieldKode),
-                Ui.field("Jumlah *", jumlahBaris),
+                Ui.field("Jumlah *", fieldJumlah),
                 Ui.field("Tanggal masuk * (yyyy-MM-dd)", fieldTanggalMasuk),
                 Ui.field("Tanggal kedaluwarsa * (yyyy-MM-dd)",
                         fieldTanggalKedaluwarsa));
@@ -178,16 +171,18 @@ public class PanelStokMasuk extends PanelKantin {
         infoBarang.setText("Penerimaan untuk "
                 + konteks.getBarangAktif().getNama() + " · "
                 + konteks.getBarangAktif().getSatuan());
-        satuanJumlah.setText(konteks.getBarangAktif().getSatuan());
         model.setRowCount(0);
+        LocalDate acuan = konteks.getTanggalAcuan();
         for (kantinflow.BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
+            String status = batch.getSisaJumlah() <= 0
+                    ? "Habis" : batch.statusPada(acuan).getLabel();
             model.addRow(new Object[]{
                 batch.getKode(),
                 batch.getSisaJumlah() + " "
                 + konteks.getBarangAktif().getSatuan(),
                 batch.getTanggalMasuk().toString(),
                 batch.getTanggalKedaluwarsa().toString(),
-                batch.statusPada(LocalDate.now()).getLabel()
+                status
             });
         }
         kosong.setVisible(model.getRowCount() == 0);

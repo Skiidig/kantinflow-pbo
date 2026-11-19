@@ -23,22 +23,22 @@ PDF memakai Apache PDFBox 3.0.8 dan font DejaVu Sans.
 | `StatusKedaluwarsa` | `label` | `getLabel()` | Enum `KEDALUWARSA`, `SEGERA_KEDALUWARSA`, `AMAN`. |
 | `PenyimpananSQLite` | `koneksi` | `muatSemuaBarang()`, `muatBarang(id)`, `simpanBarang()`, `muatRiwayat()`, `simpanTransaksi()`, `simpanStokMinimum()` | Semua akses JDBC dan transaksi SQLite. |
 | `MenuKonsol` | `barang`, `daftarBarang`, `riwayat`, `scanner`, `penyimpanan` | `jalankan()`, aksi menu | Antarmuka konsol dan barang aktif. |
-| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar dengan pemilih barang, konfirmasi form, CardLayout, status, dan koordinasi panel. |
+| `JendelaKantinFlow` | `barang`, `daftarBarang`, `riwayat`, `cardLayout`, `panel`, `penyimpanan` | `tampilkan()`, `gantiBarang()`, `simpanTransaksi()`, `muatUlang()` | Shell Swing: sidebar dengan pemilih barang, konfirmasi form, CardLayout, `HalamanScroll` berlebar maksimum, koordinasi tanggal pemantauan, status, dan koordinasi panel. |
 | `KonteksKantin` | kontrak `Barang`, `Transaksi`, tanggal pemantauan | getter, simpan, tambah, ganti, simpan minimum target, pesan | Batas antara panel halaman dan shell; minimum dapat ditujukan ke barang terpilih tanpa mengganti barang aktif. |
 | `PanelKantin` | `konteks` | `perbarui()` | Dasar halaman dengan header konsisten. |
 | `PanelRingkasan` | empat StatCard, tabel semua barang, peringatan, grafik | `perbarui()` | Dashboard stok, peringatan kedaluwarsa, badge status, dan grafik XChart. |
 | `PanelBarang` | pencarian, tabel empat kolom, dialog tambah/minimum, aksi | `perbarui()`, dialog, filter/sort | Daftar barang, pemilihan baris, penanda aktif, validasi dialog, dan minimum barang terpilih. |
-| `PanelStokMasuk` | field penerimaan, tabel batch | `perbarui()` | Penerimaan dan daftar batch. |
+| `PanelStokMasuk` | field penerimaan, tabel batch | `perbarui()` | Penerimaan dan daftar batch; status `Habis` untuk sisa 0, selain itu `statusPada(tanggal acuan)`. |
 | `PanelStokKeluar` | combo batch, field manual/FEFO | `perbarui()` | Pengeluaran manual dan FEFO. |
-| `PanelPemantauan` | tanggal, tabel status | `perbarui()` | Pemantauan kedaluwarsa. |
+| `PanelPemantauan` | tanggal, ringkasan, tabel status, EmptyState | `perbarui()`, `periksa()` | Pemantauan otomatis; tanggal default hari ini, tabel semua batch bersisa (termasuk kedaluwarsa), satu kondisi hasil, ringkasan memakai tanggal acuan yang sama, dan empty state tanpa barang. |
 | `PanelPembuangan` | combo batch, jumlah, tanggal, alasan | `perbarui()` | Pembuangan batch. |
-| `PanelRiwayat` | tabel rincian, filter, detail, ekspor | `perbarui()` | Riwayat dengan pencarian/filter, jumlah transaksi/rincian, dialog detail, konteks barang, dan ekspor CSV. |
+| `PanelRiwayat` | tabel rincian, filter, detail, ekspor | `perbarui()` | Riwayat dengan pencarian/filter, jumlah transaksi/rincian, dialog detail, konteks barang, ekspor CSV, dan ekspor PDF. |
 | `RiwayatCsvExporter` | aturan CSV | `tulis()` | UTF-8 BOM, CRLF, escaping, proteksi formula, dan penulisan atomik. |
 | `RiwayatPdfExporter` | aturan PDF | `tulis()` | A4 landscape, PDFBox, wrapping, header berulang, nomor halaman, dan penulisan atomik. |
-| `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, layout responsif, metrik font/skala, dialog, dan pemuatan SVG dari classpath. |
+| `Ui` | token warna/font/ukuran, kartu, tombol, tabel, ikon | helper tampilan | Konsistensi visual FlatLaf, batas konten 1200/1400, `HalamanScroll`, input maksimal 460, `gridForm`/`gridBertahap`, lebar kolom tabel, metrik font/skala, dialog, dan pemuatan SVG dari classpath. |
 | `Tema` | preferensi gelap, custom defaults, palet | `pasang()`, `terapkan()` | Tema terang/gelap FlatLaf, Inter, dan persistensi preferensi. |
 | `CardPanel`/`StatCard` | arc, padding, ikon/angka/status | konstruktor | Kartu dashboard reusable. |
-| `Badge`/`BadgeRenderer` | teks, warna semantik | `status()`, renderer tabel | Pill status/jenis konsisten. |
+| `Badge`/`BadgeRenderer` | teks, warna semantik, cache renderer | `status()`, renderer tabel | Pill status/jenis konsisten: Penerimaan hijau, Manual/FEFO oranye, Pembuangan merah, Habis netral; badge terpusat vertikal dan tidak dialokasikan ulang per paint. |
 | `EmptyState` | ikon, judul, deskripsi, aksi | konstruktor | Empty state tabel/kartu. |
 | `Notifikasi` | toast singleton | sukses/gagal/peringatan | Notifikasi menggantikan teks footer utama. |
 | `Main` | — | `main()` | Memilih mode konsol, demo, atau GUI Swing; memasang tema FlatLaf terang/gelap. |
@@ -190,6 +190,11 @@ SEMUA_REGRESI_LULUS
 
 ### Pemeriksaan GUI dan konsol
 
+Kompilasi final `javac` untuk `src/main/java` dan `tests` selesai tanpa error.
+Seluruh harness GUI, `PemantauanHarness`, `BadgeUxHarness`,
+`LayoutUxHarness`, `VisualThemeHarness`, dan regression berakhir dengan
+kode 0; output penutup `SEMUA_FINAL_LULUS`.
+
 | Pemeriksaan | Hasil aktual |
 |---|---|
 | Duplikat batch di Swing | `Penerimaan gagal: Kode batch sudah digunakan: B1`; batch tetap 5, riwayat 1. |
@@ -207,6 +212,10 @@ SEMUA_REGRESI_LULUS
 | Dialog Minimum | 0, 5, dan input berspasi diterima; kosong/abc/-1/1.5/di luar int ditolak; error hilang setelah diperbaiki menjadi 0; minimum barang nonaktif tidak mengganti barang aktif; nilai bertahan setelah reopen. |
 | Layout/skala Barang | Kontrol dan dialog lulus pada 1366×768 dan 960×640; simulasi HiDPI 125% dan 150% dengan `-Dsun.java2d.uiScale` tidak memotong label atau melampaui area layar. |
 | Dashboard visual | 4 StatCard, grafik XChart, peringatan, tabel semua barang dengan badge, EmptyState, hover, dan toast. |
+| Layout UX | `LayoutUxHarness` memeriksa tujuh halaman pada 1366×768, 960×640, dan 2560×1000 (terang/gelap): lebar 1102–1110/696–704/1200, Ringkasan 1400, tanpa scrollbar horizontal, input ≤460, tombol utuh, dan inset 24. Screenshot `docs/bukti-gui/ux-*.png`. |
+| Badge UX | `BadgeUxHarness` memeriksa pemetaan warna Riwayat, badge Habis/Aman/Segera/Kedaluwarsa, posisi vertikal, serta kontras normal/hover/terpilih/nonaktif pada kedua tema. |
+| Pemantauan otomatis | `PemantauanHarness`: buka pertama langsung 3 baris (batch sisa 0 tersembunyi), tanggal bertahan saat pindah halaman/barang, tanggal invalid mempertahankan hasil, batch kedaluwarsa hari acuan tetap layak, tanpa barang menampilkan EmptyState, dan saldo/riwayat tidak berubah. |
+| Stok Masuk status | Sisa 0 berlabel `Habis`; sisa positif memakai `Aman`, `Segera kedaluwarsa`, atau `Kedaluwarsa` berdasarkan tanggal acuan, bukan `LocalDate.now()` langsung. |
 | Tema | Light/Dark screenshot pada 1366×768 dan 1000×650; preferensi gelap tertulis dan dipulihkan setelah reopen. |
 | Tanpa barang | Database tanpa barang membuka halaman Barang dengan dropdown nonaktif dan pesan sidebar; barang pertama dapat ditambahkan dan langsung menjadi aktif. |
 | Reopen | Barang aktif Susu tetap aktif setelah jendela ditutup dan dibuka kembali melalui preferensi UI sidecar. |
@@ -264,7 +273,9 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
 - Harness GUI ada di `tests/SwingRiwayatHarness.java`,
   `tests/SwingActiveBarangHarness.java`, `tests/SwingEmptyBarangHarness.java`,
   `tests/CsvExportHarness.java`, `tests/SwingExportHarness.java`,
-  `tests/PdfExportHarness.java`, dan `tests/SwingPdfExportHarness.java`;
+  `tests/PdfExportHarness.java`, `tests/SwingPdfExportHarness.java`,
+  `tests/PemantauanHarness.java`, `tests/BadgeUxHarness.java`,
+  `tests/LayoutUxHarness.java`, dan `tests/VisualThemeHarness.java`;
   semuanya menggunakan database/folder uji terpisah.
 - Dashboard memakai FlatLaf Inter Fonts 3.19, XChart 3.8.8, dan Swing Toast
   Notifications 1.0.4 (JAR lokal).
@@ -276,3 +287,7 @@ FEFO, jumlah historis, dan isolasi barang tetap lulus.
 - Peringatan native access SQLite dapat muncul pada JDK 25 jika dijalankan
   tanpa `--enable-native-access=ALL-UNNAMED`; `run-gui.cmd` tidak memaksa flag
   tersebut agar tetap kompatibel dengan JDK lain.
+- Uji `LayoutUxHarness` adalah uji ukuran jendela 1366×768, 960×640, dan
+  2560×1000, bukan uji DPI fisik. Simulasi `-Dsun.java2d.uiScale` 125%/150%
+  hanya dipakai untuk pemeriksaan Barang sebelumnya; hasil monitor fisik
+  perlu diverifikasi terpisah.

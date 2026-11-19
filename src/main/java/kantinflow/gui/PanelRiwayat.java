@@ -137,11 +137,7 @@ public class PanelRiwayat extends PanelKantin {
         });
         Ui.rataKanan(tabel, 3);
         Ui.pasangBadge(tabel, 1);
-        tabel.getColumnModel().getColumn(0).setPreferredWidth(90);
-        tabel.getColumnModel().getColumn(1).setPreferredWidth(120);
-        tabel.getColumnModel().getColumn(2).setPreferredWidth(95);
-        tabel.getColumnModel().getColumn(3).setPreferredWidth(80);
-        tabel.getColumnModel().getColumn(4).setPreferredWidth(190);
+        Ui.aturKolom(tabel, 100, 140, 95, 95, 210);
         bangunIsi();
     }
 
@@ -155,7 +151,7 @@ public class PanelRiwayat extends PanelKantin {
         aksi.setOpaque(false);
         aksi.add(tombolTerapkan);
         aksi.add(tombolReset);
-        JPanel isian = Ui.gridResponsif(3, Ui.AMBANG_FILTER_RIWAYAT,
+        JPanel isian = Ui.gridForm(2, 520,
                 Ui.field("Cari kode batch atau alasan", fieldCari),
                 Ui.field("Jenis transaksi", comboJenis),
                 Ui.field("Tanggal mulai (yyyy-MM-dd)", fieldDari),

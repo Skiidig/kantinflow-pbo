@@ -374,9 +374,11 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         panel.put("riwayat", new PanelRiwayat(this));
 
         for (Map.Entry<String, PanelKantin> entry : panel.entrySet()) {
-            JScrollPane scroll = new JScrollPane(entry.getValue(),
+            HalamanScroll tampilan = new HalamanScroll(entry.getValue(),
+                    entry.getValue().lebarMaksimum());
+            JScrollPane scroll = new JScrollPane(tampilan,
                     ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
             scroll.setBorder(null);
             scroll.getViewport().setBackground(Ui.LATAR);
             scroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -398,7 +400,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         kaki.setBackground(Ui.KARTU);
         kaki.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, Ui.GARIS),
-                new EmptyBorder(8, 26, 8, 26)));
+                new EmptyBorder(8, Ui.skala(24), 8, Ui.skala(24))));
         JLabel versi = new JLabel("KantinFlow · antarmuka persediaan");
         versi.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
         versi.setForeground(Ui.TEKS_LEMBUT);
@@ -418,7 +420,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         header.setBackground(Ui.KARTU);
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, Ui.GARIS),
-                new EmptyBorder(16, 26, 15, 26)));
+                new EmptyBorder(16, Ui.skala(24), 15, Ui.skala(24))));
 
         JPanel kiri = new JPanel();
         kiri.setOpaque(false);
@@ -573,6 +575,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     public void setTanggalPemantauan(LocalDate tanggal) {
         this.tanggalPemantauan = tanggal;
         perbaruiPanel("ringkasan");
+        perbaruiPanel("stok-masuk");
         perbaruiPanel("pemantauan");
     }
 
@@ -603,7 +606,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                 this.barang = baru;
                 this.riwayat.clear();
                 this.riwayat.addAll(penyimpanan.muatRiwayat(baru));
-                this.tanggalPemantauan = null;
                 perbaruiComboBarang();
                 perbaruiSemua();
                 simpanPreferensiBarang();
@@ -673,7 +675,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             this.barang = terbaru;
             this.riwayat.clear();
             this.riwayat.addAll(penyimpanan.muatRiwayat(terbaru));
-            this.tanggalPemantauan = null;
             perbaruiComboBarang();
             perbaruiSemua();
             simpanPreferensiBarang();
@@ -877,6 +878,62 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             }
         }
         daftarBarang.add(baru);
+    }
+
+    private static final class HalamanScroll extends JPanel
+            implements Scrollable {
+        private final PanelKantin halaman;
+        private final int maksimum;
+
+        private HalamanScroll(PanelKantin halaman, int maksimum) {
+            super(null);
+            this.halaman = halaman;
+            this.maksimum = maksimum;
+            setOpaque(false);
+            add(halaman);
+        }
+
+        @Override
+        public void doLayout() {
+            int lebar = Math.min(getWidth(), Ui.skala(maksimum));
+            int tinggi = Math.max(getHeight(),
+                    halaman.getPreferredSize().height);
+            halaman.setBounds(0, 0, lebar, tinggi);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension isi = halaman.getPreferredSize();
+            return new Dimension(Math.min(isi.width, Ui.skala(maksimum)),
+                    isi.height);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(
+                Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(
+                Rectangle visibleRect, int orientation, int direction) {
+            return 96;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
     }
 
     private final class FadeOverlay extends JPanel {

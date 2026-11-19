@@ -37,23 +37,26 @@ public class Badge extends JLabel {
     public static Color[] warnaUntuk(String teks) {
         String nilai = teks == null ? "" : teks.toLowerCase(Locale.ROOT);
         if (nilai.contains("kedaluwarsa") && !nilai.contains("segera")) {
-            return new Color[]{Ui.MERAH, Ui.MERAH_LEMBUT};
+            return new Color[]{Ui.MERAH_BADGE, Ui.MERAH_LEMBUT};
         }
         if (nilai.contains("segera") || nilai.contains("perlu restok")
                 || nilai.contains("peringatan")) {
-            return new Color[]{Ui.KUNING, Ui.KUNING_LEMBUT};
+            return new Color[]{Ui.KUNING_BADGE, Ui.KUNING_LEMBUT};
         }
         if (nilai.contains("cukup") || nilai.contains("aman")
                 || nilai.contains("tersedia") || nilai.contains("berhasil")
                 || nilai.contains("selesai")) {
-            return new Color[]{Ui.HIJAU, Ui.HIJAU_LEMBUT};
+            return new Color[]{Ui.HIJAU_BADGE, Ui.HIJAU_LEMBUT};
         }
         if (nilai.contains("pembuangan") || nilai.contains("dibuang")) {
-            return new Color[]{Ui.ORANYE, Ui.ORANYE_LEMBUT};
+            return new Color[]{Ui.MERAH_BADGE, Ui.MERAH_LEMBUT};
+        }
+        if (nilai.contains("pengeluaran") || nilai.contains("manual")
+                || nilai.contains("fefo")) {
+            return new Color[]{Ui.ORANYE_BADGE, Ui.ORANYE_LEMBUT};
         }
         if (nilai.contains("penerimaan") || nilai.contains("masuk")) {
-            Color warnaTeks = Ui.KARTU.getRed() < 100 ? Ui.TEKS : Ui.AKSEN;
-            return new Color[]{warnaTeks, Ui.AKSEN_LEMBUT};
+            return new Color[]{Ui.HIJAU_BADGE, Ui.HIJAU_LEMBUT};
         }
         return new Color[]{Ui.TEKS_LEMBUT, Ui.NETRAL_LEMBUT};
     }

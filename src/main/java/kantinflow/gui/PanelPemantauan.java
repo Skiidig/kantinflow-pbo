@@ -1,6 +1,7 @@
 package kantinflow.gui;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -11,6 +12,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -31,15 +33,19 @@ public class PanelPemantauan extends PanelKantin {
     private final JLabel labelFisik = new JLabel("-");
     private final JLabel labelLayak = new JLabel("-");
     private final JLabel labelMinimum = new JLabel("-");
-    private final JLabel labelStatus = new JLabel("Belum diperiksa");
+    private final JLabel labelStatus = new JLabel("-");
     private final DefaultTableModel model = Ui.model(
             "Kode Batch", "Sisa", "Tanggal Kedaluwarsa", "Status");
     private final JTable tabel = Ui.tabel(model);
-    private final JLabel labelInfo = Ui.keterangan(
-            "Belum ada tanggal pemeriksaan.");
+    private final JLabel labelInfo = Ui.keterangan(" ");
     private final EmptyState kosong = new EmptyState(
-            "alert-triangle", "Belum ada batch bersisa",
-            "Batch yang dapat dipantau akan muncul di sini.");
+            "alert-triangle", "Tidak ada batch bersisa",
+            "Tidak ada batch dengan sisa stok pada tanggal acuan ini.");
+    private final EmptyState kosongBarang = new EmptyState(
+            "package", "Belum ada barang aktif",
+            "Tambahkan barang melalui halaman Barang, lalu pilih barang "
+            + "aktif untuk memantau kedaluwarsa.");
+    private final JPanel hasil = new JPanel(new CardLayout());
     private final JLabel infoBarang = Ui.keterangan(" ");
     private int idBarangTerakhir = -1;
 
@@ -50,10 +56,21 @@ public class PanelPemantauan extends PanelKantin {
         infoBarang.setName("konteksPemantauan");
         tombolPeriksa.setName("tombolPeriksa");
         tabel.setName("tabelPemantauan");
+        labelFisik.setName("fisikPemantauan");
+        labelLayak.setName("layakPemantauan");
+        labelMinimum.setName("minimumPemantauan");
+        labelStatus.setName("statusPemantauan");
+        labelInfo.setName("infoPemantauan");
+        pesanValidasi.setName("pesanPemantauan");
         kosong.setName("kosongPemantauan");
+        kosongBarang.setName("kosongBarangPemantauan");
+        hasil.setName("hasilPemantauan");
+        hasil.setOpaque(false);
+        fieldTanggal.setText(LocalDate.now().toString());
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 1);
         Ui.pasangBadge(tabel, 3);
+        Ui.aturKolom(tabel, 135, 75, 140, 165);
 
         bangunIsi();
     }
@@ -79,24 +96,23 @@ public class PanelPemantauan extends PanelKantin {
         kontrol.add(kontrolIsi, BorderLayout.CENTER);
 
         JPanel nilai = Ui.kartu("Ringkasan stok", "chart-column");
-        JPanel nilaiBaris = new JPanel(new GridLayout(1, 4, 16, 0));
-        nilaiBaris.setOpaque(false);
-        nilaiBaris.add(nilaiKecil("Stok fisik", labelFisik,
-                "Seluruh sisa batch"));
-        nilaiBaris.add(nilaiKecil("Stok layak", labelLayak,
-                "Batch layak pada tanggal"));
-        nilaiBaris.add(nilaiKecil("Stok minimum", labelMinimum,
-                "Batas kebutuhan aktif"));
-        nilaiBaris.add(nilaiKecil("Status", labelStatus,
-                "Perlu restok / Cukup"));
+        JPanel nilaiBaris = Ui.gridBertahap(4, 900, 520,
+                nilaiKecil("Stok fisik", labelFisik, "Seluruh sisa batch"),
+                nilaiKecil("Stok layak", labelLayak,
+                        "Batch layak pada tanggal"),
+                nilaiKecil("Stok minimum", labelMinimum,
+                        "Batas kebutuhan aktif"),
+                nilaiKecil("Status", labelStatus, "Perlu restok / Cukup"));
         nilai.add(nilaiBaris, BorderLayout.CENTER);
 
         JPanel daftar = Ui.kartu("Status Batch", "alert-triangle");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
-        daftarIsi.add(Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN),
-                BorderLayout.CENTER);
-        daftarIsi.add(kosong, BorderLayout.SOUTH);
+        JScrollPane gulir = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN);
+        hasil.add(gulir, "tabel");
+        hasil.add(kosong, "kosong");
+        hasil.add(kosongBarang, "kosongBarang");
+        daftarIsi.add(hasil, BorderLayout.CENTER);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
         JPanel atas = new JPanel(new BorderLayout(0, 12));
@@ -147,28 +163,35 @@ public class PanelPemantauan extends PanelKantin {
 
     @Override
     public void perbarui() {
+        if (konteks.getBarangAktif() == null) {
+            idBarangTerakhir = -1;
+            fieldTanggal.setText(konteks.getTanggalAcuan().toString());
+            infoBarang.setText("Pemantauan tanpa barang aktif.");
+            model.setRowCount(0);
+            labelFisik.setText("-");
+            labelLayak.setText("-");
+            labelMinimum.setText("-");
+            labelStatus.setText("-");
+            labelStatus.setForeground(Ui.TEKS_LEMBUT);
+            labelInfo.setText("Pilih barang aktif melalui halaman Barang "
+                    + "untuk mulai memantau kedaluwarsa.");
+            pesanValidasi.setText(" ");
+            tampilkanHasil("kosongBarang");
+            return;
+        }
+
         if (idBarangTerakhir != konteks.getBarangAktif().getId()) {
             idBarangTerakhir = konteks.getBarangAktif().getId();
-            fieldTanggal.setText("");
             pesanValidasi.setText(" ");
         }
         infoBarang.setText("Pemantauan untuk "
                 + konteks.getBarangAktif().getNama() + " · "
                 + konteks.getBarangAktif().getSatuan());
-        LocalDate tanggal = konteks.getTanggalPemantauan();
-        if (tanggal == null) {
-            if (fieldTanggal.getText().isBlank()) {
-                fieldTanggal.setText(LocalDate.now().toString());
-            }
-            tanggal = LocalDate.now();
-            model.setRowCount(0);
-            labelInfo.setText("Belum diperiksa. Isi tanggal lalu klik Periksa.");
-        } else {
-            fieldTanggal.setText(tanggal.toString());
-            model.setRowCount(0);
-            labelInfo.setText("Diperiksa pada " + tanggal
-                    + ". Hanya batch bersisa yang ditampilkan.");
-        }
+        LocalDate tanggal = konteks.getTanggalAcuan();
+        fieldTanggal.setText(tanggal.toString());
+        labelInfo.setText("Diperiksa untuk tanggal " + tanggal
+                + ". Hanya batch bersisa yang ditampilkan.");
+
         int fisik = konteks.getBarangAktif().hitungSaldo();
         int layak = konteks.getBarangAktif().hitungStokLayak(tanggal);
         int minimum = konteks.getBarangAktif().getStokMinimum();
@@ -180,21 +203,23 @@ public class PanelPemantauan extends PanelKantin {
         labelStatus.setText(restok ? "Perlu restok" : "Cukup");
         labelStatus.setForeground(restok ? Ui.MERAH : Ui.HIJAU);
 
-        if (konteks.getTanggalPemantauan() != null) {
-            model.setRowCount(0);
-            for (BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
-                if (batch.getSisaJumlah() <= 0) {
-                    continue;
-                }
-                StatusKedaluwarsa status = batch.statusPada(tanggal);
-                model.addRow(new Object[]{
-                    batch.getKode(),
-                    batch.getSisaJumlah() + " " + satuan,
-                    batch.getTanggalKedaluwarsa().toString(),
-                    status.getLabel()
-                });
+        model.setRowCount(0);
+        for (BatchStok batch : konteks.getBarangAktif().getDaftarBatch()) {
+            if (batch.getSisaJumlah() <= 0) {
+                continue;
             }
+            StatusKedaluwarsa status = batch.statusPada(tanggal);
+            model.addRow(new Object[]{
+                batch.getKode(),
+                batch.getSisaJumlah() + " " + satuan,
+                batch.getTanggalKedaluwarsa().toString(),
+                status.getLabel()
+            });
         }
-        kosong.setVisible(model.getRowCount() == 0);
+        tampilkanHasil(model.getRowCount() == 0 ? "kosong" : "tabel");
+    }
+
+    private void tampilkanHasil(String kartu) {
+        ((CardLayout) hasil.getLayout()).show(hasil, kartu);
     }
 }

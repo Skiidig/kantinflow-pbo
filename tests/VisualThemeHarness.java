@@ -139,8 +139,7 @@ public class VisualThemeHarness {
     private static JScrollPane cariHalaman(Container root) {
         for (Component component : root.getComponents()) {
             if (component instanceof JScrollPane scroll
-                    && scroll.getViewport().getView()
-                            instanceof PanelRingkasan) {
+                    && berisiRingkasan(scroll.getViewport().getView())) {
                 return scroll;
             }
             if (component instanceof Container container) {
@@ -151,6 +150,20 @@ public class VisualThemeHarness {
             }
         }
         return null;
+    }
+
+    private static boolean berisiRingkasan(Component component) {
+        if (component instanceof PanelRingkasan) {
+            return true;
+        }
+        if (component instanceof Container container) {
+            for (Component anak : container.getComponents()) {
+                if (berisiRingkasan(anak)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void gulirAtas() throws Exception {
