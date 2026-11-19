@@ -24,6 +24,8 @@ final class PemilihTanggal extends DatePicker {
     private static final Locale INDONESIA = Locale.forLanguageTag("id-ID");
     private static final DateTimeFormatter TAMPILAN =
             DateTimeFormatter.ofPattern("dd MMM yyyy", INDONESIA);
+    private boolean teksTidakValid;
+    private boolean pertahankanTeksTidakValid;
 
     PemilihTanggal() {
         super(buatPengaturan());
@@ -55,7 +57,34 @@ final class PemilihTanggal extends DatePicker {
         tombol.setContentAreaFilled(false);
         tombol.setBorder(new EmptyBorder(0, Ui.skala(4), 0, Ui.skala(8)));
         tombol.setFocusable(false);
+        addDateChangeListener(event -> teksTidakValid = false);
         setTanggalMinimum(null);
+    }
+
+    /**
+     * Menandai teks manual yang tidak dapat diparse sebelum komponen
+     * mengembalikannya ke tanggal valid terakhir.
+     */
+    @Override
+    public void setTextFieldToValidStateIfNeeded() {
+        String teks = getText();
+        if (teks != null && !teks.trim().isEmpty() && !isTextValid(teks)) {
+            teksTidakValid = true;
+            if (pertahankanTeksTidakValid) {
+                return;
+            }
+        }
+        super.setTextFieldToValidStateIfNeeded();
+    }
+
+    void setPertahankanTeksTidakValid(boolean aktif) {
+        pertahankanTeksTidakValid = aktif;
+    }
+
+    boolean ambilTeksTidakValid() {
+        boolean hasil = teksTidakValid && !isTextFieldValid();
+        teksTidakValid = false;
+        return hasil;
     }
 
     private static DatePickerSettings buatPengaturan() {
@@ -89,6 +118,10 @@ final class PemilihTanggal extends DatePicker {
                 new Insets(Ui.skala(1), Ui.skala(1),
                         Ui.skala(1), Ui.skala(1)),
                 warna, fokus ? 1.5f : 1f, Ui.RADIUS_KONTROL));
+    }
+
+    static String format(LocalDate tanggal) {
+        return tanggal == null ? "" : TAMPILAN.format(tanggal);
     }
 
     LocalDate getTanggal() {

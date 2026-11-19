@@ -6,7 +6,6 @@ import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +17,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 
@@ -35,9 +33,11 @@ import kantinflow.StatusKedaluwarsa;
  * dan grafik stok fisik.
  */
 public class PanelRingkasan extends PanelBarangTerpilih {
-    private final JTextField fieldTanggal = Ui.field(11);
+    private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
     private final JButton tombolPeriksa = Ui.utama("Periksa");
-    private final JLabel pesanValidasi = Ui.pesan();
+    private final JLabel pesanTanggal = Ui.pesan();
+    private LocalDate tanggalTerakhir;
+    private LocalDate tanggalKonteksTerakhir;
 
     private final StatCard kartuFisik = new StatCard(
             "Stok fisik", "boxes", Ui.AKSEN);
@@ -65,9 +65,11 @@ public class PanelRingkasan extends PanelBarangTerpilih {
         super(konteks, "Ringkasan",
                 "Pantau stok, peringatan kedaluwarsa, dan kebutuhan restok.");
         pilihanBarang.setName("barangRingkasan");
-        fieldTanggal.setName("tanggalRingkasan");
-        fieldTanggal.putClientProperty("JTextField.placeholderText",
-                "yyyy-MM-dd");
+        tanggalPilihan.komponenTeks().setName("tanggalRingkasan");
+        pesanTanggal.setName("pesanTanggalRingkasan");
+        tanggalTerakhir = konteks.getTanggalAcuan();
+        tanggalKonteksTerakhir = tanggalTerakhir;
+        tanggalPilihan.setTanggal(tanggalTerakhir);
         tombolPeriksa.setName("periksaRingkasan");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
@@ -94,19 +96,17 @@ public class PanelRingkasan extends PanelBarangTerpilih {
         isi.setOpaque(false);
 
         JPanel kontrol = Ui.kartu("Filter ringkasan", "monitor");
-        fieldTanggal.setColumns(10);
         JPanel kontrolIsi = new JPanel(new BorderLayout(0, 8));
         kontrolIsi.setOpaque(false);
         JPanel baris = Ui.barisFilter(
                 Ui.field("Barang *", pilihanBarang),
-                Ui.field("Tanggal acuan (yyyy-MM-dd)", fieldTanggal),
+                Ui.field("Tanggal acuan *", tanggalPilihan, pesanTanggal),
                 Ui.field(" ", tombolPeriksa));
         kontrolIsi.add(baris, BorderLayout.NORTH);
         JLabel bantuan = Ui.keterangan(
                 "Stok layak menghitung batch bersisa yang belum kedaluwarsa "
                 + "pada tanggal ini.");
         kontrolIsi.add(bantuan, BorderLayout.CENTER);
-        kontrolIsi.add(pesanValidasi, BorderLayout.SOUTH);
         kontrol.add(kontrolIsi, BorderLayout.CENTER);
 
         JPanel nilai = new JPanel(new java.awt.GridLayout(2, 2, 16, 16));
@@ -150,25 +150,45 @@ public class PanelRingkasan extends PanelBarangTerpilih {
     }
 
     private void periksa() {
-        try {
-            LocalDate tanggal = LocalDate.parse(fieldTanggal.getText().trim());
-            pesanValidasi.setText(" ");
-            konteks.setTanggalPemantauan(tanggal);
-            konteks.tampilkanPesan("Ringkasan diperiksa untuk tanggal "
-                    + tanggal + ".", true);
-        } catch (DateTimeParseException exception) {
-            pesanValidasi.setText("Format tanggal harus yyyy-MM-dd.");
-            fieldTanggal.requestFocusInWindow();
-            konteks.tampilkanPesan("Format tanggal tidak valid. Gunakan yyyy-MM-dd.",
-                    false);
+        if (tanggalPilihan.ambilTeksTidakValid()) {
+            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
         }
+        LocalDate dipilih = tanggalPilihan.getTanggal();
+        if (dipilih == null) {
+            pesanTanggal.setText("Tanggal acuan wajib diisi.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
+        }
+        if (!tanggalPilihan.isTextFieldValid()) {
+            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
+        }
+        pesanTanggal.setText(" ");
+        tanggalTerakhir = dipilih;
+        tanggalKonteksTerakhir = dipilih;
+        konteks.setTanggalPemantauan(dipilih);
+        konteks.tampilkanPesan("Ringkasan diperiksa untuk tanggal "
+                + PemilihTanggal.format(dipilih) + ".", true);
     }
 
     @Override
     public void perbarui() {
         boolean adaBarang = perbaruiBarangTerpilih();
-        LocalDate tanggal = konteks.getTanggalAcuan();
-        fieldTanggal.setText(tanggal.toString());
+        LocalDate dariKonteks = konteks.getTanggalAcuan();
+        LocalDate dipilih = tanggalPilihan.getTanggal();
+        if (dipilih != null && dipilih.equals(tanggalKonteksTerakhir)
+                && !dipilih.equals(dariKonteks)) {
+            tanggalPilihan.setTanggal(dariKonteks);
+            dipilih = dariKonteks;
+        }
+        tanggalKonteksTerakhir = dariKonteks;
+        if (dipilih != null) {
+            tanggalTerakhir = dipilih;
+        }
+        LocalDate acuan = tanggalTerakhir;
 
         if (!adaBarang) {
             kartuFisik.setNilai("-");
@@ -181,14 +201,14 @@ public class PanelRingkasan extends PanelBarangTerpilih {
             kartuStatus.setKeterangan(
                     "Tambahkan barang melalui halaman Barang");
             kartuStatus.setAksen(Ui.TEKS_LEMBUT);
-            perbaruiTabel(tanggal);
-            perbaruiPeringatan(tanggal);
+            perbaruiTabel(acuan);
+            perbaruiPeringatan(acuan);
             perbaruiGrafik();
             return;
         }
 
         int fisik = barang.hitungSaldo();
-        int layak = barang.hitungStokLayak(tanggal);
+        int layak = barang.hitungStokLayak(acuan);
         int minimum = barang.getStokMinimum();
         String satuan = barang.getSatuan();
         boolean perluRestok = layak <= minimum;
@@ -205,8 +225,8 @@ public class PanelRingkasan extends PanelBarangTerpilih {
                 : "Stok layak masih di atas batas");
         kartuStatus.setAksen(perluRestok ? Ui.MERAH : Ui.HIJAU);
 
-        perbaruiTabel(tanggal);
-        perbaruiPeringatan(tanggal);
+        perbaruiTabel(acuan);
+        perbaruiPeringatan(acuan);
         perbaruiGrafik();
     }
 

@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,8 +50,10 @@ public class PanelRiwayat extends PanelBarangTerpilih {
     private static final String FEFO = "Pengeluaran FEFO";
 
     private final JTextField fieldCari = Ui.field(16);
-    private final JTextField fieldDari = Ui.field(10);
-    private final JTextField fieldSampai = Ui.field(10);
+    private final PemilihTanggal tanggalMulai = new PemilihTanggal();
+    private final PemilihTanggal tanggalAkhir = new PemilihTanggal();
+    private final JLabel pesanTanggalMulai = Ui.pesan();
+    private final JLabel pesanTanggalAkhir = Ui.pesan();
     private final JComboBox<String> comboJenis = Ui.combo();
     private final JButton tombolTerapkan = Ui.utama("Terapkan Filter");
     private final JButton tombolReset = Ui.sekunder("Reset");
@@ -85,11 +86,12 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         pilihanBarang.setName("barangRiwayat");
         fieldCari.setName("cariRiwayat");
         infoBarang.setName("konteksRiwayat");
-        fieldDari.setName("tanggalAwalRiwayat");
-        fieldDari.putClientProperty("JTextField.placeholderText", "yyyy-MM-dd");
-        fieldSampai.setName("tanggalAkhirRiwayat");
-        fieldSampai.putClientProperty("JTextField.placeholderText",
-                "yyyy-MM-dd");
+        tanggalMulai.komponenTeks().setName("tanggalAwalRiwayat");
+        tanggalAkhir.komponenTeks().setName("tanggalAkhirRiwayat");
+        tanggalMulai.setPertahankanTeksTidakValid(true);
+        tanggalAkhir.setPertahankanTeksTidakValid(true);
+        pesanTanggalMulai.setName("pesanTanggalAwalRiwayat");
+        pesanTanggalAkhir.setName("pesanTanggalAkhirRiwayat");
         comboJenis.setName("jenisRiwayat");
         tombolTerapkan.setName("terapkanFilterRiwayat");
         tombolReset.setName("resetFilterRiwayat");
@@ -122,8 +124,6 @@ public class PanelRiwayat extends PanelBarangTerpilih {
         tombolEkspor.addActionListener(event -> eksporCsv());
         tombolPdf.addActionListener(event -> eksporPdf());
         fieldCari.addActionListener(event -> terapkanFilter());
-        fieldDari.addActionListener(event -> terapkanFilter());
-        fieldSampai.addActionListener(event -> terapkanFilter());
         tabel.setRowSorter(sorter);
         tabel.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
@@ -160,8 +160,8 @@ public class PanelRiwayat extends PanelBarangTerpilih {
                 fieldBarang("Barang *"),
                 Ui.field("Cari kode batch atau alasan", fieldCari),
                 Ui.field("Jenis transaksi", comboJenis),
-                Ui.field("Tanggal mulai (yyyy-MM-dd)", fieldDari),
-                Ui.field("Tanggal akhir (yyyy-MM-dd)", fieldSampai),
+                Ui.field("Tanggal mulai", tanggalMulai, pesanTanggalMulai),
+                Ui.field("Tanggal akhir", tanggalAkhir, pesanTanggalAkhir),
                 Ui.field("Aksi", aksi));
         JPanel filterIsi = new JPanel(new BorderLayout(0, 6));
         filterIsi.setOpaque(false);
@@ -207,21 +207,26 @@ public class PanelRiwayat extends PanelBarangTerpilih {
 
     private void terapkanFilter() {
         pesanFilter.setText(" ");
-        bersihkanSeleksiDetail();
+        pesanTanggalMulai.setText(" ");
+        pesanTanggalAkhir.setText(" ");
         List<? extends RowSorter.SortKey> kunciUrut = sorter.getSortKeys();
-        LocalDate dari = bacaTanggal(fieldDari.getText(), "Tanggal mulai");
+        LocalDate dari = bacaTanggal(
+                tanggalMulai, pesanTanggalMulai, "Tanggal mulai");
         if (dari == INVALID) {
             return;
         }
-        LocalDate sampai = bacaTanggal(fieldSampai.getText(), "Tanggal akhir");
+        LocalDate sampai = bacaTanggal(
+                tanggalAkhir, pesanTanggalAkhir, "Tanggal akhir");
         if (sampai == INVALID) {
             return;
         }
         if (dari != null && sampai != null && dari.isAfter(sampai)) {
-            pesanFilter.setText("Tanggal mulai tidak boleh setelah tanggal akhir.");
-            fieldDari.requestFocusInWindow();
+            pesanTanggalAkhir.setText(
+                    "Tanggal mulai tidak boleh setelah tanggal akhir.");
+            tanggalAkhir.komponenTeks().requestFocusInWindow();
             return;
         }
+        bersihkanSeleksiDetail();
 
         cariAktif = fieldCari.getText() == null
                 ? "" : fieldCari.getText().trim();
@@ -579,24 +584,21 @@ public class PanelRiwayat extends PanelBarangTerpilih {
 
     private void resetFilter() {
         fieldCari.setText("");
-        fieldDari.setText("");
-        fieldSampai.setText("");
+        tanggalMulai.setTanggal(null);
+        tanggalAkhir.setTanggal(null);
         comboJenis.setSelectedIndex(0);
         pesanFilter.setText(" ");
         terapkanFilter();
     }
 
-    private LocalDate bacaTanggal(String teks, String nama) {
-        String nilai = teks == null ? "" : teks.trim();
-        if (nilai.isEmpty()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(nilai);
-        } catch (DateTimeParseException exception) {
-            pesanFilter.setText(nama + " harus berformat yyyy-MM-dd.");
+    private LocalDate bacaTanggal(PemilihTanggal pemilih, JLabel pesan,
+            String nama) {
+        if (pemilih.ambilTeksTidakValid() || !pemilih.isTextFieldValid()) {
+            pesan.setText(nama + " tidak valid. Pilih tanggal yang benar.");
+            pemilih.komponenTeks().requestFocusInWindow();
             return INVALID;
         }
+        return pemilih.getTanggal();
     }
 
     private static final LocalDate INVALID = LocalDate.of(1, 1, 1);

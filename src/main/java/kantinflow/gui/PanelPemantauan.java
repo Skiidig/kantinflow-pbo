@@ -3,14 +3,12 @@ package kantinflow.gui;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
 import kantinflow.BatchStok;
@@ -20,9 +18,12 @@ import kantinflow.StatusKedaluwarsa;
  * Halaman pemantauan kedaluwarsa batch bersisa.
  */
 public class PanelPemantauan extends PanelBarangTerpilih {
-    private final JTextField fieldTanggal = Ui.field(11);
+    private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
     private final JButton tombolPeriksa = Ui.utama("Periksa");
     private final JLabel pesanValidasi = Ui.pesan();
+    private final JLabel pesanTanggal = Ui.pesan();
+    private LocalDate tanggalTerakhir;
+    private LocalDate tanggalKonteksTerakhir;
     private final DefaultTableModel model = Ui.model(
             "Kode Batch", "Sisa", "Tanggal Kedaluwarsa", "Status");
     private final JTable tabel = Ui.tabel(model);
@@ -40,9 +41,11 @@ public class PanelPemantauan extends PanelBarangTerpilih {
         super(konteks, "Pemantauan",
                 "Periksa status kedaluwarsa batch barang terpilih.");
         pilihanBarang.setName("barangPemantauan");
-        fieldTanggal.setName("tanggalPemantauan");
-        fieldTanggal.putClientProperty("JTextField.placeholderText",
-                "yyyy-MM-dd");
+        tanggalPilihan.komponenTeks().setName("tanggalPemantauan");
+        pesanTanggal.setName("pesanTanggalPemantauan");
+        tanggalTerakhir = konteks.getTanggalAcuan();
+        tanggalKonteksTerakhir = tanggalTerakhir;
+        tanggalPilihan.setTanggal(tanggalTerakhir);
         tombolPeriksa.setName("tombolPeriksa");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
@@ -53,7 +56,6 @@ public class PanelPemantauan extends PanelBarangTerpilih {
         kosongBarang.setName("kosongBarangPemantauan");
         hasil.setName("hasilPemantauan");
         hasil.setOpaque(false);
-        fieldTanggal.setText(LocalDate.now().toString());
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 1);
         Ui.pasangTeksStatus(tabel, 3);
@@ -71,7 +73,7 @@ public class PanelPemantauan extends PanelBarangTerpilih {
         kontrolIsi.setOpaque(false);
         JPanel baris = Ui.barisFilter(
                 Ui.field("Barang *", pilihanBarang),
-                Ui.field("Tanggal pemeriksaan (yyyy-MM-dd)", fieldTanggal),
+                Ui.field("Tanggal pemeriksaan *", tanggalPilihan, pesanTanggal),
                 Ui.field(" ", tombolPeriksa));
         kontrolIsi.add(baris, BorderLayout.NORTH);
         kontrolIsi.add(pesanValidasi, BorderLayout.CENTER);
@@ -99,19 +101,30 @@ public class PanelPemantauan extends PanelBarangTerpilih {
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             return;
         }
-        try {
-            LocalDate tanggal = LocalDate.parse(fieldTanggal.getText().trim());
-            pesanValidasi.setText(" ");
-            konteks.setTanggalPemantauan(tanggal);
-            konteks.tampilkanPesan("Pemantauan " + tanggal
-                    + " selesai: " + model.getRowCount()
-                    + " batch bersisa diperiksa.", true);
-        } catch (DateTimeParseException exception) {
-            pesanValidasi.setText("Format tanggal harus yyyy-MM-dd.");
-            fieldTanggal.requestFocusInWindow();
-            konteks.tampilkanPesan("Format tanggal tidak valid. Gunakan yyyy-MM-dd.",
-                    false);
+        if (tanggalPilihan.ambilTeksTidakValid()) {
+            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
         }
+        LocalDate dipilih = tanggalPilihan.getTanggal();
+        if (dipilih == null) {
+            pesanTanggal.setText("Tanggal pemeriksaan wajib diisi.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
+        }
+        if (!tanggalPilihan.isTextFieldValid()) {
+            pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            tanggalPilihan.komponenTeks().requestFocusInWindow();
+            return;
+        }
+        pesanTanggal.setText(" ");
+        pesanValidasi.setText(" ");
+        tanggalTerakhir = dipilih;
+        tanggalKonteksTerakhir = dipilih;
+        konteks.setTanggalPemantauan(dipilih);
+        konteks.tampilkanPesan("Pemantauan "
+                + PemilihTanggal.format(dipilih) + " selesai: "
+                + model.getRowCount() + " batch bersisa diperiksa.", true);
     }
 
     @Override
@@ -121,8 +134,21 @@ public class PanelPemantauan extends PanelBarangTerpilih {
 
     @Override
     public void perbarui() {
-        if (!perbaruiBarangTerpilih()) {
-            fieldTanggal.setText(konteks.getTanggalAcuan().toString());
+        boolean adaBarang = perbaruiBarangTerpilih();
+        LocalDate dariKonteks = konteks.getTanggalAcuan();
+        LocalDate dipilih = tanggalPilihan.getTanggal();
+        if (dipilih != null && dipilih.equals(tanggalKonteksTerakhir)
+                && !dipilih.equals(dariKonteks)) {
+            tanggalPilihan.setTanggal(dariKonteks);
+            dipilih = dariKonteks;
+        }
+        tanggalKonteksTerakhir = dariKonteks;
+        if (dipilih != null) {
+            tanggalTerakhir = dipilih;
+        }
+        LocalDate acuan = tanggalTerakhir;
+
+        if (!adaBarang) {
             model.setRowCount(0);
             labelInfo.setText("Tambahkan barang melalui halaman Barang "
                     + "untuk mulai memantau kedaluwarsa.");
@@ -133,9 +159,8 @@ public class PanelPemantauan extends PanelBarangTerpilih {
         }
 
         tombolPeriksa.setEnabled(true);
-        LocalDate tanggal = konteks.getTanggalAcuan();
-        fieldTanggal.setText(tanggal.toString());
-        labelInfo.setText("Pemeriksaan terakhir untuk tanggal " + tanggal
+        labelInfo.setText("Pemeriksaan terakhir untuk tanggal "
+                + PemilihTanggal.format(acuan)
                 + ". Hanya batch bersisa yang ditampilkan.");
 
         String satuan = barang.getSatuan();
@@ -144,7 +169,7 @@ public class PanelPemantauan extends PanelBarangTerpilih {
             if (batch.getSisaJumlah() <= 0) {
                 continue;
             }
-            StatusKedaluwarsa status = batch.statusPada(tanggal);
+            StatusKedaluwarsa status = batch.statusPada(acuan);
             model.addRow(new Object[]{
                 batch.getKode(),
                 batch.getSisaJumlah() + " " + satuan,
