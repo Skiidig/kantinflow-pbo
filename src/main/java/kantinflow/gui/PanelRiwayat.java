@@ -70,7 +70,7 @@ public class PanelRiwayat extends PanelKantin {
     private final JLabel pesanTanggalAkhir = Ui.pesan();
     private final JComboBox<String> comboJenis = Ui.combo();
     private final JButton tombolTerapkan = Ui.utama("Terapkan Filter");
-    private final JButton tombolReset = Ui.ghost("Reset");
+    private final JButton tombolReset = Ui.sekunder("Reset");
     private final JButton tombolResetKosong = Ui.ghost("Reset Filter");
     private final JButton tombolDetail = Ui.sekunder("Lihat Detail");
     private JPanel aksiTabel;
@@ -304,26 +304,34 @@ public class PanelRiwayat extends PanelKantin {
             }
             return;
         }
-        for (int i = 0; i < kolom.length; i++) {
+        GridBagConstraints awal = new GridBagConstraints();
+        awal.gridx = 0;
+        awal.gridy = 0;
+        awal.gridwidth = 2;
+        awal.weightx = 1;
+        awal.fill = GridBagConstraints.HORIZONTAL;
+        awal.anchor = GridBagConstraints.NORTH;
+        panel.add(kolom[0], awal);
+        for (int i = 1; i < kolom.length; i += 2) {
             GridBagConstraints c = new GridBagConstraints();
+            c.gridx = 0;
+            c.gridy = 1 + (i - 1) / 2;
+            c.gridwidth = 2;
+            c.weightx = 1;
             c.fill = GridBagConstraints.HORIZONTAL;
             c.anchor = GridBagConstraints.NORTH;
-            c.weightx = 1;
-            if (i == 0) {
-                c.gridx = 0;
-                c.gridy = 0;
-                c.gridwidth = 2;
-                c.insets = new Insets(0, 0, 0, 0);
-            } else {
-                c.gridx = (i - 1) % 2;
-                c.gridy = 1 + (i - 1) / 2;
-                c.gridwidth = 1;
-                c.insets = new Insets(jarak,
-                        c.gridx == 0 ? 0 : jarak / 2,
-                        0, c.gridx == 1 ? 0 : jarak / 2);
-            }
-            panel.add(kolom[i], c);
+            c.insets = new Insets(jarak, 0, 0, 0);
+            panel.add(i + 1 < kolom.length
+                    ? pasangan(kolom[i], kolom[i + 1], jarak) : kolom[i], c);
         }
+    }
+
+    private JPanel pasangan(JPanel kiri, JPanel kanan, int jarak) {
+        JPanel panel = new JPanel(new GridLayout(1, 2, jarak, 0));
+        panel.setOpaque(false);
+        panel.add(kiri);
+        panel.add(kanan);
+        return panel;
     }
 
     private void aturPesan(JLabel label, String teks) {

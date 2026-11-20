@@ -9,11 +9,14 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,11 +26,14 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
 
 import kantinflow.BatchStok;
 import kantinflow.FefoAllocator;
@@ -56,6 +62,11 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     private final PanelPratinjau panelPreviewFefo = new PanelPratinjau();
     private final JLabel labelPreviewFefo = new JLabel(" ");
     private final JLabel hasilAlokasi = Ui.keterangan(" ");
+    private final DefaultTableModel modelBatch = Ui.model(
+            "Kode Batch", "Sisa", "Tanggal Masuk", "Tanggal Kedaluwarsa",
+            "Status");
+    private final JTable tabelBatch = Ui.tabel(modelBatch);
+    private JScrollPane gulirBatch;
     private LocalDate tanggalFefoAwal;
 
     public PanelStokKeluar(KonteksKantin konteks) {
@@ -88,6 +99,12 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         tombolFefo.setName("tombolFefo");
         tombolFefo.setIcon(Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
         tombolFefo.setIconTextGap(7);
+        tabelBatch.setName("tabelBatchKeluar");
+        Ui.rataKanan(tabelBatch, 1);
+        Ui.pasangBadge(tabelBatch, 4);
+        Ui.aturKolom(tabelBatch, 175, 85, 125, 145, 175);
+        tabelBatch.getColumnModel().getColumn(4).setMinWidth(Ui.skala(165));
+        Ui.gulirHorizontalSaatSempit(tabelBatch);
         comboBatch.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(
@@ -140,11 +157,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 .addDocumentListener(pendengarFefo);
         hasilAlokasi.setVisible(false);
         bangunIsi();
-    }
-
-    @Override
-    public int lebarMaksimum() {
-        return Ui.LEBAR_FORM_HALAMAN;
     }
 
     private void bangunIsi() {
@@ -225,7 +237,20 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
 
         JPanel kartu = Ui.kartu("Pengeluaran Stok");
         kartu.add(isi, BorderLayout.CENTER);
-        add(kartu, BorderLayout.NORTH);
+
+        JPanel daftar = Ui.kartu("Batch Tersedia");
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
+        daftarIsi.setOpaque(false);
+        gulirBatch = Ui.scrollTabel(tabelBatch, Ui.TINGGI_TABEL_STOK_MASUK);
+        daftarIsi.add(gulirBatch, BorderLayout.CENTER);
+        daftar.add(daftarIsi, BorderLayout.CENTER);
+
+        JPanel halaman = new JPanel(
+                new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
+        halaman.setOpaque(false);
+        halaman.add(kartu, BorderLayout.NORTH);
+        halaman.add(daftar, BorderLayout.CENTER);
+        add(halaman, BorderLayout.CENTER);
     }
 
     private JPanel buatGridDuaKolom(JPanel kiri, JPanel kanan) {
@@ -263,22 +288,28 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             boolean sempit) {
         panel.removeAll();
         int jarak = Ui.skala(Ui.GAP_FORM);
+        if (!sempit) {
+            panel.setLayout(new GridLayout(1, 2, jarak, 0));
+            panel.add(kiri);
+            panel.add(kanan);
+            return;
+        }
+        panel.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
         c.anchor = GridBagConstraints.NORTH;
         c.weightx = 1;
         c.gridx = 0;
         c.gridy = 0;
-        c.insets = new Insets(0, 0, 0, sempit ? 0 : jarak / 2);
         panel.add(kiri, c);
 
         c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
         c.anchor = GridBagConstraints.NORTH;
         c.weightx = 1;
-        c.gridx = sempit ? 0 : 1;
-        c.gridy = sempit ? 1 : 0;
-        c.insets = new Insets(sempit ? jarak : 0, sempit ? 0 : jarak / 2, 0, 0);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.insets = new Insets(jarak, 0, 0, 0);
         panel.add(kanan, c);
     }
 
@@ -369,6 +400,34 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             tombolManual.setEnabled(true);
             tombolManual.setToolTipText(null);
         }
+    }
+
+    private void perbaruiBatchTersedia() {
+        modelBatch.setRowCount(0);
+        if (barang != null) {
+            LocalDate acuan = konteks.getTanggalAcuan();
+            List<BatchStok> bersisa = new ArrayList<>();
+            for (BatchStok batch : barang.getDaftarBatch()) {
+                if (batch.getSisaJumlah() > 0) {
+                    bersisa.add(batch);
+                }
+            }
+            bersisa.sort(Comparator
+                    .comparing(BatchStok::getTanggalKedaluwarsa)
+                    .thenComparing(BatchStok::getTanggalMasuk)
+                    .thenComparing(BatchStok::getKode,
+                            String.CASE_INSENSITIVE_ORDER));
+            for (BatchStok batch : bersisa) {
+                modelBatch.addRow(new Object[]{
+                    batch.getKode(),
+                    batch.getSisaJumlah() + " " + barang.getSatuan(),
+                    batch.getTanggalMasuk(),
+                    batch.getTanggalKedaluwarsa(),
+                    batch.statusPada(acuan).getLabel()
+                });
+            }
+        }
+        Ui.sesuaikanTinggiTabel(gulirBatch, tabelBatch, 8);
     }
 
     private void perbaruiPreviewFefo() {
@@ -518,6 +577,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 + " " + barang.getSatuan() + ".")) {
             fieldJumlahManual.setText("");
             kosongkanPesan(pesanManual);
+            perbaruiBatchTersedia();
         } else {
             aturPesan(pesanManual,
                     "Pengeluaran gagal disimpan. Lihat status.");
@@ -577,6 +637,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             hasilAlokasi.setVisible(true);
             hasilAlokasi.revalidate();
             perbaruiPreviewFefo();
+            perbaruiBatchTersedia();
         } else {
             aturPesan(pesanFefo,
                     "Pengeluaran gagal disimpan. Lihat status.");
@@ -619,6 +680,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         hasilAlokasi.setVisible(false);
         comboBatch.removeAllItems();
         perbaruiPreviewFefo();
+        perbaruiBatchTersedia();
     }
 
     @Override
@@ -635,6 +697,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             tombolManual.setEnabled(false);
             tombolFefo.setEnabled(false);
             perbaruiPreviewFefo();
+            perbaruiBatchTersedia();
             return;
         }
         tombolFefo.setEnabled(true);
@@ -656,6 +719,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         }
         perbaruiSisa();
         perbaruiPreviewFefo();
+        perbaruiBatchTersedia();
     }
 
     @Override

@@ -96,19 +96,12 @@ final class Ui {
     static final int TINGGI_HEADER_TABEL = 38;
     static final int PADDING_SEL_TABEL = 14;
     static final int LEBAR_SIDEBAR = 232;
-    static final int LEBAR_JENDELA = 1200;
-    static final int TINGGI_JENDELA = 740;
+    static final int LEBAR_JENDELA = 1280;
+    static final int TINGGI_JENDELA = 800;
     static final int LEBAR_MINIMUM = 960;
     static final int TINGGI_MINIMUM = 640;
-    static final int LEBAR_KONTEN = 1160;
-    static final int LEBAR_KONTEN_RINGKASAN = 1240;
-    static final int LEBAR_FORM_HALAMAN = 860;
-    static final int LEBAR_FORM_TABEL = 940;
-    static final int LEBAR_INPUT_MAKS = 460;
     static final int AMBANG_FORM_SEMPIT = 680;
     static final int AMBANG_FILTER_RIWAYAT = 600;
-    static final int LEBAR_FORM_KELUAR = 460;
-    static final int LEBAR_KOMBO_BARANG = 230;
     static final int TINGGI_FORM_MANUAL = 260;
     static final int TINGGI_FORM_FEFO = 300;
     static final int TINGGI_TABEL_BARANG = 175;
@@ -116,7 +109,7 @@ final class Ui {
     static final int TINGGI_TABEL_PEMANTAUAN = 240;
     static final int TINGGI_TABEL_RIWAYAT = 300;
     static final int TINGGI_TABEL_DEFAULT = 230;
-    static final Insets PADDING_HALAMAN = new Insets(20, 28, 28, 28);
+    static final Insets PADDING_HALAMAN = new Insets(20, 24, 28, 24);
     static final Insets PADDING_KARTU = new Insets(20, 20, 20, 20);
     static final int GAP_KARTU = 16;
     static final int GAP_FORM = 16;
@@ -635,22 +628,6 @@ final class Ui {
     }
 
     /**
-     * Form grid yang membatasi lebar tiap kolom input agar tidak melebar
-     * mengikuti kartu pada layar besar.
-     */
-    static JPanel gridForm(int kolomLebar, int ambang, Component... komponen) {
-        Component[] dibatasi = new Component[komponen.length];
-        for (int i = 0; i < komponen.length; i++) {
-            dibatasi[i] = lebarMaksimum(komponen[i], LEBAR_INPUT_MAKS);
-        }
-        return gridResponsif(kolomLebar, ambang, dibatasi);
-    }
-
-    static JPanel lebarMaksimum(Component isi, int maks) {
-        return new LebarMaksimum(isi, maks);
-    }
-
-    /**
      * Mengatur lebar kolom tabel secara proporsional. Kolom angka tetap lebih
      * sempit dan rata kanan; kolom teks panjang mendapat porsi lebih besar.
      */
@@ -725,38 +702,6 @@ final class Ui {
         @Override
         public Dimension getMinimumSize() {
             return MedanKantin.tinggiSeragam(super.getMinimumSize());
-        }
-    }
-
-    private static final class LebarMaksimum extends JPanel {
-        private final Component isi;
-        private final int maks;
-
-        private LebarMaksimum(Component isi, int maks) {
-            super(null);
-            this.isi = isi;
-            this.maks = maks;
-            setOpaque(false);
-            add(isi);
-        }
-
-        @Override
-        public void doLayout() {
-            int lebar = Math.min(getWidth(), skala(maks));
-            int tinggi = Math.min(getHeight(), isi.getPreferredSize().height);
-            isi.setBounds(0, 0, lebar, tinggi);
-        }
-
-        @Override
-        public Dimension getPreferredSize() {
-            Dimension ukuran = isi.getPreferredSize();
-            return new Dimension(Math.min(ukuran.width, skala(maks)),
-                    ukuran.height);
-        }
-
-        @Override
-        public Dimension getMinimumSize() {
-            return new Dimension(0, isi.getMinimumSize().height);
         }
     }
 

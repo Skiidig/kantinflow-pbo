@@ -224,11 +224,6 @@ public class PanelRingkasan extends PanelKantin {
         tabel.getColumnModel().getColumn(kolom).setMaxWidth(lebar);
     }
 
-    @Override
-    public int lebarMaksimum() {
-        return Ui.LEBAR_KONTEN_RINGKASAN;
-    }
-
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);

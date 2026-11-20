@@ -249,7 +249,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             JPanel header = buatHeaderHalaman(
                     entry.getKey(), entry.getValue());
             HalamanScroll tampilan = new HalamanScroll(entry.getValue(),
-                    header, entry.getValue().lebarMaksimum());
+                    header);
             JScrollPane scroll = new JScrollPane(tampilan,
                     ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                     ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -274,7 +274,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         JPanel header = new JPanel(new BorderLayout(Ui.skala(16), 0));
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(
-                Ui.skala(24), Ui.skala(28), 0, Ui.skala(28)));
+                Ui.skala(24), Ui.skala(24), 0, Ui.skala(24)));
 
         JPanel kiri = new JPanel();
         kiri.setOpaque(false);
@@ -595,12 +595,9 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private static final class HalamanScroll extends JPanel
             implements Scrollable {
         private final JPanel kolom;
-        private final int maksimum;
 
-        private HalamanScroll(PanelKantin halaman, JPanel header,
-                int maksimum) {
+        private HalamanScroll(PanelKantin halaman, JPanel header) {
             super(null);
-            this.maksimum = maksimum;
             setOpaque(false);
             kolom = new JPanel();
             kolom.setOpaque(false);
@@ -614,7 +611,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
         @Override
         public void doLayout() {
-            int lebar = Math.min(getWidth(), Ui.skala(maksimum));
+            int lebar = getWidth();
             int tinggi = Math.max(getHeight(),
                     kolom.getPreferredSize().height);
             kolom.setBounds(0, 0, lebar, tinggi);
@@ -622,9 +619,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
         @Override
         public Dimension getPreferredSize() {
-            Dimension isi = kolom.getPreferredSize();
-            return new Dimension(Math.min(isi.width, Ui.skala(maksimum)),
-                    isi.height);
+            return kolom.getPreferredSize();
         }
 
         @Override

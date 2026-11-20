@@ -24,7 +24,11 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
         this.judul = judul;
         this.keterangan = keterangan;
         setBackground(Ui.LATAR);
-        setBorder(new EmptyBorder(Ui.PADDING_HALAMAN));
+        setBorder(new EmptyBorder(
+                Ui.skala(Ui.PADDING_HALAMAN.top),
+                Ui.skala(Ui.PADDING_HALAMAN.left),
+                Ui.skala(Ui.PADDING_HALAMAN.bottom),
+                Ui.skala(Ui.PADDING_HALAMAN.right)));
     }
 
     public String getJudul() {
@@ -41,14 +45,6 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
      */
     public JComponent getAksiHeader() {
         return null;
-    }
-
-    /**
-     * Lebar maksimum area konten halaman dalam satuan FlatLaf. Halaman
-     * dashboard dapat memakai area yang sedikit lebih lebar.
-     */
-    public int lebarMaksimum() {
-        return Ui.LEBAR_KONTEN;
     }
 
     @Override

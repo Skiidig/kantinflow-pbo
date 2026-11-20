@@ -110,11 +110,6 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         aturPesan(label, null);
     }
 
-    @Override
-    public int lebarMaksimum() {
-        return Ui.LEBAR_FORM_TABEL;
-    }
-
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
