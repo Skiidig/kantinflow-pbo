@@ -110,11 +110,16 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         aturPesan(label, null);
     }
 
+    @Override
+    public int lebarMaksimum() {
+        return Ui.LEBAR_FORM_TABEL;
+    }
+
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
-        JPanel form = Ui.kartu("Form Penerimaan", "stock-in");
+        JPanel form = Ui.kartu("Form Penerimaan");
         JPanel kolomBarang = fieldBarang("Barang");
         JPanel kolomJumlah = Ui.field(labelJumlah, fieldJumlah);
         JPanel kolomMasuk = Ui.field("Tanggal masuk",
@@ -161,7 +166,7 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
 
-        JPanel daftar = Ui.kartu("Batch Barang", "package");
+        JPanel daftar = Ui.kartu("Batch Barang");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
         gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_STOK_MASUK);

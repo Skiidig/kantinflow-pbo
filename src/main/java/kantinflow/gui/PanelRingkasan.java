@@ -92,9 +92,9 @@ public class PanelRingkasan extends PanelKantin {
     private final JLabel ringkasanPeringatan = Ui.keterangan(" ");
     private final JPanel panelFilterRestok = new JPanel(
             new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
-    private final JButton tombolResetRestok = Ui.sekunder("Tampilkan Semua");
-    private final JButton tombolResetKosong = Ui.sekunder("Tampilkan Semua");
-    private final JButton tombolBukaBarang = Ui.utama("Buka Halaman Barang");
+    private final JButton tombolResetRestok = Ui.ghost("Tampilkan Semua");
+    private final JButton tombolResetKosong = Ui.ghost("Tampilkan Semua");
+    private final JButton tombolBukaBarang = Ui.sekunder("Buka Halaman Barang");
     private boolean hanyaPerluRestok;
 
     public PanelRingkasan(KonteksKantin konteks) {
@@ -105,6 +105,7 @@ public class PanelRingkasan extends PanelKantin {
         pilihanBarang.addActionListener(event -> pilihBarang());
         tanggalPilihan.komponenTeks().setName("tanggalRingkasan");
         pesanTanggal.setName("pesanTanggalRingkasan");
+        pesanTanggal.setVisible(false);
         tanggalTerakhir = konteks.getTanggalAcuan();
         tanggalKonteksTerakhir = tanggalTerakhir;
         tanggalPilihan.setTanggal(tanggalTerakhir);
@@ -217,7 +218,7 @@ public class PanelRingkasan extends PanelKantin {
     }
 
     private void aturKolomStatus(JTable tabel, int kolom) {
-        int lebar = Ui.skala(210);
+        int lebar = Ui.skala(190);
         tabel.getColumnModel().getColumn(kolom).setPreferredWidth(lebar);
         tabel.getColumnModel().getColumn(kolom).setMinWidth(lebar);
         tabel.getColumnModel().getColumn(kolom).setMaxWidth(lebar);
@@ -232,22 +233,22 @@ public class PanelRingkasan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
-        JPanel kontrol = kartuRingkasan("Filter barang", "search");
+        JPanel kontrol = kartuRingkasan("Filter Barang");
         JLabel labelBarang = Ui.labelField("Barang");
         JLabel labelTanggal = Ui.labelField("Tanggal acuan");
         kontrol.add(buatBarisFilter(labelBarang, labelTanggal),
                 BorderLayout.CENTER);
 
-        panelKartuSemua = Ui.gridBertahap(4, 820, 480,
+        panelKartuSemua = Ui.gridBertahap(4, 780, 480,
                 kartuBarang, kartuPerluRestok, kartuSegera, kartuKedaluwarsa);
-        panelKartuSatuan = Ui.gridBertahap(4, 820, 480,
+        panelKartuSatuan = Ui.gridBertahap(4, 780, 480,
                 kartuFisik, kartuLayak, kartuMinimum, kartuStatus);
         nilai.setOpaque(false);
         nilai.add(panelKartuSemua, KARTU_SEMUA);
         nilai.add(panelKartuSatuan, KARTU_SATU);
         tampilkanKartu(true);
 
-        JPanel peringatan = kartuRingkasan("Peringatan kedaluwarsa", "alert-triangle");
+        JPanel peringatan = kartuRingkasan("Peringatan Kedaluwarsa");
         JPanel peringatanIsi = new JPanel(new BorderLayout(0, 8));
         peringatanIsi.setOpaque(false);
         peringatanIsi.add(ringkasanPeringatan, BorderLayout.NORTH);
@@ -272,7 +273,7 @@ public class PanelRingkasan extends PanelKantin {
         panelFilterRestok.add(tombolResetRestok);
         panelFilterRestok.setVisible(false);
 
-        JPanel semua = kartuRingkasan("Semua barang", "package");
+        JPanel semua = kartuRingkasan("Semua Barang");
         JPanel semuaIsi = new JPanel(new BorderLayout(0, 6));
         semuaIsi.setOpaque(false);
         semuaIsi.add(panelFilterRestok, BorderLayout.NORTH);
@@ -330,9 +331,9 @@ public class PanelRingkasan extends PanelKantin {
         return gulir;
     }
 
-    /** Gaya kartu dashboard seragam dengan CardPanel standar. */
-    private JPanel kartuRingkasan(String judul, String ikon) {
-        JPanel kartu = Ui.kartu(judul, ikon);
+    /** Gaya kartu dashboard seragam dengan CardPanel standar tanpa duplikasi ikon. */
+    private JPanel kartuRingkasan(String judul) {
+        JPanel kartu = Ui.kartu(judul);
         JPanel kepala = (JPanel) ((BorderLayout) kartu.getLayout())
                 .getLayoutComponent(BorderLayout.NORTH);
         kepala.setOpaque(false);
@@ -390,15 +391,16 @@ public class PanelRingkasan extends PanelKantin {
             c.gridy = 1;
             c.gridx = 0;
             c.weightx = 1;
-            c.fill = GridBagConstraints.BOTH;
-            c.insets = new Insets(Ui.skala(4), 0, 0, 0);
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.anchor = GridBagConstraints.CENTER;
+            c.insets = new Insets(Ui.skala(6), 0, 0, 0);
             panel.add(pilihanBarang, c);
             c.gridx = 1;
             c.weightx = 0;
-            c.insets = new Insets(Ui.skala(4), gap, 0, 0);
+            c.insets = new Insets(Ui.skala(6), gap, 0, 0);
             panel.add(tanggalPilihan, c);
             c.gridx = 2;
-            c.insets = new Insets(Ui.skala(4), gap, 0, 0);
+            c.insets = new Insets(Ui.skala(6), gap, 0, 0);
             panel.add(tombolPeriksa, c);
 
             c.gridy = 2;
@@ -455,21 +457,25 @@ public class PanelRingkasan extends PanelKantin {
     private void periksa() {
         if (tanggalPilihan.ambilTeksTidakValid()) {
             pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            pesanTanggal.setVisible(true);
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
         LocalDate dipilih = tanggalPilihan.getTanggal();
         if (dipilih == null) {
             pesanTanggal.setText("Tanggal acuan wajib diisi.");
+            pesanTanggal.setVisible(true);
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
         if (!tanggalPilihan.isTextFieldValid()) {
             pesanTanggal.setText("Tanggal tidak valid. Pilih tanggal yang benar.");
+            pesanTanggal.setVisible(true);
             tanggalPilihan.komponenTeks().requestFocusInWindow();
             return;
         }
         pesanTanggal.setText(" ");
+        pesanTanggal.setVisible(false);
         tanggalTerakhir = dipilih;
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);

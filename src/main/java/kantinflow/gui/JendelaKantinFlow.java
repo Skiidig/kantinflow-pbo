@@ -194,7 +194,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             grupNavigasi.add(tombol);
             tombolNavigasi.put(item[0], tombol);
             isi.add(tombol);
-            isi.add(Box.createVerticalStrut(Ui.skala(5)));
+            isi.add(Box.createVerticalStrut(Ui.skala(4)));
         }
 
         JScrollPane scroll = new JScrollPane(isi,
@@ -271,30 +271,36 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
      * memakai layout manager, bukan posisi absolut.
      */
     private JPanel buatHeaderHalaman(String kunci, PanelKantin halaman) {
-        JPanel header = new JPanel(new GridBagLayout());
+        JPanel header = new JPanel(new BorderLayout(Ui.skala(16), 0));
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(
                 Ui.skala(24), Ui.skala(28), 0, Ui.skala(28)));
 
+        JPanel kiri = new JPanel();
+        kiri.setOpaque(false);
+        kiri.setLayout(new BoxLayout(kiri, BoxLayout.Y_AXIS));
         JLabel judul = new JLabel(halaman.getJudul());
         judul.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
         judul.setForeground(Ui.TEKS);
+        judul.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel keterangan = new JLabel(halaman.getKeterangan());
         keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_SUBJUDUL));
         keterangan.setForeground(Ui.TEKS_LEMBUT);
+        keterangan.setAlignmentX(Component.LEFT_ALIGNMENT);
+        kiri.add(judul);
+        kiri.add(Box.createVerticalStrut(Ui.skala(4)));
+        kiri.add(keterangan);
+        header.add(kiri, BorderLayout.CENTER);
 
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.gridy = 0;
-        c.weightx = 1;
-        c.anchor = GridBagConstraints.WEST;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(0, 0, 0, 0);
-        header.add(judul, c);
-
-        c.gridy = 1;
-        c.insets = new Insets(Ui.skala(4), 0, 0, 0);
-        header.add(keterangan, c);
+        JComponent aksiHeader = halaman.getAksiHeader();
+        if (aksiHeader != null) {
+            JPanel kanan = new JPanel(new GridBagLayout());
+            kanan.setOpaque(false);
+            GridBagConstraints c = new GridBagConstraints();
+            c.anchor = GridBagConstraints.EAST;
+            kanan.add(aksiHeader, c);
+            header.add(kanan, BorderLayout.EAST);
+        }
         return header;
     }
 
@@ -776,7 +782,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                 try {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                             RenderingHints.VALUE_ANTIALIAS_ON);
-                    int arc = Ui.skala(Ui.RADIUS_KONTROL);
+                    int arc = Ui.skala(8);
                     g2.setColor(isSelected() ? Ui.NAV_AKTIF_BG : Ui.HOVER);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
                 } finally {

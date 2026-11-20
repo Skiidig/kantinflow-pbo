@@ -7,7 +7,12 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -137,11 +142,16 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         bangunIsi();
     }
 
+    @Override
+    public int lebarMaksimum() {
+        return Ui.LEBAR_FORM_HALAMAN;
+    }
+
     private void bangunIsi() {
         JPanel manualIsi = isiMode();
         manualIsi.add(bantuanMode(
                 "Pilih batch sumber, lalu masukkan jumlah yang dikeluarkan."));
-        JPanel formManual = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
+        JPanel formManual = buatGridDuaKolom(
                 Ui.field("Batch", comboBatch, peringatanBatchManual),
                 Ui.field(labelJumlahManual, fieldJumlahManual));
         formManual.setAlignmentX(LEFT_ALIGNMENT);
@@ -160,7 +170,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         fefoIsi.add(bantuanMode(
                 "Stok layak dengan tanggal kedaluwarsa terdekat digunakan lebih dahulu."));
 
-        JPanel formFefo = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
+        JPanel formFefo = buatGridDuaKolom(
                 Ui.field(labelJumlahFefo, fieldJumlahFefo),
                 Ui.field("Tanggal pengeluaran",
                         tanggalFefo, pesanTanggalFefo));
@@ -170,6 +180,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         panelPreviewFefo.setAlignmentX(LEFT_ALIGNMENT);
         panelPreviewFefo.add(labelPreviewFefo, BorderLayout.CENTER);
         JPanel wadahPreview = new JPanel(new BorderLayout()) {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public Dimension getMaximumSize() {
                 Dimension pref = getPreferredSize();
@@ -178,7 +190,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         };
         wadahPreview.setOpaque(false);
         wadahPreview.setAlignmentX(LEFT_ALIGNMENT);
-        wadahPreview.setBorder(new EmptyBorder(Ui.skala(10), 0, 0, 0));
+        wadahPreview.setBorder(new EmptyBorder(Ui.skala(12), 0, 0, 0));
         wadahPreview.add(panelPreviewFefo, BorderLayout.CENTER);
         fefoIsi.add(wadahPreview);
 
@@ -206,14 +218,68 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 isi, javax.swing.BoxLayout.Y_AXIS));
         JPanel pilihan = fieldBarang("Barang");
         pilihan.setAlignmentX(LEFT_ALIGNMENT);
-        pilihan.setBorder(new EmptyBorder(0, 0, 10, 0));
+        pilihan.setBorder(new EmptyBorder(0, 0, Ui.skala(14), 0));
         isi.add(pilihan);
         mode.setAlignmentX(LEFT_ALIGNMENT);
         isi.add(mode);
 
-        JPanel kartu = Ui.kartu("Pengeluaran Stok", "stock-out");
+        JPanel kartu = Ui.kartu("Pengeluaran Stok");
         kartu.add(isi, BorderLayout.CENTER);
         add(kartu, BorderLayout.NORTH);
+    }
+
+    private JPanel buatGridDuaKolom(JPanel kiri, JPanel kanan) {
+        JPanel panel = new JPanel(new GridBagLayout()) {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public Dimension getMaximumSize() {
+                Dimension pref = getPreferredSize();
+                return new Dimension(Integer.MAX_VALUE, pref.height);
+            }
+        };
+        panel.setOpaque(false);
+        aturGridDuaKolom(panel, kiri, kanan, false);
+        panel.addComponentListener(new ComponentAdapter() {
+            private boolean sempit;
+
+            @Override
+            public void componentResized(ComponentEvent event) {
+                boolean sekarang = panel.getWidth() > 0
+                        && panel.getWidth() < Ui.skala(560);
+                if (sekarang == sempit) {
+                    return;
+                }
+                sempit = sekarang;
+                aturGridDuaKolom(panel, kiri, kanan, sempit);
+                panel.revalidate();
+                panel.repaint();
+            }
+        });
+        return panel;
+    }
+
+    private void aturGridDuaKolom(JPanel panel, JPanel kiri, JPanel kanan,
+            boolean sempit) {
+        panel.removeAll();
+        int jarak = Ui.skala(Ui.GAP_FORM);
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.anchor = GridBagConstraints.NORTH;
+        c.weightx = 1;
+        c.gridx = 0;
+        c.gridy = 0;
+        c.insets = new Insets(0, 0, 0, sempit ? 0 : jarak / 2);
+        panel.add(kiri, c);
+
+        c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.anchor = GridBagConstraints.NORTH;
+        c.weightx = 1;
+        c.gridx = sempit ? 0 : 1;
+        c.gridy = sempit ? 1 : 0;
+        c.insets = new Insets(sempit ? jarak : 0, sempit ? 0 : jarak / 2, 0, 0);
+        panel.add(kanan, c);
     }
 
     private JLabel bantuanMode(String teks) {

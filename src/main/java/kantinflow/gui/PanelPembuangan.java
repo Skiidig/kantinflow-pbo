@@ -109,8 +109,13 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         bangunIsi();
     }
 
+    @Override
+    public int lebarMaksimum() {
+        return Ui.LEBAR_FORM_HALAMAN;
+    }
+
     private void bangunIsi() {
-        JPanel form = Ui.kartu("Form Pembuangan", "trash");
+        JPanel form = Ui.kartu("Form Pembuangan");
         JPanel[] kolom = {
             fieldBarang("Barang"),
             Ui.field("Batch", comboBatch),
@@ -154,10 +159,10 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         formIsi.add(aksi);
         form.add(formIsi, BorderLayout.CENTER);
 
-        JPanel tindakan = Ui.kartu("Ringkasan tindakan", "alert-triangle");
+        JPanel tindakan = Ui.kartu("Ringkasan Tindakan");
         JPanel tindakanIsi = new JPanel(new BorderLayout(0, 6));
         tindakanIsi.setOpaque(false);
-        ringkasan.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
+        ringkasan.setFont(Ui.fontSemiBold(Ui.FONT_CATATAN));
         ringkasan.setForeground(Ui.TEKS_LEMBUT);
         tindakanIsi.add(ringkasan, BorderLayout.NORTH);
         JTextArea catatan = new JTextArea(
@@ -182,7 +187,7 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         isi.setOpaque(false);
         isi.add(form, BorderLayout.NORTH);
         isi.add(tindakan, BorderLayout.CENTER);
-        add(isi, BorderLayout.CENTER);
+        add(isi, BorderLayout.NORTH);
     }
 
     private void aturGridIsian(JPanel panel, JPanel[] kolom,

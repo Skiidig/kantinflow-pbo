@@ -80,7 +80,7 @@ public class PanelBarang extends PanelKantin {
     private final List<Barang> urutanBarang = new ArrayList<>();
     private final JTextField fieldCari = Ui.field(18);
     private final JButton tombolTambah = Ui.utama("Tambah Barang");
-    private final JButton tombolResetCari = Ui.sekunder("Reset Pencarian");
+    private final JButton tombolResetCari = Ui.ghost("Reset Pencarian");
     private final JButton tombolTambahKosong = Ui.utama("Tambah Barang");
     private final EmptyState kosong = new EmptyState(
             "package", "Belum ada barang",
@@ -155,16 +155,20 @@ public class PanelBarang extends PanelKantin {
         bangunIsi();
     }
 
+    @Override
+    public JComponent getAksiHeader() {
+        return tombolTambah;
+    }
+
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 14));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
-        kartuDaftar = Ui.kartu("Daftar Barang", "package");
-        kepalaDaftar = new JPanel(new BorderLayout(12, 0));
+        kartuDaftar = Ui.kartu("Daftar Barang");
+        kepalaDaftar = new JPanel(new BorderLayout(0, 0));
         kepalaDaftar.setOpaque(false);
         kepalaDaftar.add(fieldCari, BorderLayout.CENTER);
-        kepalaDaftar.add(tombolTambah, BorderLayout.EAST);
-        JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, Ui.skala(12)));
         daftarIsi.setOpaque(false);
         daftarIsi.add(kepalaDaftar, BorderLayout.NORTH);
         gulirTabel = Ui.scrollTabel(tabel, 250);
@@ -218,6 +222,7 @@ public class PanelBarang extends PanelKantin {
         tabel.getColumnModel().getColumn(4)
                 .setCellEditor(new EditorAksi());
         Ui.rataKananHeader(tabel, 2, 3);
+        Ui.rataTengahHeader(tabel, 4);
         aturProporsiKolom();
         Ui.gulirHorizontalSaatSempit(tabel);
         Ui.headerKlik(tabel);
@@ -718,29 +723,24 @@ public class PanelBarang extends PanelKantin {
                 Ui.skala(32), Ui.skala(32)));
         tombol.setMinimumSize(tombol.getPreferredSize());
         tombol.setMaximumSize(tombol.getPreferredSize());
-        tombol.setBorder(new EmptyBorder(0,
-                Ui.skala(Ui.PADDING_SEL_TABEL), 0, 0));
+        tombol.setBorder(new EmptyBorder(0, 0, 0, 0));
         tombol.setContentAreaFilled(false);
         tombol.setBorderPainted(true);
         tombol.setFocusPainted(true);
         tombol.setOpaque(false);
-        tombol.setHorizontalAlignment(SwingConstants.LEFT);
+        tombol.setHorizontalAlignment(SwingConstants.CENTER);
         tombol.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent event) {
-                tombol.setBorder(new CompoundBorder(
-                        new FlatLineBorder(new Insets(
-                                Ui.skala(1), Ui.skala(1),
-                                Ui.skala(1), Ui.skala(1)),
-                                Ui.AKSEN, 1.5f, Ui.RADIUS_KONTROL),
-                        new EmptyBorder(0, Ui.skala(
-                                Ui.PADDING_SEL_TABEL - 1), 0, 0)));
+                tombol.setBorder(new FlatLineBorder(new Insets(
+                        Ui.skala(1), Ui.skala(1),
+                        Ui.skala(1), Ui.skala(1)),
+                        Ui.AKSEN, 1.5f, Ui.RADIUS_KONTROL));
             }
 
             @Override
             public void focusLost(FocusEvent event) {
-                tombol.setBorder(new EmptyBorder(0,
-                        Ui.skala(Ui.PADDING_SEL_TABEL), 0, 0));
+                tombol.setBorder(new EmptyBorder(0, 0, 0, 0));
             }
         });
         return tombol;

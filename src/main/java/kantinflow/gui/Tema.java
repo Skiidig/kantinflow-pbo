@@ -89,6 +89,8 @@ public final class Tema {
         UIManager.put("Table.foreground", Ui.TEKS);
         UIManager.put("Table.selectionBackground", Ui.AKSEN_LEMBUT);
         UIManager.put("Table.selectionForeground", Ui.TEKS);
+        UIManager.put("Table.selectionInactiveBackground", Ui.AKSEN_LEMBUT);
+        UIManager.put("Table.selectionInactiveForeground", Ui.TEKS);
         UIManager.put("Table.showVerticalLines", false);
         UIManager.put("Table.showHorizontalLines", true);
         UIManager.put("Table.gridColor", Ui.GARIS_TABEL);

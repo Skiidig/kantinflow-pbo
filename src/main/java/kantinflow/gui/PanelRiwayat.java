@@ -70,8 +70,8 @@ public class PanelRiwayat extends PanelKantin {
     private final JLabel pesanTanggalAkhir = Ui.pesan();
     private final JComboBox<String> comboJenis = Ui.combo();
     private final JButton tombolTerapkan = Ui.utama("Terapkan Filter");
-    private final JButton tombolReset = Ui.sekunder("Reset");
-    private final JButton tombolResetKosong = Ui.sekunder("Reset Filter");
+    private final JButton tombolReset = Ui.ghost("Reset");
+    private final JButton tombolResetKosong = Ui.ghost("Reset Filter");
     private final JButton tombolDetail = Ui.sekunder("Lihat Detail");
     private JPanel aksiTabel;
     private final JLabel petunjukDetail = Ui.keterangan(
@@ -193,11 +193,21 @@ public class PanelRiwayat extends PanelKantin {
         sorter.setComparator(4, Comparator.nullsLast(Comparator.naturalOrder()));
     }
 
+    @Override
+    public javax.swing.JComponent getAksiHeader() {
+        JPanel kanan = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.RIGHT, Ui.skala(8), 0));
+        kanan.setOpaque(false);
+        kanan.add(tombolEkspor);
+        kanan.add(tombolPdf);
+        return kanan;
+    }
+
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
-        JPanel filter = Ui.kartu("Filter riwayat", "search");
+        JPanel filter = Ui.kartu("Filter Riwayat");
         JPanel[] kolom = {
             Ui.field("Barang", pilihanBarang),
             Ui.field("Cari kode batch atau alasan", fieldCari),
@@ -248,23 +258,22 @@ public class PanelRiwayat extends PanelKantin {
         JPanel daftar = Ui.kartu();
         JPanel kepala = new JPanel(new BorderLayout(8, 0));
         kepala.setOpaque(false);
-        kepala.add(labelJumlah, BorderLayout.WEST);
-        JPanel kanan = new JPanel(new java.awt.FlowLayout(
-                java.awt.FlowLayout.RIGHT, 8, 0));
-        kanan.setOpaque(false);
-        kanan.add(tombolEkspor);
-        kanan.add(tombolPdf);
-        kepala.add(kanan, BorderLayout.EAST);
+        JLabel judulDaftar = new JLabel("Daftar Transaksi");
+        judulDaftar.setFont(Ui.fontSemiBold(Ui.FONT_KARTU));
+        judulDaftar.setForeground(Ui.TEKS);
+        kepala.add(judulDaftar, BorderLayout.WEST);
+        kepala.add(labelJumlah, BorderLayout.EAST);
         aksiTabel = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 8, 0));
         aksiTabel.setOpaque(false);
+        aksiTabel.setBorder(new EmptyBorder(Ui.skala(8), 0, 0, 0));
         aksiTabel.add(tombolDetail);
         aksiTabel.add(petunjukDetail);
         JPanel bawahTabel = new JPanel(new BorderLayout(0, 4));
         bawahTabel.setOpaque(false);
         bawahTabel.add(aksiTabel, BorderLayout.NORTH);
         bawahTabel.add(kosong, BorderLayout.CENTER);
-        JPanel daftarIsi = new JPanel(new BorderLayout(0, 6));
+        JPanel daftarIsi = new JPanel(new BorderLayout(0, Ui.skala(10)));
         daftarIsi.setOpaque(false);
         daftarIsi.add(kepala, BorderLayout.NORTH);
         gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_RIWAYAT);

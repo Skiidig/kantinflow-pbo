@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
@@ -32,6 +33,14 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
 
     public String getKeterangan() {
         return keterangan;
+    }
+
+    /**
+     * Aksi utama opsional yang ditampilkan rata kanan pada blok header
+     * halaman, sejajar vertikal dengan judul dan subjudul.
+     */
+    public JComponent getAksiHeader() {
+        return null;
     }
 
     /**

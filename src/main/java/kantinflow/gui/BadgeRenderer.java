@@ -33,9 +33,9 @@ public class BadgeRenderer implements TableCellRenderer {
 
     public BadgeRenderer() {
         panel.setOpaque(true);
-        batasan.anchor = GridBagConstraints.WEST;
+        batasan.anchor = GridBagConstraints.CENTER;
         batasan.fill = GridBagConstraints.NONE;
-        batasan.weightx = 1;
+        batasan.weightx = 0;
         batasan.weighty = 0;
         batasan.insets = new Insets(0, 0, 0, 0);
     }

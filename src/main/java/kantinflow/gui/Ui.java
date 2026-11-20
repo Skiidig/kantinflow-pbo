@@ -95,15 +95,17 @@ final class Ui {
     static final int TINGGI_BARIS_TABEL = 44;
     static final int TINGGI_HEADER_TABEL = 38;
     static final int PADDING_SEL_TABEL = 14;
-    static final int LEBAR_SIDEBAR = 240;
+    static final int LEBAR_SIDEBAR = 232;
     static final int LEBAR_JENDELA = 1200;
     static final int TINGGI_JENDELA = 740;
     static final int LEBAR_MINIMUM = 960;
     static final int TINGGI_MINIMUM = 640;
-    static final int LEBAR_KONTEN = 1200;
-    static final int LEBAR_KONTEN_RINGKASAN = 1400;
+    static final int LEBAR_KONTEN = 1160;
+    static final int LEBAR_KONTEN_RINGKASAN = 1240;
+    static final int LEBAR_FORM_HALAMAN = 860;
+    static final int LEBAR_FORM_TABEL = 940;
     static final int LEBAR_INPUT_MAKS = 460;
-    static final int AMBANG_FORM_SEMPIT = 760;
+    static final int AMBANG_FORM_SEMPIT = 680;
     static final int AMBANG_FILTER_RIWAYAT = 600;
     static final int LEBAR_FORM_KELUAR = 460;
     static final int LEBAR_KOMBO_BARANG = 230;
@@ -114,9 +116,9 @@ final class Ui {
     static final int TINGGI_TABEL_PEMANTAUAN = 240;
     static final int TINGGI_TABEL_RIWAYAT = 300;
     static final int TINGGI_TABEL_DEFAULT = 230;
-    static final Insets PADDING_HALAMAN = new Insets(24, 28, 28, 28);
+    static final Insets PADDING_HALAMAN = new Insets(20, 28, 28, 28);
     static final Insets PADDING_KARTU = new Insets(20, 20, 20, 20);
-    static final int GAP_KARTU = 18;
+    static final int GAP_KARTU = 16;
     static final int GAP_FORM = 16;
 
     // Skala tipografi ketat
@@ -368,6 +370,25 @@ final class Ui {
                 + "focusWidth: 1; "
                 + "focusColor: #18181B26; "
                 + "margin: 8,14,8,14");
+        pasangKursorTombol(tombol);
+        return tombol;
+    }
+
+    static JButton ghost(String teks) {
+        JButton tombol = new TombolKantin(teks);
+        tombol.setFont(fontSemiBold(FONT_BUTTON));
+        tombol.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; "
+                + "background: #00000000; "
+                + "foreground: #71717A; "
+                + "hoverBackground: #F4F4F5; "
+                + "hoverForeground: #09090B; "
+                + "pressedBackground: #E4E4E7; "
+                + "disabledText: #A1A1AA; "
+                + "borderWidth: 0; "
+                + "focusWidth: 1; "
+                + "focusColor: #18181B26; "
+                + "margin: 8,12,8,12");
         pasangKursorTombol(tombol);
         return tombol;
     }
@@ -675,8 +696,7 @@ final class Ui {
         }
 
         private static Dimension tinggiSeragam(Dimension ukuran) {
-            return new Dimension(ukuran.width,
-                    Math.max(ukuran.height, tinggiKontrol()));
+            return new Dimension(ukuran.width, tinggiKontrol());
         }
     }
 
@@ -794,7 +814,7 @@ final class Ui {
         };
     }
 
-    private static DefaultTableCellRenderer penyajiHeader(boolean rataKanan) {
+    private static DefaultTableCellRenderer penyajiHeader(int perataan) {
         return new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(
@@ -810,8 +830,7 @@ final class Ui {
                     setBackground(header.getBackground());
                     setOpaque(true);
                 }
-                setHorizontalAlignment(rataKanan
-                        ? SwingConstants.RIGHT : SwingConstants.LEFT);
+                setHorizontalAlignment(perataan);
                 setVerticalAlignment(SwingConstants.CENTER);
                 setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
                         0, skala(PADDING_SEL_TABEL)));
@@ -842,7 +861,8 @@ final class Ui {
         tabel.getTableHeader().setBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, GARIS));
         tabel.getTableHeader().setReorderingAllowed(false);
-        tabel.getTableHeader().setDefaultRenderer(penyajiHeader(false));
+        tabel.getTableHeader().setDefaultRenderer(
+                penyajiHeader(SwingConstants.LEFT));
         int tinggiHeader = Math.max(skala(TINGGI_HEADER_TABEL),
                 tabel.getFontMetrics(tabel.getTableHeader().getFont()).getHeight()
                 + skala(14));
@@ -887,6 +907,7 @@ final class Ui {
                         .setCellRenderer(renderer);
             }
         }
+        rataTengahHeader(tabel, kolom);
     }
 
     /**
@@ -939,7 +960,16 @@ final class Ui {
         for (int index : kolom) {
             if (index >= 0 && index < tabel.getColumnModel().getColumnCount()) {
                 tabel.getColumnModel().getColumn(index)
-                        .setHeaderRenderer(penyajiHeader(true));
+                        .setHeaderRenderer(penyajiHeader(SwingConstants.RIGHT));
+            }
+        }
+    }
+
+    static void rataTengahHeader(JTable tabel, int... kolom) {
+        for (int index : kolom) {
+            if (index >= 0 && index < tabel.getColumnModel().getColumnCount()) {
+                tabel.getColumnModel().getColumn(index)
+                        .setHeaderRenderer(penyajiHeader(SwingConstants.CENTER));
             }
         }
     }

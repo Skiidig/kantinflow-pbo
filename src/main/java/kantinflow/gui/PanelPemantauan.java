@@ -31,7 +31,7 @@ public class PanelPemantauan extends PanelKantin {
     private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
 
     private final JButton tombolPeriksa = Ui.utama("Periksa");
-    private final JButton tombolResetStatus = Ui.sekunder("Tampilkan Semua Status");
+    private final JButton tombolResetStatus = Ui.ghost("Tampilkan Semua Status");
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel pesanTanggal = Ui.pesan();
     private LocalDate tanggalTerakhir;
@@ -108,7 +108,7 @@ public class PanelPemantauan extends PanelKantin {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
-        JPanel kontrol = Ui.kartu("Filter pemantauan", "monitor");
+        JPanel kontrol = Ui.kartu("Filter Pemantauan");
         JPanel kontrolIsi = new JPanel(new BorderLayout(0, 0));
         kontrolIsi.setOpaque(false);
         pesanValidasi.setBorder(new javax.swing.border.EmptyBorder(
@@ -123,7 +123,7 @@ public class PanelPemantauan extends PanelKantin {
         kontrolIsi.add(labelInfo, BorderLayout.SOUTH);
         kontrol.add(kontrolIsi, BorderLayout.CENTER);
 
-        JPanel daftar = Ui.kartu("Status Batch", "alert-triangle");
+        JPanel daftar = Ui.kartu("Status Batch");
         JPanel daftarIsi = new JPanel(new BorderLayout(0, 4));
         daftarIsi.setOpaque(false);
         gulirTabel = Ui.scrollTabel(tabel, Ui.TINGGI_TABEL_PEMANTAUAN);
