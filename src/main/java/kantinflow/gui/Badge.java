@@ -51,8 +51,8 @@ public class Badge extends JLabel {
         if (nilai.contains("pembuangan") || nilai.contains("dibuang")) {
             return new Color[]{Ui.MERAH_BADGE, Ui.MERAH_LEMBUT};
         }
-        if (nilai.contains("pengeluaran") || nilai.contains("manual")
-                || nilai.contains("fefo")) {
+        if (nilai.contains("pengeluaran") || nilai.contains("keluar")
+                || nilai.contains("manual") || nilai.contains("fefo")) {
             return new Color[]{Ui.ORANYE_BADGE, Ui.ORANYE_LEMBUT};
         }
         if (nilai.contains("penerimaan") || nilai.contains("masuk")) {

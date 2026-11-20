@@ -1,9 +1,15 @@
 package kantinflow.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 
 import javax.swing.DefaultListCellRenderer;
@@ -15,10 +21,14 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import kantinflow.BatchStok;
+import kantinflow.FefoAllocator;
 import kantinflow.PengeluaranStok;
 import kantinflow.RincianTransaksi;
+import kantinflow.StatusKedaluwarsa;
 import kantinflow.StokTidakCukupException;
 
 /**
@@ -26,6 +36,7 @@ import kantinflow.StokTidakCukupException;
  */
 public class PanelStokKeluar extends PanelBarangTerpilih {
     private final JComboBox<BatchStok> comboBatch = Ui.combo();
+    private final JLabel peringatanBatchManual = Ui.pesan();
     private final JLabel labelSisa = new JLabel("-");
     private final JTextField fieldJumlahManual = Ui.field(8);
     private final JLabel labelJumlahManual = Ui.labelField("Jumlah");
@@ -37,6 +48,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
     private final JLabel pesanManual = Ui.pesan();
     private final JLabel pesanFefo = Ui.pesan();
     private final JLabel pesanTanggalFefo = Ui.pesan();
+    private final PanelPratinjau panelPreviewFefo = new PanelPratinjau();
+    private final JLabel labelPreviewFefo = new JLabel(" ");
     private final JLabel hasilAlokasi = Ui.keterangan(" ");
     private LocalDate tanggalFefoAwal;
 
@@ -45,6 +58,9 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 "Keluarkan stok manual atau dengan FEFO.");
         pilihanBarang.setName("barangStokKeluar");
         comboBatch.setName("batchManual");
+        peringatanBatchManual.setName("peringatanBatchManual");
+        peringatanBatchManual.setFont(Ui.font(Font.BOLD, Ui.FONT_KECIL));
+        peringatanBatchManual.setForeground(Ui.MERAH);
         fieldJumlahManual.setName("jumlahKeluar");
         tombolManual.setName("tombolKeluarkan");
         tombolManual.setIcon(
@@ -53,6 +69,9 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         fieldJumlahFefo.setName("jumlahFefo");
         tanggalFefo.komponenTeks().setName("tanggalFefo");
         pesanTanggalFefo.setName("pesanTanggalFefo");
+        labelPreviewFefo.setName("previewFefo");
+        labelPreviewFefo.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
+        kosongkanPesan(peringatanBatchManual);
         kosongkanPesan(pesanManual);
         kosongkanPesan(pesanFefo);
         kosongkanPesan(pesanTanggalFefo);
@@ -68,11 +87,16 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 super.getListCellRendererComponent(
                         list, value, index, isSelected, cellHasFocus);
                 if (value instanceof BatchStok batch) {
-                    setText(batch.getKode() + " — sisa "
+                    boolean kedaluwarsa = batchKedaluwarsa(batch);
+                    String awalan = kedaluwarsa ? "[KEDALUWARSA] " : "";
+                    setText(awalan + batch.getKode() + " — sisa "
                             + batch.getSisaJumlah() + " "
                             + (barang == null ? "-" : barang.getSatuan())
                             + " — kedaluwarsa "
-                            + batch.getTanggalKedaluwarsa());
+                            + FormatTanggal.format(batch.getTanggalKedaluwarsa()));
+                    if (!isSelected) {
+                        setForeground(kedaluwarsa ? Ui.MERAH_BADGE : Ui.TEKS);
+                    }
                 }
                 return this;
             }
@@ -82,8 +106,29 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         tombolFefo.addActionListener(event -> keluarkanFefo());
         tanggalFefoAwal = LocalDate.now();
         tanggalFefo.setTanggal(tanggalFefoAwal);
-        tanggalFefo.tambahPerubahan(
-                () -> kosongkanPesan(pesanTanggalFefo));
+        tanggalFefo.tambahPerubahan(() -> {
+            kosongkanPesan(pesanTanggalFefo);
+            perbaruiPreviewFefo();
+        });
+        DocumentListener pendengarFefo = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent event) {
+                perbaruiPreviewFefo();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent event) {
+                perbaruiPreviewFefo();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent event) {
+                perbaruiPreviewFefo();
+            }
+        };
+        fieldJumlahFefo.getDocument().addDocumentListener(pendengarFefo);
+        tanggalFefo.komponenTeks().getDocument()
+                .addDocumentListener(pendengarFefo);
         hasilAlokasi.setVisible(false);
         bangunIsi();
     }
@@ -93,7 +138,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         manualIsi.add(bantuanMode(
                 "Pilih batch sumber, lalu masukkan jumlah yang dikeluarkan."));
         JPanel formManual = Ui.gridForm(2, Ui.AMBANG_FORM_SEMPIT,
-                Ui.field("Batch", comboBatch),
+                Ui.field("Batch", comboBatch, peringatanBatchManual),
                 Ui.field(labelJumlahManual, fieldJumlahManual));
         formManual.setAlignmentX(LEFT_ALIGNMENT);
         manualIsi.add(formManual);
@@ -117,6 +162,21 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                         tanggalFefo, pesanTanggalFefo));
         formFefo.setAlignmentX(LEFT_ALIGNMENT);
         fefoIsi.add(formFefo);
+
+        panelPreviewFefo.setAlignmentX(LEFT_ALIGNMENT);
+        panelPreviewFefo.add(labelPreviewFefo, BorderLayout.CENTER);
+        JPanel wadahPreview = new JPanel(new BorderLayout()) {
+            @Override
+            public Dimension getMaximumSize() {
+                Dimension pref = getPreferredSize();
+                return new Dimension(Integer.MAX_VALUE, pref.height);
+            }
+        };
+        wadahPreview.setOpaque(false);
+        wadahPreview.setAlignmentX(LEFT_ALIGNMENT);
+        wadahPreview.setBorder(new EmptyBorder(Ui.skala(10), 0, 0, 0));
+        wadahPreview.add(panelPreviewFefo, BorderLayout.CENTER);
+        fefoIsi.add(wadahPreview);
 
         pesanFefo.setAlignmentX(LEFT_ALIGNMENT);
         pesanFefo.setBorder(new EmptyBorder(Ui.skala(6), 0, 0, 0));
@@ -194,26 +254,148 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         aturPesan(label, null);
     }
 
+    private boolean batchKedaluwarsa(BatchStok batch) {
+        if (batch == null) {
+            return false;
+        }
+        LocalDate acuan = konteks.getTanggalAcuan();
+        return batch.statusPada(acuan) == StatusKedaluwarsa.KEDALUWARSA;
+    }
+
     private void perbaruiSisa() {
         BatchStok batch = (BatchStok) comboBatch.getSelectedItem();
         if (barang == null) {
+            kosongkanPesan(peringatanBatchManual);
             labelSisa.setText(
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
             labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
+            tombolManual.setToolTipText(null);
             return;
         }
         if (batch == null) {
+            kosongkanPesan(peringatanBatchManual);
             labelSisa.setText("Tidak ada batch bersisa.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
             labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
-        } else {
-            labelSisa.setText(" ");
-            labelSisa.setVisible(false);
-            tombolManual.setEnabled(true);
+            tombolManual.setToolTipText(null);
+            return;
         }
+        labelSisa.setText(" ");
+        labelSisa.setVisible(false);
+        if (batchKedaluwarsa(batch)) {
+            aturPesan(peringatanBatchManual,
+                    "Peringatan: Batch ini sudah kedaluwarsa!");
+            tombolManual.setEnabled(false);
+            tombolManual.setToolTipText(
+                    "Batch kedaluwarsa tidak dapat dikeluarkan. "
+                    + "Gunakan halaman Pembuangan.");
+        } else {
+            kosongkanPesan(peringatanBatchManual);
+            tombolManual.setEnabled(true);
+            tombolManual.setToolTipText(null);
+        }
+    }
+
+    private void perbaruiPreviewFefo() {
+        if (barang == null) {
+            aturPreviewFefo(
+                    "Preview FEFO: belum ada barang yang dipilih.",
+                    Ui.NETRAL_LEMBUT, Ui.GARIS, Ui.TEKS_LEMBUT);
+            return;
+        }
+        LocalDate tanggal = tanggalFefo.getTanggal();
+        if (tanggal == null || !tanggalFefo.isTextFieldValid()) {
+            aturPreviewFefo(
+                    "Preview FEFO: pilih tanggal pengeluaran yang valid "
+                    + "untuk menghitung alokasi batch.",
+                    Ui.KUNING_LEMBUT, Ui.KUNING, Ui.KUNING_BADGE);
+            return;
+        }
+        String teksJumlah = fieldJumlahFefo.getText() == null
+                ? "" : fieldJumlahFefo.getText().trim();
+        if (teksJumlah.isEmpty()) {
+            int layak = barang.hitungStokLayak(tanggal);
+            aturPreviewFefo(
+                    "Preview FEFO: masukkan jumlah untuk melihat rincian "
+                    + "batch yang akan terpotong (stok layak tersedia: "
+                    + layak + " " + barang.getSatuan() + ").",
+                    Ui.NETRAL_LEMBUT, Ui.GARIS, Ui.TEKS_LEMBUT);
+            return;
+        }
+        int jumlah;
+        try {
+            jumlah = Integer.parseInt(teksJumlah);
+        } catch (NumberFormatException exception) {
+            aturPreviewFefo(
+                    "Preview FEFO: jumlah harus berupa angka bulat.",
+                    Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);
+            return;
+        }
+        if (jumlah <= 0) {
+            aturPreviewFefo(
+                    "Preview FEFO: jumlah harus lebih dari 0.",
+                    Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);
+            return;
+        }
+
+        try {
+            List<RincianTransaksi> alokasi = new FefoAllocator()
+                    .susun(barang, jumlah, tanggal);
+            for (RincianTransaksi rincian : alokasi) {
+                if (tanggal.isBefore(rincian.getBatch().getTanggalMasuk())) {
+                    aturPreviewFefo(
+                            "Preview FEFO: tanggal pengeluaran sebelum tanggal "
+                            + "masuk batch " + rincian.getBatch().getKode()
+                            + " (" + FormatTanggal.format(
+                                    rincian.getBatch().getTanggalMasuk())
+                            + ").",
+                            Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);
+                    return;
+                }
+            }
+            StringBuilder detail = new StringBuilder("Preview FEFO: ");
+            for (int i = 0; i < alokasi.size(); i++) {
+                if (i > 0) {
+                    detail.append(", ");
+                }
+                RincianTransaksi rincian = alokasi.get(i);
+                detail.append(rincian.getJumlah())
+                        .append(" ")
+                        .append(barang.getSatuan())
+                        .append(" dari ")
+                        .append(rincian.getBatch().getKode())
+                        .append(" (exp ")
+                        .append(FormatTanggal.format(
+                                rincian.getBatch().getTanggalKedaluwarsa()))
+                        .append(")");
+            }
+            aturPreviewFefo(detail.toString(),
+                    Ui.AKSEN_LEMBUT, Ui.AKSEN, Ui.AKSEN_GELAP);
+        } catch (StokTidakCukupException | IllegalArgumentException exception) {
+            aturPreviewFefo("Preview FEFO: " + exception.getMessage(),
+                    Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);
+        }
+    }
+
+    private void aturPreviewFefo(String teks, Color latar, Color garis,
+            Color warnaTeks) {
+        panelPreviewFefo.aturWarna(latar, garis);
+        labelPreviewFefo.setForeground(warnaTeks);
+        labelPreviewFefo.setText("<html>" + escapeHtml(teks) + "</html>");
+        panelPreviewFefo.revalidate();
+        panelPreviewFefo.repaint();
+    }
+
+    private static String escapeHtml(String teks) {
+        if (teks == null) {
+            return "";
+        }
+        return teks.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     private void keluarkanManual() {
@@ -227,6 +409,15 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         if (batch == null) {
             aturPesan(pesanManual, "Pilih batch terlebih dahulu.");
             comboBatch.requestFocusInWindow();
+            return;
+        }
+        if (batchKedaluwarsa(batch)) {
+            aturPesan(peringatanBatchManual,
+                    "Peringatan: Batch ini sudah kedaluwarsa!");
+            aturPesan(pesanManual,
+                    "Batch yang sudah kedaluwarsa tidak dapat dikeluarkan. "
+                    + "Gunakan halaman Pembuangan.");
+            tombolManual.setEnabled(false);
             return;
         }
         int jumlah;
@@ -313,6 +504,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             hasilAlokasi.setText("Alokasi: " + alokasi);
             hasilAlokasi.setVisible(true);
             hasilAlokasi.revalidate();
+            perbaruiPreviewFefo();
         } else {
             aturPesan(pesanFefo,
                     "Pengeluaran gagal disimpan. Lihat status.");
@@ -347,12 +539,14 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         perbaruiLabelJumlah();
         tanggalFefoAwal = LocalDate.now();
         tanggalFefo.setTanggal(tanggalFefoAwal);
+        kosongkanPesan(peringatanBatchManual);
         kosongkanPesan(pesanManual);
         kosongkanPesan(pesanFefo);
         kosongkanPesan(pesanTanggalFefo);
         hasilAlokasi.setText(" ");
         hasilAlokasi.setVisible(false);
         comboBatch.removeAllItems();
+        perbaruiPreviewFefo();
     }
 
     @Override
@@ -361,18 +555,19 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         perbaruiLabelJumlah();
         if (!adaBarang) {
             comboBatch.removeAllItems();
+            kosongkanPesan(peringatanBatchManual);
             labelSisa.setText(
                     "Belum ada barang. Tambahkan melalui halaman Barang.");
             labelSisa.setForeground(Ui.TEKS_LEMBUT);
             labelSisa.setVisible(true);
             tombolManual.setEnabled(false);
             tombolFefo.setEnabled(false);
+            perbaruiPreviewFefo();
             return;
         }
         tombolFefo.setEnabled(true);
-        String kodeTerpilih = comboBatch.getItemCount() == 0
-                ? null
-                : ((BatchStok) comboBatch.getSelectedItem()).getKode();
+        BatchStok sebelum = (BatchStok) comboBatch.getSelectedItem();
+        String kodeTerpilih = sebelum == null ? null : sebelum.getKode();
         comboBatch.removeAllItems();
         for (BatchStok batch : barang.getDaftarBatch()) {
             if (batch.getSisaJumlah() > 0) {
@@ -388,6 +583,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             }
         }
         perbaruiSisa();
+        perbaruiPreviewFefo();
     }
 
     @Override
@@ -395,5 +591,41 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         return !fieldJumlahManual.getText().trim().isEmpty()
                 || !fieldJumlahFefo.getText().trim().isEmpty()
                 || !Objects.equals(tanggalFefo.getTanggal(), tanggalFefoAwal);
+    }
+
+    private static final class PanelPratinjau extends JPanel {
+        private Color latar = Ui.NETRAL_LEMBUT;
+        private Color garis = Ui.GARIS;
+
+        private PanelPratinjau() {
+            super(new BorderLayout());
+            setOpaque(false);
+            setBorder(new EmptyBorder(Ui.skala(10), Ui.skala(12),
+                    Ui.skala(10), Ui.skala(12)));
+        }
+
+        private void aturWarna(Color latar, Color garis) {
+            this.latar = latar;
+            this.garis = garis;
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                int busur = Ui.skala(Ui.RADIUS_KONTROL);
+                int lebar = Math.max(0, getWidth() - 1);
+                int tinggi = Math.max(0, getHeight() - 1);
+                g2.setColor(latar);
+                g2.fillRoundRect(0, 0, lebar, tinggi, busur, busur);
+                g2.setColor(garis);
+                g2.drawRoundRect(0, 0, lebar, tinggi, busur, busur);
+            } finally {
+                g2.dispose();
+            }
+            super.paintComponent(graphics);
+        }
     }
 }

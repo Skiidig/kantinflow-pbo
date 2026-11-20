@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,8 @@ import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 import kantinflow.Barang;
@@ -54,8 +57,10 @@ import kantinflow.Transaksi;
  */
 public class PanelRiwayat extends PanelKantin {
     private static final String SEMUA = "Semua";
-    private static final String MANUAL = "Pengeluaran Manual";
-    private static final String FEFO = "Pengeluaran FEFO";
+    private static final String MASUK = "Masuk";
+    private static final String KELUAR_FEFO = "Keluar (FEFO)";
+    private static final String KELUAR_MANUAL = "Keluar (Manual)";
+    private static final String PEMBUANGAN = "Pembuangan";
 
     private final JComboBox<PilihanBarang> pilihanBarang = Ui.combo();
     private final JTextField fieldCari = Ui.field(16);
@@ -124,10 +129,10 @@ public class PanelRiwayat extends PanelKantin {
         kosong.setName("kosongRiwayat");
 
         comboJenis.addItem(SEMUA);
-        comboJenis.addItem("Penerimaan");
-        comboJenis.addItem(MANUAL);
-        comboJenis.addItem(FEFO);
-        comboJenis.addItem("Pembuangan");
+        comboJenis.addItem(MASUK);
+        comboJenis.addItem(KELUAR_FEFO);
+        comboJenis.addItem(KELUAR_MANUAL);
+        comboJenis.addItem(PEMBUANGAN);
         comboJenis.setSelectedIndex(0);
         tombolDetail.setEnabled(false);
         tombolDetail.setToolTipText("Pilih transaksi terlebih dahulu.");
@@ -141,6 +146,7 @@ public class PanelRiwayat extends PanelKantin {
         tombolPdf.addActionListener(event -> eksporPdf());
         fieldCari.addActionListener(event -> terapkanFilter());
         tabel.setRowSorter(sorter);
+        pasangKomparatorSorter();
         tabel.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
                 perbaruiDetail();
@@ -157,9 +163,28 @@ public class PanelRiwayat extends PanelKantin {
         });
         Ui.rataKanan(tabel, 4);
         Ui.pasangTeksStatus(tabel, 2);
-        Ui.aturKolom(tabel, 100, 140, 130, 110, 70, 70, 210);
-        Ui.jarakKiriKolom(tabel, 6, 20);
+        aturKolomRiwayat();
+        Ui.jarakKiriKolom(tabel, 6, 12);
+        Ui.gulirHorizontalSaatSempit(tabel);
         bangunIsi();
+    }
+
+    private void aturKolomRiwayat() {
+        tabel.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        TableColumnModel kolomModel = tabel.getColumnModel();
+        int[] preferensi = {118, 145, 142, 190, 78, 84, 240};
+        int[] minimum = {110, 120, 132, 175, 72, 75, 155};
+        for (int i = 0; i < preferensi.length
+                && i < kolomModel.getColumnCount(); i++) {
+            TableColumn kolom = kolomModel.getColumn(i);
+            kolom.setPreferredWidth(Ui.skala(preferensi[i]));
+            kolom.setMinWidth(Ui.skala(minimum[i]));
+        }
+    }
+
+    private void pasangKomparatorSorter() {
+        sorter.setComparator(0, Comparator.nullsLast(Comparator.naturalOrder()));
+        sorter.setComparator(4, Comparator.nullsLast(Comparator.naturalOrder()));
     }
 
     private void bangunIsi() {
@@ -373,7 +398,7 @@ public class PanelRiwayat extends PanelKantin {
             RincianTransaksi rincian = baris.rincian();
             Barang asal = baris.barang();
             model.addRow(new Object[]{
-                transaksi.getTanggal().toString(),
+                transaksi.getTanggal(),
                 asal.getNama(),
                 jenisTampil(transaksi),
                 rincian.getBatch().getKode(),
@@ -385,6 +410,7 @@ public class PanelRiwayat extends PanelKantin {
         }
         tabel.setRowSorter(sorter);
         sorter.modelStructureChanged();
+        pasangKomparatorSorter();
         if (!kunciUrut.isEmpty()) {
             sorter.setSortKeys(kunciUrut);
         }
@@ -723,8 +749,20 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     private String jenisTampil(Transaksi transaksi) {
-        return "Pengeluaran".equals(transaksi.getJenis())
-                ? MANUAL : transaksi.getJenis();
+        String jenis = transaksi.getJenis();
+        if ("Penerimaan".equals(jenis)) {
+            return MASUK;
+        }
+        if ("Pengeluaran FEFO".equals(jenis)) {
+            return KELUAR_FEFO;
+        }
+        if ("Pengeluaran".equals(jenis)) {
+            return KELUAR_MANUAL;
+        }
+        if ("Pembuangan".equals(jenis)) {
+            return PEMBUANGAN;
+        }
+        return jenis;
     }
 
     private void tampilkanDetail() {
@@ -755,7 +793,7 @@ public class PanelRiwayat extends PanelKantin {
         nilai.add(Ui.labelField("Jenis"));
         nilai.add(new JLabel(jenisTampil(transaksi)));
         nilai.add(Ui.labelField("Tanggal"));
-        nilai.add(new JLabel(transaksi.getTanggal().toString()));
+        nilai.add(new JLabel(FormatTanggal.format(transaksi.getTanggal())));
         nilai.add(Ui.labelField("Barang"));
         nilai.add(new JLabel(asal.getNama() + " (" + asal.getSatuan() + ")"));
         nilai.add(Ui.labelField("Jumlah transaksi"));

@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -69,6 +70,8 @@ public class PanelPemantauan extends PanelKantin {
         tombolPeriksa.setIconTextGap(7);
         tabel.setName("tabelPemantauan");
         tabel.setRowSorter(sorter);
+        sorter.setComparator(2, Comparator.nullsLast(Comparator.naturalOrder()));
+        sorter.setComparator(4, Comparator.nullsLast(Comparator.naturalOrder()));
         labelInfo.setName("infoPemantauan");
         pesanValidasi.setName("pesanPemantauan");
         kosongkanPesan(pesanValidasi);
@@ -80,7 +83,8 @@ public class PanelPemantauan extends PanelKantin {
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 2);
         Ui.pasangTeksStatus(tabel, 5);
-        Ui.aturKolom(tabel, 150, 160, 80, 85, 120, 150);
+        Ui.aturKolom(tabel, 145, 175, 75, 80, 125, 150);
+        Ui.gulirHorizontalSaatSempit(tabel);
 
         bangunIsi();
     }
@@ -161,7 +165,7 @@ public class PanelPemantauan extends PanelKantin {
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);
         konteks.tampilkanPesan("Pemantauan "
-                + PemilihTanggal.format(dipilih) + " selesai: "
+                + FormatTanggal.format(dipilih) + " selesai: "
                 + model.getRowCount() + " batch bersisa diperiksa.", true);
     }
 
@@ -243,11 +247,11 @@ public class PanelPemantauan extends PanelKantin {
         Barang barang = barangFilter();
         if (idFilter < 0) {
             labelInfo.setText("Pemeriksaan terakhir untuk tanggal "
-                    + PemilihTanggal.format(acuan)
+                    + FormatTanggal.format(acuan)
                     + ". Menampilkan batch bersisa dari seluruh barang.");
         } else {
             labelInfo.setText("Pemeriksaan terakhir untuk tanggal "
-                    + PemilihTanggal.format(acuan) + " untuk "
+                    + FormatTanggal.format(acuan) + " untuk "
                     + (barang == null ? "barang terpilih" : barang.getNama())
                     + ".");
         }
@@ -289,7 +293,7 @@ public class PanelPemantauan extends PanelKantin {
                 batch.getKode(),
                 batch.getSisaJumlah(),
                 barang.getSatuan(),
-                batch.getTanggalKedaluwarsa().toString(),
+                batch.getTanggalKedaluwarsa(),
                 status.getLabel()
             });
         }

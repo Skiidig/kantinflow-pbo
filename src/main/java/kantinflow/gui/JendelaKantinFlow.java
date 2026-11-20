@@ -446,7 +446,9 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         this.tanggalPemantauan = tanggal;
         perbaruiPanel("ringkasan");
         perbaruiPanel("stok-masuk");
+        perbaruiPanel("stok-keluar");
         perbaruiPanel("pemantauan");
+        perbaruiPanel("pembuangan");
     }
 
     @Override
@@ -529,8 +531,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
         tampilkanHalaman("pembuangan");
         tampilkanPesan("Pembuangan siap untuk batch " + kodeBatch + " pada "
-                + PemilihTanggal.format(tanggal)
-                + ". Isi jumlah dan alasan, lalu tekan Buang Stok.", true);
+                + FormatTanggal.format(tanggal)
+                + ". Isi jumlah (alasan opsional untuk batch kedaluwarsa), lalu tekan Buang Stok.", true);
         return true;
     }
 

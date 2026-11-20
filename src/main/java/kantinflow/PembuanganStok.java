@@ -31,8 +31,10 @@ public class PembuanganStok extends Transaksi {
     }
 
     /**
-     * Memvalidasi seluruh isian sebelum sisa batch dikurangi. Hanya batch
-     * berstatus KEDALUWARSA pada tanggal pembuangan yang boleh dibuang.
+     * Memvalidasi seluruh isian sebelum sisa batch dikurangi. Batch berstatus
+     * KEDALUWARSA dapat dibuang dengan alasan opsional (otomatis terisi
+     * "Kedaluwarsa" jika dikosongkan). Batch yang belum kedaluwarsa tetap
+     * dapat dibuang apabila alasan diisi (misalnya rusak atau jatuh).
      */
     public void buang(Barang barang, BatchStok batch, int jumlah, String alasan) {
         if (this.batch != null) {
@@ -47,17 +49,20 @@ public class PembuanganStok extends Transaksi {
         if (!barang.memilikiBatch(batch)) {
             throw new IllegalArgumentException("Batch bukan milik barang tersebut");
         }
-        if (alasan == null || alasan.isBlank()) {
-            throw new IllegalArgumentException("Alasan pembuangan wajib diisi");
-        }
         if (getTanggal().isBefore(batch.getTanggalMasuk())) {
             throw new IllegalArgumentException(
                     "Tanggal pembuangan tidak boleh sebelum tanggal masuk batch "
                     + batch.getKode());
         }
-        if (batch.statusPada(getTanggal()) != StatusKedaluwarsa.KEDALUWARSA) {
-            throw new IllegalArgumentException(
-                    "Batch belum kedaluwarsa pada tanggal pembuangan");
+        boolean kedaluwarsa = batch.statusPada(getTanggal())
+                == StatusKedaluwarsa.KEDALUWARSA;
+        String alasanBersih = alasan == null ? "" : alasan.trim();
+        if (alasanBersih.isEmpty()) {
+            if (!kedaluwarsa) {
+                throw new IllegalArgumentException(
+                        "Alasan pembuangan wajib diisi untuk batch yang belum kedaluwarsa");
+            }
+            alasanBersih = "Kedaluwarsa";
         }
         if (jumlah <= 0) {
             throw new IllegalArgumentException("Jumlah harus lebih dari 0");
@@ -72,7 +77,7 @@ public class PembuanganStok extends Transaksi {
         batch.kurangiSisa(jumlah);
         this.batch = batch;
         this.jumlah = jumlah;
-        this.alasan = alasan.trim();
+        this.alasan = alasanBersih;
     }
 
     @Override

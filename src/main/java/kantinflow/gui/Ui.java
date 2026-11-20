@@ -21,6 +21,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.net.URL;
+import java.time.LocalDate;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -758,6 +759,9 @@ final class Ui {
                     boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
+                if (value instanceof LocalDate tanggal) {
+                    setText(FormatTanggal.format(tanggal));
+                }
                 setHorizontalAlignment(SwingConstants.LEFT);
                 setVerticalAlignment(SwingConstants.CENTER);
                 setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
@@ -775,6 +779,7 @@ final class Ui {
             }
         };
         tabel.setDefaultRenderer(Object.class, cell);
+        tabel.setDefaultRenderer(LocalDate.class, cell);
         return tabel;
     }
 
@@ -804,6 +809,9 @@ final class Ui {
                         table, value, isSelected, hasFocus, row, column);
                 setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
                         0, skala(PADDING_SEL_TABEL)));
+                if (value instanceof LocalDate tanggal) {
+                    setText(FormatTanggal.format(tanggal));
+                }
                 setHorizontalAlignment(SwingConstants.LEFT);
                 setVerticalAlignment(SwingConstants.CENTER);
                 int hover = table instanceof TabelKantin

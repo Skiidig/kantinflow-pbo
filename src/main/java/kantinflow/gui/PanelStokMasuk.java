@@ -76,7 +76,8 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
         Ui.pasangTeksStatus(tabel, 4);
-        Ui.aturKolom(tabel, 120, 75, 120, 135, 140);
+        Ui.aturKolom(tabel, 175, 85, 125, 145, 145);
+        Ui.gulirHorizontalSaatSempit(tabel);
         aturTanggalAwal();
         bangunIsi();
     }
@@ -297,8 +298,8 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
             model.addRow(new Object[]{
                 batch.getKode(),
                 batch.getSisaJumlah() + " " + barang.getSatuan(),
-                batch.getTanggalMasuk().toString(),
-                batch.getTanggalKedaluwarsa().toString(),
+                batch.getTanggalMasuk(),
+                batch.getTanggalKedaluwarsa(),
                 status
             });
         }

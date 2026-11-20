@@ -46,7 +46,7 @@ public final class RiwayatPdfExporter {
     private static final float FOOTER = 24f;
     private static final float LEBAR_TABEL = LEBAR - (2 * MARGIN);
     private static final float[] KOLOM = {
-        24f, 58f, 105f, 92f, 88f, 42f, 42f, 0f
+        24f, 64f, 105f, 92f, 92f, 42f, 42f, 0f
     };
     private static final String[] JUDUL_KOLOM = {
         "No", "Tanggal", "Barang", "Jenis transaksi", "Kode batch",
@@ -219,7 +219,7 @@ public final class RiwayatPdfExporter {
                 throws IOException {
             String[] nilai = {
                 Integer.toString(nomor),
-                baris.tanggal().toString(),
+                FormatTanggal.format(baris.tanggal()),
                 baris.barang(),
                 baris.jenis(),
                 baris.kodeBatch(),
@@ -477,7 +477,7 @@ public final class RiwayatPdfExporter {
         }
 
         private String tanggal(LocalDate tanggal) {
-            return tanggal == null ? "-" : tanggal.toString();
+            return tanggal == null ? "-" : FormatTanggal.format(tanggal);
         }
     }
 }

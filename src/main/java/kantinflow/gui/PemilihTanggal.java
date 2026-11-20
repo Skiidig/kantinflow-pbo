@@ -6,7 +6,6 @@ import java.awt.Font;
 import java.awt.Insets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -21,9 +20,6 @@ import com.github.lgooddatepicker.components.DatePickerSettings.DateArea;
  * {@code dd MMM yyyy}. Nilai yang dipakai aplikasi tetap {@link LocalDate}.
  */
 final class PemilihTanggal extends DatePicker {
-    private static final Locale INDONESIA = Locale.forLanguageTag("id-ID");
-    private static final DateTimeFormatter TAMPILAN =
-            DateTimeFormatter.ofPattern("dd MMM yyyy", INDONESIA);
     private boolean teksTidakValid;
     private boolean pertahankanTeksTidakValid;
 
@@ -88,8 +84,9 @@ final class PemilihTanggal extends DatePicker {
     }
 
     private static DatePickerSettings buatPengaturan() {
-        DatePickerSettings pengaturan = new DatePickerSettings(INDONESIA);
-        pengaturan.setFormatForDatesCommonEra(TAMPILAN);
+        DatePickerSettings pengaturan =
+                new DatePickerSettings(FormatTanggal.LOCALE_INDONESIA);
+        pengaturan.setFormatForDatesCommonEra(FormatTanggal.FORMATTER);
         pengaturan.setAllowEmptyDates(true);
         pengaturan.setFontValidDate(Ui.font(Font.PLAIN, Ui.FONT_BODY));
         pengaturan.setFontInvalidDate(Ui.font(Font.PLAIN, Ui.FONT_BODY));
@@ -121,7 +118,7 @@ final class PemilihTanggal extends DatePicker {
     }
 
     static String format(LocalDate tanggal) {
-        return tanggal == null ? "" : TAMPILAN.format(tanggal);
+        return FormatTanggal.format(tanggal);
     }
 
     LocalDate getTanggal() {

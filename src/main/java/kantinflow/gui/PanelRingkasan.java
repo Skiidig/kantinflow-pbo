@@ -74,7 +74,8 @@ public class PanelRingkasan extends PanelKantin {
     private JScrollPane gulirTabel;
 
     private final DefaultTabel model = new DefaultTabel(
-            "Barang", "Satuan", "Stok fisik", "Stok minimum", "Status");
+            "Barang", "Satuan", "Stok layak", "Stok fisik", "Stok minimum",
+            "Status");
     private final JTable tabel = Ui.tabel(model);
     private final JLabel jumlahBarang = Ui.keterangan(" ");
     private final DefaultTabel modelPeringatan = new DefaultTabel(
@@ -128,10 +129,14 @@ public class PanelRingkasan extends PanelKantin {
                         SwingConstants.RIGHT, false));
         tabel.getColumnModel().getColumn(4)
                 .setCellRenderer(new PenyajiSelRingkasan(
+                        SwingConstants.RIGHT, false));
+        tabel.getColumnModel().getColumn(5)
+                .setCellRenderer(new PenyajiSelRingkasan(
                         SwingConstants.LEFT, true));
-        Ui.rataKananHeader(tabel, 2, 3);
-        Ui.aturKolom(tabel, 230, 85, 110, 105, 110);
-        aturKolomStatus(tabel, 4);
+        Ui.rataKananHeader(tabel, 2, 3, 4);
+        Ui.aturKolom(tabel, 210, 80, 110, 110, 115, 110);
+        aturKolomStatus(tabel, 5);
+        Ui.gulirHorizontalSaatSempit(tabel);
         pasangTabelPeringatan();
         bangunIsi();
     }
@@ -416,7 +421,7 @@ public class PanelRingkasan extends PanelKantin {
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);
         konteks.tampilkanPesan("Ringkasan diperiksa untuk tanggal "
-                + PemilihTanggal.format(dipilih) + ".", true);
+                + FormatTanggal.format(dipilih) + ".", true);
     }
 
     private void pilihBarang() {
@@ -574,11 +579,13 @@ public class PanelRingkasan extends PanelKantin {
         model.setRowCount(0);
         for (Barang barang : konteks.getDaftarBarang()) {
             int layak = barang.hitungStokLayak(tanggal);
+            int fisik = barang.hitungSaldo();
             boolean restok = layak <= barang.getStokMinimum();
             model.addRow(new Object[]{
                 barang.getNama(),
                 barang.getSatuan(),
-                barang.hitungSaldo() + " " + barang.getSatuan(),
+                layak + " " + barang.getSatuan(),
+                fisik + " " + barang.getSatuan(),
                 barang.getStokMinimum() + " " + barang.getSatuan(),
                 restok ? "Perlu restok" : "Cukup"
             });
@@ -647,8 +654,7 @@ public class PanelRingkasan extends PanelKantin {
                 baris,
                 baris.batch().getSisaJumlah() + " "
                         + baris.barang().getSatuan(),
-                PemilihTanggal.format(
-                        baris.batch().getTanggalKedaluwarsa()),
+                baris.batch().getTanggalKedaluwarsa(),
                 baris.status()
             });
         }
@@ -791,6 +797,9 @@ public class PanelRingkasan extends PanelKantin {
                 int kolom) {
             super.getTableCellRendererComponent(
                     tabel, nilai, dipilih, fokus, baris, kolom);
+            if (nilai instanceof LocalDate tanggal) {
+                setText(FormatTanggal.format(tanggal));
+            }
             setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
                     0, Ui.skala(Ui.PADDING_SEL_TABEL)));
             setHorizontalAlignment(kanan
