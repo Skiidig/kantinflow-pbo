@@ -71,7 +71,9 @@ public class PanelRiwayat extends PanelKantin {
     private final JComboBox<String> comboJenis = Ui.combo();
     private final JButton tombolTerapkan = Ui.utama("Terapkan Filter");
     private final JButton tombolReset = Ui.sekunder("Reset");
+    private final JButton tombolResetKosong = Ui.sekunder("Reset Filter");
     private final JButton tombolDetail = Ui.sekunder("Lihat Detail");
+    private JPanel aksiTabel;
     private final JLabel petunjukDetail = Ui.keterangan(
             "Pilih baris transaksi untuk melihat detail.");
     private final JButton tombolEkspor = Ui.sekunder("Ekspor CSV");
@@ -141,6 +143,7 @@ public class PanelRiwayat extends PanelKantin {
 
         tombolTerapkan.addActionListener(event -> terapkanFilter());
         tombolReset.addActionListener(event -> resetFilter());
+        tombolResetKosong.addActionListener(event -> resetFilter());
         tombolDetail.addActionListener(event -> tampilkanDetail());
         tombolEkspor.addActionListener(event -> eksporCsv());
         tombolPdf.addActionListener(event -> eksporPdf());
@@ -162,18 +165,19 @@ public class PanelRiwayat extends PanelKantin {
             }
         });
         Ui.rataKanan(tabel, 4);
-        Ui.pasangTeksStatus(tabel, 2);
+        Ui.pasangBadge(tabel, 2);
         aturKolomRiwayat();
         Ui.jarakKiriKolom(tabel, 6, 12);
         Ui.gulirHorizontalSaatSempit(tabel);
+        Ui.headerKlik(tabel);
         bangunIsi();
     }
 
     private void aturKolomRiwayat() {
         tabel.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         TableColumnModel kolomModel = tabel.getColumnModel();
-        int[] preferensi = {118, 145, 142, 190, 78, 84, 240};
-        int[] minimum = {110, 120, 132, 175, 72, 75, 155};
+        int[] preferensi = {118, 145, 155, 190, 78, 84, 240};
+        int[] minimum = {110, 120, 146, 175, 72, 75, 155};
         for (int i = 0; i < preferensi.length
                 && i < kolomModel.getColumnCount(); i++) {
             TableColumn kolom = kolomModel.getColumn(i);
@@ -249,7 +253,7 @@ public class PanelRiwayat extends PanelKantin {
         kanan.add(tombolEkspor);
         kanan.add(tombolPdf);
         kepala.add(kanan, BorderLayout.EAST);
-        JPanel aksiTabel = new JPanel(new java.awt.FlowLayout(
+        aksiTabel = new JPanel(new java.awt.FlowLayout(
                 java.awt.FlowLayout.LEFT, 8, 0));
         aksiTabel.setOpaque(false);
         aksiTabel.add(tombolDetail);
@@ -418,27 +422,36 @@ public class PanelRiwayat extends PanelKantin {
                 + hasil.size() + " rincian ditampilkan");
         if (hasil.isEmpty()) {
             if (konteks.getDaftarBarang().isEmpty()) {
-                kosong.setTitle("Belum ada barang");
-                kosong.setDescription(
-                        "Tambahkan barang melalui halaman Barang untuk "
-                        + "melihat riwayatnya.");
+                kosong.setIcon("boxes")
+                        .setTitle("Belum ada barang")
+                        .setDescription(
+                                "Tambahkan barang melalui halaman Barang untuk "
+                                + "melihat riwayatnya.")
+                        .setAction(null);
             } else if (barang == null) {
-                kosong.setTitle(adaRiwayat
-                        ? "Tidak ada hasil filter" : "Belum ada riwayat");
-                kosong.setDescription(adaRiwayat
-                        ? "Tidak ada riwayat yang cocok dengan filter."
-                        : "Belum ada transaksi untuk seluruh barang.");
+                kosong.setIcon(adaRiwayat ? "search" : "history")
+                        .setTitle(adaRiwayat
+                                ? "Tidak ada hasil filter" : "Belum ada riwayat")
+                        .setDescription(adaRiwayat
+                                ? "Tidak ada riwayat yang cocok dengan filter."
+                                : "Belum ada transaksi untuk seluruh barang.")
+                        .setAction(adaRiwayat ? tombolResetKosong : null);
             } else {
-                kosong.setTitle(adaRiwayat
-                        ? "Tidak ada hasil filter" : "Belum ada riwayat");
-                kosong.setDescription(adaRiwayat
-                        ? "Tidak ada riwayat yang cocok dengan filter."
-                        : "Belum ada transaksi untuk "
-                        + barang.getNama() + ".");
+                kosong.setIcon(adaRiwayat ? "search" : "history")
+                        .setTitle(adaRiwayat
+                                ? "Tidak ada hasil filter" : "Belum ada riwayat")
+                        .setDescription(adaRiwayat
+                                ? "Tidak ada riwayat yang cocok dengan filter."
+                                : "Belum ada transaksi untuk "
+                                + barang.getNama() + ".")
+                        .setAction(adaRiwayat ? tombolResetKosong : null);
             }
         }
         boolean kosongTabel = hasil.isEmpty();
         kosong.setVisible(kosongTabel);
+        if (aksiTabel != null) {
+            aksiTabel.setVisible(!kosongTabel);
+        }
         if (gulirTabel != null) {
             gulirTabel.setVisible(!kosongTabel);
         }

@@ -4,41 +4,48 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.TableCellRenderer;
 
+import kantinflow.StatusKedaluwarsa;
+
 /**
- * Renderer pill untuk kolom status/jenis.
+ * Renderer pill untuk kolom status dan jenis transaksi pada JTable.
  *
- * <p>Komponen panel dan badge dipakai ulang per nilai agar paint tabel tidak
- * membuat objek baru pada setiap sel. GridBagLayout menempatkan pill tepat di
- * tengah tinggi baris, termasuk saat tabel memakai font scaling.</p>
+ * <p>Komponen panel dan badge dipakai ulang per nilai agar paint tabel tetap
+ * ringan. Pill diratakan ke kiri mengikuti header kolom dan mendukung sorotan
+ * hover baris pada {@link TabelKantin}.</p>
  */
 public class BadgeRenderer implements TableCellRenderer {
     private final JPanel panel = new JPanel(new GridBagLayout());
     private final GridBagConstraints batasan = new GridBagConstraints();
     private final Map<String, Badge> cache = new HashMap<>();
-    private final javax.swing.border.Border batas =
-            new EmptyBorder(0, Ui.skala(8), 0, Ui.skala(8));
+    private final Border batas = new EmptyBorder(
+            0, Ui.skala(Ui.PADDING_SEL_TABEL),
+            0, Ui.skala(Ui.PADDING_SEL_TABEL));
 
     public BadgeRenderer() {
         panel.setOpaque(true);
-        batasan.anchor = GridBagConstraints.CENTER;
+        batasan.anchor = GridBagConstraints.WEST;
         batasan.fill = GridBagConstraints.NONE;
-        batasan.weightx = 0;
+        batasan.weightx = 1;
         batasan.weighty = 0;
-        batasan.insets = new java.awt.Insets(0, 0, 0, 0);
+        batasan.insets = new Insets(0, 0, 0, 0);
     }
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
             boolean isSelected, boolean hasFocus, int row, int column) {
-        String teks = value == null ? "" : value.toString();
+        String teks = value instanceof StatusKedaluwarsa status
+                ? status.getLabel()
+                : (value == null ? "" : value.toString());
         boolean aktif = table.isEnabled();
         String kunci = (aktif ? "aktif:" : "nonaktif:") + teks;
         Badge badge = cache.computeIfAbsent(kunci, ignored -> aktif

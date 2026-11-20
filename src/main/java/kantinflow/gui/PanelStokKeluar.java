@@ -191,6 +191,10 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         mode.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
         mode.setBackground(Ui.KARTU);
         mode.setOpaque(true);
+        mode.setCursor(java.awt.Cursor.getPredefinedCursor(
+                java.awt.Cursor.HAND_CURSOR));
+        manualIsi.setCursor(java.awt.Cursor.getDefaultCursor());
+        fefoIsi.setCursor(java.awt.Cursor.getDefaultCursor());
         mode.addTab("Manual", manualIsi);
         mode.addTab("Otomatis (FEFO)", fefoIsi);
 

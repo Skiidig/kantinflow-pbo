@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -16,12 +17,16 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.RenderingHints;
+import java.awt.font.TextAttribute;
 import java.awt.geom.Area;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -72,10 +77,12 @@ final class Ui {
     static Color KUNING_LEMBUT = new Color(0xFEF3C7);
     static Color ORANYE = new Color(0xEA580C);
     static Color ORANYE_LEMBUT = new Color(0xFFEDD5);
-    static Color HIJAU_BADGE = new Color(0x15803D);
-    static Color KUNING_BADGE = new Color(0xB45309);
+    static Color HIJAU_BADGE = new Color(0x166534);
+    static Color KUNING_BADGE = new Color(0x92400E);
     static Color MERAH_BADGE = new Color(0xB91C1C);
-    static Color ORANYE_BADGE = new Color(0xC2410C);
+    static Color ORANYE_BADGE = new Color(0x9A3412);
+    static Color BIRU_BADGE = new Color(0x1E40AF);
+    static Color NETRAL_BADGE = new Color(0x475569);
     static Color NETRAL_LEMBUT = new Color(0xF1F5F9);
     static Color HOVER = new Color(0xEEF2FF);
 
@@ -145,6 +152,12 @@ final class Ui {
         Font dasar = javax.swing.UIManager.getFont("Label.font");
         String nama = dasar == null ? "Segoe UI" : dasar.getName();
         return new Font(nama, gaya, Math.max(10, Math.round(ukuran)));
+    }
+
+    static Font fontSemiBold(float ukuran) {
+        Font dasar = font(Font.PLAIN, ukuran);
+        return dasar.deriveFont(Map.of(
+                TextAttribute.WEIGHT, TextAttribute.WEIGHT_SEMIBOLD));
     }
 
     static Icon ikonMenu(String kunci, int ukuran, Color warna) {
@@ -281,50 +294,75 @@ final class Ui {
 
     static JButton utama(String teks) {
         JButton tombol = new TombolKantin(teks);
-        tombol.setFont(font(Font.BOLD, FONT_BUTTON));
-        tombol.setBackground(AKSEN);
-        tombol.setForeground(Color.WHITE);
+        tombol.setFont(fontSemiBold(FONT_BUTTON));
         tombol.setBorder(new FlatLineBorder(
                 new Insets(skala(9), skala(16), skala(9), skala(16)),
                 null, 0f, RADIUS_KONTROL));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
-        tombol.addPropertyChangeListener("enabled", event -> {
-            if (tombol.isEnabled()) {
-                tombol.setBackground(AKSEN);
-                tombol.setForeground(Color.WHITE);
-            } else {
-                tombol.setBackground(GARIS_KUAT);
-                tombol.setForeground(TEKS_LEMBUT);
-            }
-        });
+        pasangInteraksiTombol(tombol, AKSEN, AKSEN_GELAP, GARIS_KUAT,
+                Color.WHITE, TEKS_LEMBUT);
         return tombol;
     }
 
     static JButton sekunder(String teks) {
         JButton tombol = new TombolKantin(teks);
-        tombol.setFont(font(Font.PLAIN, FONT_BUTTON));
-        tombol.setBackground(KARTU);
-        tombol.setForeground(TEKS);
+        tombol.setFont(fontSemiBold(FONT_BUTTON));
         tombol.setBorder(new FlatLineBorder(
                 new Insets(skala(8), skala(14), skala(8), skala(14)),
                 GARIS_KUAT, 1f, RADIUS_KONTROL));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
+        pasangInteraksiTombol(tombol, KARTU, NETRAL_LEMBUT, NETRAL_LEMBUT,
+                TEKS, TEKS_LEMBUT);
         return tombol;
     }
 
     static JButton bahaya(String teks) {
         JButton tombol = new TombolKantin(teks);
-        tombol.setFont(font(Font.BOLD, FONT_BUTTON));
-        tombol.setBackground(MERAH);
-        tombol.setForeground(Color.WHITE);
+        tombol.setFont(fontSemiBold(FONT_BUTTON));
         tombol.setBorder(new FlatLineBorder(
                 new Insets(skala(9), skala(16), skala(9), skala(16)),
                 null, 0f, RADIUS_KONTROL));
         tombol.setFocusPainted(true);
         tombol.setOpaque(true);
+        pasangInteraksiTombol(tombol, MERAH, MERAH_BADGE, GARIS_KUAT,
+                Color.WHITE, TEKS_LEMBUT);
         return tombol;
+    }
+
+    private static void pasangInteraksiTombol(JButton tombol, Color normal,
+            Color hover, Color nonaktifBg, Color teksNormal,
+            Color teksNonaktif) {
+        tombol.setBackground(normal);
+        tombol.setForeground(teksNormal);
+        tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        tombol.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent event) {
+                if (tombol.isEnabled()) {
+                    tombol.setBackground(hover);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent event) {
+                if (tombol.isEnabled()) {
+                    tombol.setBackground(normal);
+                }
+            }
+        });
+        tombol.addPropertyChangeListener("enabled", event -> {
+            if (tombol.isEnabled()) {
+                tombol.setBackground(normal);
+                tombol.setForeground(teksNormal);
+                tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            } else {
+                tombol.setBackground(nonaktifBg);
+                tombol.setForeground(teksNonaktif);
+                tombol.setCursor(Cursor.getDefaultCursor());
+            }
+        });
     }
 
     static JPanel baris(Component... komponen) {
@@ -339,6 +377,11 @@ final class Ui {
     static <T> JComboBox<T> combo() {
         JComboBox<T> combo = new KomboKantin<>();
         combo.setFont(font(Font.PLAIN, FONT_BODY));
+        combo.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        combo.addPropertyChangeListener("enabled", event -> combo.setCursor(
+                combo.isEnabled()
+                        ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                        : Cursor.getDefaultCursor()));
         return combo;
     }
 
@@ -548,6 +591,13 @@ final class Ui {
     static void gulirHorizontalSaatSempit(JTable tabel) {
         if (tabel instanceof TabelKantin khusus) {
             khusus.setHorizontalSaatSempit(true);
+        }
+    }
+
+    static void headerKlik(JTable tabel) {
+        if (tabel != null && tabel.getTableHeader() != null) {
+            tabel.getTableHeader().setCursor(
+                    Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
     }
 

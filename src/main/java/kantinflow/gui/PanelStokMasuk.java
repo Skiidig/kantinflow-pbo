@@ -75,8 +75,9 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         tombolSimpan.addActionListener(event -> simpan());
         kosong.setName("kosongBatch");
         Ui.rataKanan(tabel, 1);
-        Ui.pasangTeksStatus(tabel, 4);
-        Ui.aturKolom(tabel, 175, 85, 125, 145, 145);
+        Ui.pasangBadge(tabel, 4);
+        Ui.aturKolom(tabel, 175, 85, 125, 145, 175);
+        tabel.getColumnModel().getColumn(4).setMinWidth(Ui.skala(165));
         Ui.gulirHorizontalSaatSempit(tabel);
         aturTanggalAwal();
         bangunIsi();

@@ -182,6 +182,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             tombol.setFocusPainted(true);
             tombol.setOpaque(true);
             tombol.setContentAreaFilled(false);
+            tombol.setCursor(java.awt.Cursor.getPredefinedCursor(
+                    java.awt.Cursor.HAND_CURSOR));
             tombol.setBorder(aturBorderNav(false));
             tombol.addActionListener(event -> tampilkanHalaman(item[0]));
             tombol.addItemListener(event -> aturGayaNav(tombol));
@@ -449,6 +451,22 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         perbaruiPanel("stok-keluar");
         perbaruiPanel("pemantauan");
         perbaruiPanel("pembuangan");
+    }
+
+    @Override
+    public void bukaHalaman(String kunci) {
+        if (kunci != null && panel.containsKey(kunci)) {
+            tampilkanHalaman(kunci);
+        }
+    }
+
+    @Override
+    public void bukaPemantauanStatus(StatusKedaluwarsa status) {
+        PanelKantin halaman = panel.get("pemantauan");
+        if (halaman instanceof PanelPemantauan pemantauan) {
+            pemantauan.terapkanFilterStatus(status);
+        }
+        tampilkanHalaman("pemantauan");
     }
 
     @Override

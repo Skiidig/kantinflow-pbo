@@ -80,6 +80,8 @@ public class PanelBarang extends PanelKantin {
     private final List<Barang> urutanBarang = new ArrayList<>();
     private final JTextField fieldCari = Ui.field(18);
     private final JButton tombolTambah = Ui.utama("Tambah Barang");
+    private final JButton tombolResetCari = Ui.sekunder("Reset Pencarian");
+    private final JButton tombolTambahKosong = Ui.utama("Tambah Barang");
     private final EmptyState kosong = new EmptyState(
             "package", "Belum ada barang",
             "Tambahkan barang pertama melalui tombol Tambah Barang.");
@@ -134,6 +136,11 @@ public class PanelBarang extends PanelKantin {
             }
         });
         tombolTambah.addActionListener(event -> bukaDialogTambah());
+        tombolTambahKosong.addActionListener(event -> bukaDialogTambah());
+        tombolResetCari.addActionListener(event -> {
+            fieldCari.setText("");
+            fieldCari.requestFocusInWindow();
+        });
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent event) {
@@ -213,6 +220,7 @@ public class PanelBarang extends PanelKantin {
         Ui.rataKananHeader(tabel, 2, 3);
         aturProporsiKolom();
         Ui.gulirHorizontalSaatSempit(tabel);
+        Ui.headerKlik(tabel);
     }
 
     /**
@@ -284,11 +292,13 @@ public class PanelBarang extends PanelKantin {
         boolean tanpaData = urutanBarang.isEmpty();
         boolean tanpaTampilan = tabel.getRowCount() == 0;
         if (tanpaTampilan) {
-            kosong.setTitle(tanpaData
-                    ? "Belum ada barang" : "Tidak ada hasil");
-            kosong.setDescription(tanpaData
-                    ? "Tambahkan barang pertama melalui tombol Tambah Barang."
-                    : "Tidak ada barang yang cocok dengan pencarian.");
+            kosong.setIcon(tanpaData ? "package" : "search")
+                    .setTitle(tanpaData
+                            ? "Belum ada barang" : "Tidak ada hasil")
+                    .setDescription(tanpaData
+                            ? "Tambahkan barang pertama melalui tombol Tambah Barang."
+                            : "Tidak ada barang yang cocok dengan pencarian.")
+                    .setAction(tanpaData ? tombolTambahKosong : tombolResetCari);
         }
         ((CardLayout) wadahTabel.getLayout()).show(
                 wadahTabel, tanpaTampilan ? "kosong" : "tabel");
@@ -687,15 +697,16 @@ public class PanelBarang extends PanelKantin {
     }
 
     private void aturTombolAksi(JButton tombol, int row, String nama,
-            boolean hover) {
+            boolean hover, boolean dipilih, java.awt.Color latarPilihan) {
         String label = "Atur stok minimum " + nama;
         tombol.setToolTipText(label);
         tombol.getAccessibleContext().setAccessibleName(label);
         tombol.setIcon(Ui.ikonAksi("pencil", 16,
                 hover ? Ui.AKSEN_GELAP : Ui.AKSEN));
-        tombol.setContentAreaFilled(hover);
-        tombol.setOpaque(hover);
-        tombol.setBackground(hover ? Ui.HOVER : Ui.KARTU);
+        tombol.setContentAreaFilled(true);
+        tombol.setOpaque(true);
+        tombol.setBackground(dipilih
+                ? latarPilihan : (hover ? Ui.HOVER : Ui.KARTU));
         tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
@@ -744,7 +755,8 @@ public class PanelBarang extends PanelKantin {
             String nama = namaAksi(row);
             boolean hover = !isSelected && table instanceof TabelKantin
                     && row == ((TabelKantin) table).getBarisHover();
-            aturTombolAksi(tombol, row, nama, hover);
+            aturTombolAksi(tombol, row, nama, hover, isSelected,
+                    table.getSelectionBackground());
             return tombol;
         }
     }
@@ -769,7 +781,8 @@ public class PanelBarang extends PanelKantin {
         @Override
         public Component getTableCellEditorComponent(JTable table,
                 Object value, boolean isSelected, int row, int column) {
-            aturTombolAksi(tombol, row, namaAksi(row), false);
+            aturTombolAksi(tombol, row, namaAksi(row), false, isSelected,
+                    table.getSelectionBackground());
             return tombol;
         }
 

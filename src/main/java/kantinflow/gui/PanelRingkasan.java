@@ -86,8 +86,16 @@ public class PanelRingkasan extends PanelKantin {
     private final EmptyState kosongBarang = new EmptyState(
             "boxes", "Belum ada barang",
             "Tambahkan barang terlebih dahulu melalui halaman Barang.");
-    private final JLabel kosongPeringatan = Ui.keterangan(" ");
+    private final EmptyState kosongPeringatan = new EmptyState(
+            "circle-check", "Tidak ada peringatan kedaluwarsa",
+            "Semua batch bersisa dalam kondisi aman pada tanggal acuan ini.");
     private final JLabel ringkasanPeringatan = Ui.keterangan(" ");
+    private final JPanel panelFilterRestok = new JPanel(
+            new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+    private final JButton tombolResetRestok = Ui.sekunder("Tampilkan Semua");
+    private final JButton tombolResetKosong = Ui.sekunder("Tampilkan Semua");
+    private final JButton tombolBukaBarang = Ui.utama("Buka Halaman Barang");
+    private boolean hanyaPerluRestok;
 
     public PanelRingkasan(KonteksKantin konteks) {
         super(konteks, "Ringkasan",
@@ -111,34 +119,77 @@ public class PanelRingkasan extends PanelKantin {
         kartuPerluRestok.getNilai().setName("ringkasanPerluRestok");
         kartuSegera.getNilai().setName("ringkasanSegera");
         kartuKedaluwarsa.getNilai().setName("ringkasanKedaluwarsa");
+        pasangPintasanKartu();
         tabel.setName("tabelRingkasan");
         tombolPeriksa.addActionListener(event -> periksa());
+        tombolResetRestok.addActionListener(event -> aturFilterRestok(false));
+        tombolResetKosong.addActionListener(event -> aturFilterRestok(false));
+        tombolBukaBarang.addActionListener(
+                event -> konteks.bukaHalaman("barang"));
         tabel.setRowHeight(Ui.skala(44));
         tabel.setFillsViewportHeight(false);
         tabel.getColumnModel().getColumn(0)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.LEFT, false));
+                .setCellRenderer(new PenyajiSelRingkasan(SwingConstants.LEFT));
         tabel.getColumnModel().getColumn(1)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.LEFT, false));
+                .setCellRenderer(new PenyajiSelRingkasan(SwingConstants.LEFT));
         tabel.getColumnModel().getColumn(2)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.RIGHT, false));
+                .setCellRenderer(new PenyajiSelRingkasan(SwingConstants.RIGHT));
         tabel.getColumnModel().getColumn(3)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.RIGHT, false));
+                .setCellRenderer(new PenyajiSelRingkasan(SwingConstants.RIGHT));
         tabel.getColumnModel().getColumn(4)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.RIGHT, false));
-        tabel.getColumnModel().getColumn(5)
-                .setCellRenderer(new PenyajiSelRingkasan(
-                        SwingConstants.LEFT, true));
+                .setCellRenderer(new PenyajiSelRingkasan(SwingConstants.RIGHT));
+        Ui.pasangBadge(tabel, 5);
         Ui.rataKananHeader(tabel, 2, 3, 4);
         Ui.aturKolom(tabel, 210, 80, 110, 110, 115, 110);
         aturKolomStatus(tabel, 5);
         Ui.gulirHorizontalSaatSempit(tabel);
         pasangTabelPeringatan();
         bangunIsi();
+    }
+
+    private void pasangPintasanKartu() {
+        kartuBarang.setName("kartuRingkasanBarang");
+        kartuPerluRestok.setName("kartuRingkasanPerluRestok");
+        kartuSegera.setName("kartuRingkasanSegera");
+        kartuKedaluwarsa.setName("kartuRingkasanKedaluwarsa");
+        kartuFisik.setName("kartuRingkasanFisik");
+        kartuLayak.setName("kartuRingkasanLayak");
+        kartuMinimum.setName("kartuRingkasanMinimum");
+        kartuStatus.setName("kartuRingkasanStatus");
+
+        kartuBarang.setAksiKlik(
+                () -> konteks.bukaHalaman("barang"),
+                "Klik untuk membuka halaman Barang");
+        kartuPerluRestok.setAksiKlik(
+                () -> aturFilterRestok(!hanyaPerluRestok),
+                "Klik untuk memfilter barang berstatus Perlu restok");
+        kartuSegera.setAksiKlik(
+                () -> konteks.bukaPemantauanStatus(
+                        StatusKedaluwarsa.SEGERA_KEDALUWARSA),
+                "Klik untuk memantau batch segera kedaluwarsa");
+        kartuKedaluwarsa.setAksiKlik(
+                () -> konteks.bukaHalaman("pembuangan"),
+                "Klik untuk membuka halaman Pembuangan");
+
+        kartuFisik.setAksiKlik(
+                () -> konteks.bukaHalaman("stok-masuk"),
+                "Klik untuk melihat dan menambah batch di Stok Masuk");
+        kartuLayak.setAksiKlik(
+                () -> konteks.bukaHalaman("stok-keluar"),
+                "Klik untuk mengeluarkan stok layak di Stok Keluar");
+        kartuMinimum.setAksiKlik(
+                () -> konteks.bukaHalaman("barang"),
+                "Klik untuk mengatur stok minimum di halaman Barang");
+        kartuStatus.setAksiKlik(
+                () -> konteks.bukaPemantauanStatus(null),
+                "Klik untuk memeriksa status kedaluwarsa di Pemantauan");
+    }
+
+    private void aturFilterRestok(boolean aktif) {
+        hanyaPerluRestok = aktif;
+        kartuPerluRestok.setAktif(aktif);
+        panelFilterRestok.setVisible(aktif);
+        perbaruiTabel(konteks.getTanggalAcuan());
     }
 
     private void pasangTabelPeringatan() {
@@ -151,11 +202,10 @@ public class PanelRingkasan extends PanelKantin {
                 .setCellRenderer(new PenyajiTeksPeringatan(true));
         tabelPeringatan.getColumnModel().getColumn(2)
                 .setCellRenderer(new PenyajiTeksPeringatan(false));
-        tabelPeringatan.getColumnModel().getColumn(3)
-                .setCellRenderer(new PenyajiStatusPeringatan());
+        Ui.pasangBadge(tabelPeringatan, 3);
         Ui.rataKananHeader(tabelPeringatan, 1);
         int[] lebar = {320, 120, 230, 330};
-        int[] minimum = {160, 70, 120, 150};
+        int[] minimum = {160, 70, 120, 170};
         tabelPeringatan.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         for (int i = 0; i < lebar.length; i++) {
             tabelPeringatan.getColumnModel().getColumn(i)
@@ -183,8 +233,6 @@ public class PanelRingkasan extends PanelKantin {
         isi.setOpaque(false);
 
         JPanel kontrol = kartuRingkasan("Filter barang", "search");
-        kontrol.setBorder(new EmptyBorder(Ui.skala(12), Ui.skala(14),
-                Ui.skala(12), Ui.skala(14)));
         JLabel labelBarang = Ui.labelField("Barang");
         JLabel labelTanggal = Ui.labelField("Tanggal acuan");
         kontrol.add(buatBarisFilter(labelBarang, labelTanggal),
@@ -215,12 +263,19 @@ public class PanelRingkasan extends PanelKantin {
         wadahPeringatan.add(kosongPeringatan, "kosong");
         peringatanIsi.add(wadahPeringatan, BorderLayout.CENTER);
         peringatan.add(peringatanIsi, BorderLayout.CENTER);
-        kosongPeringatan.setBorder(new EmptyBorder(
-                Ui.skala(12), 0, Ui.skala(12), 0));
+
+        panelFilterRestok.setOpaque(false);
+        panelFilterRestok.setBorder(new EmptyBorder(0, 0, Ui.skala(6), 0));
+        panelFilterRestok.add(Badge.status("Perlu restok"));
+        panelFilterRestok.add(Ui.keterangan(
+                "Menampilkan hanya barang dengan stok layak \u2264 minimum"));
+        panelFilterRestok.add(tombolResetRestok);
+        panelFilterRestok.setVisible(false);
 
         JPanel semua = kartuRingkasan("Semua barang", "package");
         JPanel semuaIsi = new JPanel(new BorderLayout(0, 6));
         semuaIsi.setOpaque(false);
+        semuaIsi.add(panelFilterRestok, BorderLayout.NORTH);
         gulirTabel = buatGulirTabel(tabel, 280);
         semuaIsi.add(gulirTabel, BorderLayout.CENTER);
         JPanel kaki = new JPanel(new BorderLayout(0, Ui.skala(8)));
@@ -275,11 +330,9 @@ public class PanelRingkasan extends PanelKantin {
         return gulir;
     }
 
-    /** Gaya kartu dashboard, terbatas pada halaman Ringkasan. */
+    /** Gaya kartu dashboard seragam dengan CardPanel standar. */
     private JPanel kartuRingkasan(String judul, String ikon) {
         JPanel kartu = Ui.kartu(judul, ikon);
-        kartu.setBorder(new EmptyBorder(Ui.skala(16), Ui.skala(16),
-                Ui.skala(18), Ui.skala(16)));
         JPanel kepala = (JPanel) ((BorderLayout) kartu.getLayout())
                 .getLayoutComponent(BorderLayout.NORTH);
         kepala.setOpaque(false);
@@ -576,23 +629,46 @@ public class PanelRingkasan extends PanelKantin {
     }
 
     private void perbaruiTabel(LocalDate tanggal) {
+        List<Barang> semuaBarang = konteks.getDaftarBarang();
         model.setRowCount(0);
-        for (Barang barang : konteks.getDaftarBarang()) {
-            int layak = barang.hitungStokLayak(tanggal);
-            int fisik = barang.hitungSaldo();
-            boolean restok = layak <= barang.getStokMinimum();
+        for (Barang item : semuaBarang) {
+            int layak = item.hitungStokLayak(tanggal);
+            int fisik = item.hitungSaldo();
+            boolean restok = layak <= item.getStokMinimum();
+            if (hanyaPerluRestok && !restok) {
+                continue;
+            }
             model.addRow(new Object[]{
-                barang.getNama(),
-                barang.getSatuan(),
-                layak + " " + barang.getSatuan(),
-                fisik + " " + barang.getSatuan(),
-                barang.getStokMinimum() + " " + barang.getSatuan(),
+                item.getNama(),
+                item.getSatuan(),
+                layak + " " + item.getSatuan(),
+                fisik + " " + item.getSatuan(),
+                item.getStokMinimum() + " " + item.getSatuan(),
                 restok ? "Perlu restok" : "Cukup"
             });
         }
-        jumlahBarang.setText(model.getRowCount() + " barang ditampilkan");
+        jumlahBarang.setText(hanyaPerluRestok
+                ? model.getRowCount() + " dari " + semuaBarang.size()
+                        + " barang perlu restok"
+                : model.getRowCount() + " barang ditampilkan");
         boolean kosong = model.getRowCount() == 0;
+        if (kosong) {
+            if (semuaBarang.isEmpty()) {
+                kosongBarang.setIcon("boxes")
+                        .setTitle("Belum ada barang")
+                        .setDescription(
+                                "Tambahkan barang terlebih dahulu melalui halaman Barang.")
+                        .setAction(tombolBukaBarang);
+            } else {
+                kosongBarang.setIcon("circle-check")
+                        .setTitle("Semua stok tercukupi")
+                        .setDescription(
+                                "Tidak ada barang berstatus Perlu restok pada tanggal acuan ini.")
+                        .setAction(tombolResetKosong);
+            }
+        }
         kosongBarang.setVisible(kosong);
+        jumlahBarang.setVisible(!kosong);
         if (gulirTabel != null) {
             gulirTabel.setVisible(!kosong);
         }
@@ -615,7 +691,9 @@ public class PanelRingkasan extends PanelKantin {
         List<Barang> daftar = konteks.getDaftarBarang();
         if (daftar.isEmpty()) {
             modelPeringatan.setRowCount(0);
-            kosongPeringatan.setText("Belum ada barang untuk dipantau.");
+            kosongPeringatan.setIcon("boxes")
+                    .setTitle("Belum ada barang")
+                    .setDescription("Tambahkan barang melalui halaman Barang untuk memantau kedaluwarsa.");
             ((CardLayout) wadahPeringatan.getLayout())
                     .show(wadahPeringatan, "kosong");
             ringkasanPeringatan.setText(" ");
@@ -660,8 +738,12 @@ public class PanelRingkasan extends PanelKantin {
         }
 
         if (hasil.isEmpty()) {
-            kosongPeringatan.setText(
-                    "Tidak ada peringatan pada tanggal ini.");
+            kosongPeringatan.setIcon("circle-check")
+                    .setTitle("Tidak ada peringatan kedaluwarsa")
+                    .setDescription(semua
+                            ? "Semua batch bersisa dalam kondisi aman pada tanggal acuan ini."
+                            : "Seluruh batch " + barang.getNama()
+                                    + " dalam kondisi aman pada tanggal acuan ini.");
             ((CardLayout) wadahPeringatan.getLayout())
                     .show(wadahPeringatan, "kosong");
             ringkasanPeringatan.setText(" ");
@@ -706,12 +788,11 @@ public class PanelRingkasan extends PanelKantin {
 
     private static final class PenyajiSelRingkasan
             extends DefaultTableCellRenderer {
+        private static final long serialVersionUID = 1L;
         private final int perataan;
-        private final boolean status;
 
-        private PenyajiSelRingkasan(int perataan, boolean status) {
+        private PenyajiSelRingkasan(int perataan) {
             this.perataan = perataan;
-            this.status = status;
         }
 
         @Override
@@ -727,14 +808,7 @@ public class PanelRingkasan extends PanelKantin {
             setHorizontalAlignment(perataan);
             setVerticalAlignment(SwingConstants.CENTER);
             setBackground(latarBaris(tabel, dipilih, baris));
-            if (dipilih) {
-                setForeground(tabel.getSelectionForeground());
-            } else if (status) {
-                setForeground("Perlu restok".equals(String.valueOf(nilai))
-                        ? Ui.MERAH : Ui.HIJAU);
-            } else {
-                setForeground(Ui.TEKS);
-            }
+            setForeground(dipilih ? tabel.getSelectionForeground() : Ui.TEKS);
             setToolTipText(null);
             return this;
         }
@@ -808,30 +882,6 @@ public class PanelRingkasan extends PanelKantin {
             setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
             setForeground(dipilih
                     ? tabel.getSelectionForeground() : Ui.TEKS);
-            setBackground(latarBaris(tabel, dipilih, baris));
-            return this;
-        }
-    }
-
-    private static final class PenyajiStatusPeringatan
-            extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable tabel,
-                Object nilai, boolean dipilih, boolean fokus, int baris,
-                int kolom) {
-            super.getTableCellRendererComponent(
-                    tabel, nilai, dipilih, fokus, baris, kolom);
-            StatusKedaluwarsa status = nilai instanceof StatusKedaluwarsa s
-                    ? s : StatusKedaluwarsa.AMAN;
-            setText(status.getLabel());
-            setBorder(new EmptyBorder(0, Ui.skala(Ui.PADDING_SEL_TABEL),
-                    0, Ui.skala(Ui.PADDING_SEL_TABEL)));
-            setHorizontalAlignment(SwingConstants.LEFT);
-            setVerticalAlignment(SwingConstants.CENTER);
-            setFont(Ui.font(Font.PLAIN, Ui.FONT_BODY));
-            setForeground(dipilih ? tabel.getSelectionForeground()
-                    : status == StatusKedaluwarsa.KEDALUWARSA
-                            ? Ui.MERAH : Ui.KUNING_BADGE);
             setBackground(latarBaris(tabel, dipilih, baris));
             return this;
         }

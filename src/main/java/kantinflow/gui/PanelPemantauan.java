@@ -25,15 +25,19 @@ import kantinflow.StatusKedaluwarsa;
  * satu barang tertentu.
  */
 public class PanelPemantauan extends PanelKantin {
+    private static final long serialVersionUID = 1L;
     private final JComboBox<PilihanFilter> pilihanFilter = Ui.combo();
+    private final JComboBox<PilihanStatus> pilihanStatus = Ui.combo();
     private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
 
     private final JButton tombolPeriksa = Ui.utama("Periksa");
+    private final JButton tombolResetStatus = Ui.sekunder("Tampilkan Semua Status");
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel pesanTanggal = Ui.pesan();
     private LocalDate tanggalTerakhir;
     private LocalDate tanggalKonteksTerakhir;
     private int idFilter = -1;
+    private StatusKedaluwarsa statusFilter;
     private boolean memperbaruiFilter;
     private final DefaultTableModel model = Ui.model(
             "Barang", "Kode Batch", "Sisa", "Satuan", "Kedaluwarsa", "Status");
@@ -60,6 +64,15 @@ public class PanelPemantauan extends PanelKantin {
         pilihanFilter.addItem(PilihanFilter.SEMUA);
         pilihanFilter.setSelectedIndex(0);
         pilihanFilter.addActionListener(event -> pilihFilter());
+        pilihanStatus.setName("statusPemantauan");
+        pilihanStatus.addItem(PilihanStatus.SEMUA);
+        for (StatusKedaluwarsa s : StatusKedaluwarsa.values()) {
+            pilihanStatus.addItem(new PilihanStatus(s));
+        }
+        pilihanStatus.setSelectedIndex(0);
+        pilihanStatus.addActionListener(event -> pilihStatus());
+        tombolResetStatus.addActionListener(
+                event -> terapkanFilterStatus(null));
         tanggalPilihan.komponenTeks().setName("tanggalPemantauan");
         pesanTanggal.setName("pesanTanggalPemantauan");
         tanggalTerakhir = konteks.getTanggalAcuan();
@@ -82,9 +95,11 @@ public class PanelPemantauan extends PanelKantin {
         hasil.setOpaque(false);
         tombolPeriksa.addActionListener(event -> periksa());
         Ui.rataKanan(tabel, 2);
-        Ui.pasangTeksStatus(tabel, 5);
-        Ui.aturKolom(tabel, 145, 175, 75, 80, 125, 150);
+        Ui.pasangBadge(tabel, 5);
+        Ui.aturKolom(tabel, 145, 175, 75, 80, 125, 175);
+        tabel.getColumnModel().getColumn(5).setMinWidth(Ui.skala(165));
         Ui.gulirHorizontalSaatSempit(tabel);
+        Ui.headerKlik(tabel);
 
         bangunIsi();
     }
@@ -100,6 +115,7 @@ public class PanelPemantauan extends PanelKantin {
                 Ui.skala(6), 0, 0, 0));
         JPanel baris = Ui.barisFilter(
                 Ui.field("Barang", pilihanFilter),
+                Ui.field("Status", pilihanStatus),
                 Ui.field("Tanggal pemeriksaan", tanggalPilihan, pesanTanggal),
                 Ui.field(" ", tombolPeriksa));
         kontrolIsi.add(baris, BorderLayout.NORTH);
@@ -132,6 +148,39 @@ public class PanelPemantauan extends PanelKantin {
         }
         idFilter = dipilih.idBarang();
         kosongkanPesan(pesanValidasi);
+        perbarui();
+    }
+
+    private void pilihStatus() {
+        if (memperbaruiFilter) {
+            return;
+        }
+        PilihanStatus dipilih = (PilihanStatus) pilihanStatus.getSelectedItem();
+        StatusKedaluwarsa target = dipilih == null ? null : dipilih.status();
+        if (target == statusFilter) {
+            return;
+        }
+        statusFilter = target;
+        perbarui();
+    }
+
+    public void terapkanFilterStatus(StatusKedaluwarsa status) {
+        statusFilter = status;
+        memperbaruiFilter = true;
+        try {
+            int indeks = 0;
+            if (status != null) {
+                for (int i = 1; i < pilihanStatus.getItemCount(); i++) {
+                    if (pilihanStatus.getItemAt(i).status() == status) {
+                        indeks = i;
+                        break;
+                    }
+                }
+            }
+            pilihanStatus.setSelectedIndex(indeks);
+        } finally {
+            memperbaruiFilter = false;
+        }
         perbarui();
     }
 
@@ -282,6 +331,9 @@ public class PanelPemantauan extends PanelKantin {
                 continue;
             }
             StatusKedaluwarsa status = batch.statusPada(acuan);
+            if (statusFilter != null && status != statusFilter) {
+                continue;
+            }
             barisModel.add(new BarisPemantauan(
                     barang.getId(),
                     batch.getKode(),
@@ -329,10 +381,25 @@ public class PanelPemantauan extends PanelKantin {
     }
 
     private void siapkanKosong() {
-        kosong.setTitle("Tidak ada batch bersisa");
-        kosong.setDescription(idFilter < 0
-                ? "Tidak ada batch bersisa untuk seluruh barang."
-                : "Tidak ada batch bersisa untuk barang ini.");
+        if (statusFilter != null) {
+            kosong.setIcon("circle-check")
+                    .setTitle("Tidak ada batch " + statusFilter.getLabel())
+                    .setDescription(idFilter < 0
+                            ? "Tidak ditemukan batch berstatus "
+                                    + statusFilter.getLabel()
+                                    + " pada tanggal ini."
+                            : "Tidak ditemukan batch berstatus "
+                                    + statusFilter.getLabel()
+                                    + " untuk barang ini.")
+                    .setAction(tombolResetStatus);
+            return;
+        }
+        kosong.setIcon("alert-triangle")
+                .setTitle("Tidak ada batch bersisa")
+                .setDescription(idFilter < 0
+                        ? "Tidak ada batch bersisa untuk seluruh barang."
+                        : "Tidak ada batch bersisa untuk barang ini.")
+                .setAction(null);
     }
 
     private void tampilkanHasil(String kartu) {
@@ -376,6 +443,24 @@ public class PanelPemantauan extends PanelKantin {
         public String toString() {
             return barang == null ? "Semua Barang"
                     : barang.getNama() + " (" + barang.getSatuan() + ")";
+        }
+    }
+
+    private static final class PilihanStatus {
+        private static final PilihanStatus SEMUA = new PilihanStatus(null);
+        private final StatusKedaluwarsa status;
+
+        private PilihanStatus(StatusKedaluwarsa status) {
+            this.status = status;
+        }
+
+        private StatusKedaluwarsa status() {
+            return status;
+        }
+
+        @Override
+        public String toString() {
+            return status == null ? "Semua Status" : status.getLabel();
         }
     }
 }

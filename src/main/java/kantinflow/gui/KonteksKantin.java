@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import kantinflow.Barang;
+import kantinflow.StatusKedaluwarsa;
 import kantinflow.Transaksi;
 
 /**
@@ -50,6 +51,20 @@ public interface KonteksKantin {
     default boolean bukaPembuanganDariPemantauan(
             int idBarang, String kodeBatch, LocalDate tanggal) {
         return false;
+    }
+
+    /**
+     * Navigasi cepat ke halaman tertentu (misalnya dari kartu pintasan
+     * di Ringkasan).
+     */
+    default void bukaHalaman(String kunci) {
+    }
+
+    /**
+     * Membuka halaman Pemantauan dengan filter status kedaluwarsa tertentu.
+     */
+    default void bukaPemantauanStatus(StatusKedaluwarsa status) {
+        bukaHalaman("pemantauan");
     }
 
     boolean muatUlang();

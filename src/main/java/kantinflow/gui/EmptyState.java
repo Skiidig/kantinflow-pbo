@@ -1,7 +1,5 @@
 package kantinflow.gui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -11,15 +9,20 @@ import java.awt.RenderingHints;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 
 /**
- * Empty state dengan ikon besar, judul, deskripsi, dan aksi opsional.
+ * Empty state rapi dengan ikon besar, judul, deskripsi, dan tombol aksi
+ * opsional saat tabel atau hasil pencarian kosong.
  */
 public class EmptyState extends JPanel {
+    private static final long serialVersionUID = 1L;
+    private final LingkaranIkon lingkaran;
     private final JLabel judul = new JLabel();
     private final JLabel deskripsi = new JLabel();
     private final JPanel aksi = new JPanel();
@@ -27,14 +30,14 @@ public class EmptyState extends JPanel {
     public EmptyState(String ikonNama, String judul, String deskripsi) {
         super(new GridBagLayout());
         setOpaque(false);
-        setBorder(new javax.swing.border.EmptyBorder(
-                Ui.skala(18), Ui.skala(18), Ui.skala(18), Ui.skala(18)));
-        setMinimumSize(new Dimension(Ui.skala(200), Ui.skala(112)));
-        setPreferredSize(new Dimension(Ui.skala(420), Ui.skala(124)));
+        setBorder(new EmptyBorder(
+                Ui.skala(22), Ui.skala(20), Ui.skala(22), Ui.skala(20)));
+        setMinimumSize(new Dimension(Ui.skala(200), Ui.skala(128)));
+        setPreferredSize(new Dimension(Ui.skala(420), Ui.skala(146)));
         JPanel isi = new JPanel();
         isi.setOpaque(false);
         isi.setLayout(new BoxLayout(isi, BoxLayout.Y_AXIS));
-        JPanel lingkaran = new LingkaranIkOn(
+        lingkaran = new LingkaranIkon(
                 Ui.ikonAksi(ikonNama, 26, Ui.TEKS_LEMBUT));
         lingkaran.setAlignmentX(CENTER_ALIGNMENT);
         this.judul.setText(judul);
@@ -53,11 +56,16 @@ public class EmptyState extends JPanel {
         isi.add(lingkaran);
         isi.add(Box.createVerticalStrut(Ui.skala(10)));
         isi.add(this.judul);
-        isi.add(Box.createVerticalStrut(Ui.skala(3)));
+        isi.add(Box.createVerticalStrut(Ui.skala(4)));
         isi.add(this.deskripsi);
-        isi.add(Box.createVerticalStrut(Ui.skala(8)));
+        isi.add(Box.createVerticalStrut(Ui.skala(10)));
         isi.add(this.aksi);
         add(isi);
+    }
+
+    public EmptyState setIcon(String ikonNama) {
+        lingkaran.aturIkon(Ui.ikonAksi(ikonNama, 26, Ui.TEKS_LEMBUT));
+        return this;
     }
 
     public EmptyState setAction(JButton tombol) {
@@ -66,6 +74,9 @@ public class EmptyState extends JPanel {
             tombol.setAlignmentX(CENTER_ALIGNMENT);
             aksi.add(tombol);
         }
+        aksi.setVisible(tombol != null);
+        aksi.revalidate();
+        aksi.repaint();
         return this;
     }
 
@@ -83,15 +94,21 @@ public class EmptyState extends JPanel {
         return this;
     }
 
-    private static final class LingkaranIkOn extends JPanel {
-        private final javax.swing.Icon ikon;
+    private static final class LingkaranIkon extends JPanel {
+        private static final long serialVersionUID = 1L;
+        private transient Icon ikon;
 
-        private LingkaranIkOn(javax.swing.Icon ikon) {
+        private LingkaranIkon(Icon ikon) {
             this.ikon = ikon;
             setOpaque(false);
-            setPreferredSize(new Dimension(Ui.skala(64), Ui.skala(64)));
+            setPreferredSize(new Dimension(Ui.skala(60), Ui.skala(60)));
             setMinimumSize(getPreferredSize());
             setMaximumSize(getPreferredSize());
+        }
+
+        private void aturIkon(Icon baru) {
+            this.ikon = baru;
+            repaint();
         }
 
         @Override
@@ -105,9 +122,11 @@ public class EmptyState extends JPanel {
             } finally {
                 g2.dispose();
             }
-            int x = (getWidth() - ikon.getIconWidth()) / 2;
-            int y = (getHeight() - ikon.getIconHeight()) / 2;
-            ikon.paintIcon(this, graphics, x, y);
+            if (ikon != null) {
+                int x = (getWidth() - ikon.getIconWidth()) / 2;
+                int y = (getHeight() - ikon.getIconHeight()) / 2;
+                ikon.paintIcon(this, graphics, x, y);
+            }
             super.paintComponent(graphics);
         }
     }

@@ -52,6 +52,8 @@ final class PemilihTanggal extends DatePicker {
         tombol.setBackground(Ui.KARTU);
         tombol.setContentAreaFilled(false);
         tombol.setBorder(new EmptyBorder(0, Ui.skala(4), 0, Ui.skala(8)));
+        tombol.setCursor(java.awt.Cursor.getPredefinedCursor(
+                java.awt.Cursor.HAND_CURSOR));
         tombol.setFocusable(false);
         addDateChangeListener(event -> teksTidakValid = false);
         setTanggalMinimum(null);
