@@ -67,9 +67,6 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
     private final Map<String, JScrollPane> gulirHalaman = new LinkedHashMap<>();
-    private JPanel indikatorNav;
-    private JPanel pembungkusNav;
-    private String halamanAktif = "ringkasan";
     private LocalDate tanggalPemantauan;
     private boolean sudahDitutup;
     private final FadeOverlay fade = new FadeOverlay();
@@ -80,6 +77,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             throw new IllegalArgumentException("Penyimpanan wajib diisi");
         }
         Tema.pasang();
+        Ui.pasangTitleBar(getRootPane());
         this.penyimpanan = penyimpanan;
         this.daftarBarang = new ArrayList<>(penyimpanan.muatSemuaBarang());
 
@@ -121,25 +119,43 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         sidebar.setPreferredSize(new Dimension(Ui.skala(Ui.LEBAR_SIDEBAR), 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Ui.GARIS));
 
-        JPanel isi = new SidebarIsi();
-        isi.setLayout(new BoxLayout(isi, BoxLayout.Y_AXIS));
-        isi.setOpaque(false);
-        isi.setBorder(new EmptyBorder(20, 16, 8, 16));
-
+        // Header logo dipisahkan garis hairline #E4E4E7
         JPanel merekBaris = new JPanel();
         merekBaris.setOpaque(false);
         merekBaris.setLayout(new BoxLayout(merekBaris, BoxLayout.X_AXIS));
-        JLabel merekMark = new JLabel("KF");
-        merekMark.setOpaque(true);
-        merekMark.setBackground(Ui.AKSEN);
+        merekBaris.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, Ui.GARIS),
+                new EmptyBorder(Ui.skala(18), Ui.skala(18),
+                        Ui.skala(16), Ui.skala(18))));
+        JLabel merekMark = new JLabel("KF") {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(Ui.AKSEN);
+                    int arc = Ui.skala(8);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                } finally {
+                    g2.dispose();
+                }
+                super.paintComponent(g);
+            }
+        };
+        merekMark.setOpaque(false);
         merekMark.setForeground(Color.WHITE);
         merekMark.setFont(Ui.font(Font.BOLD, Ui.FONT_KECIL));
         merekMark.setHorizontalAlignment(SwingConstants.CENTER);
-        merekMark.setPreferredSize(new Dimension(Ui.skala(32), Ui.skala(32)));
-        merekMark.setMaximumSize(new Dimension(Ui.skala(32), Ui.skala(32)));
-        merekMark.setBorder(new EmptyBorder(2, 0, 2, 0));
+        Dimension ukuranMark = new Dimension(Ui.skala(30), Ui.skala(30));
+        merekMark.setPreferredSize(ukuranMark);
+        merekMark.setMinimumSize(ukuranMark);
+        merekMark.setMaximumSize(ukuranMark);
         merekBaris.add(merekMark);
-        merekBaris.add(Box.createHorizontalStrut(10));
+        merekBaris.add(Box.createHorizontalStrut(Ui.skala(10)));
+
         JPanel merekTeks = new JPanel();
         merekTeks.setOpaque(false);
         merekTeks.setLayout(new BoxLayout(merekTeks, BoxLayout.Y_AXIS));
@@ -153,13 +169,14 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         merekTeks.add(Box.createVerticalStrut(1));
         merekTeks.add(sub);
         merekBaris.add(merekTeks);
-        merekBaris.setAlignmentX(Component.LEFT_ALIGNMENT);
-        isi.add(merekBaris);
-        isi.add(Box.createVerticalStrut(22));
 
-        JPanel nav = new JPanel();
-        nav.setOpaque(false);
-        nav.setLayout(new BoxLayout(nav, BoxLayout.Y_AXIS));
+        // Daftar navigasi dengan indikator aktif rounded pill lembut
+        JPanel isi = new SidebarIsi();
+        isi.setLayout(new BoxLayout(isi, BoxLayout.Y_AXIS));
+        isi.setOpaque(false);
+        isi.setBorder(new EmptyBorder(Ui.skala(14), Ui.skala(12),
+                Ui.skala(14), Ui.skala(12)));
+
         String[][] halaman = {
             {"ringkasan", "Ringkasan"},
             {"barang", "Barang"},
@@ -170,57 +187,15 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             {"riwayat", "Riwayat"}
         };
         for (String[] item : halaman) {
-            JToggleButton tombol = new JToggleButton(item[1]);
+            TombolNavigasi tombol = new TombolNavigasi(item[1], item[0]);
             tombol.setName("nav-" + item[0]);
-            tombol.putClientProperty("navIcon", item[0]);
-            tombol.setIcon(Ui.ikonMenu(item[0], 20, Ui.TEKS_LEMBUT));
-            tombol.setIconTextGap(10);
-            tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_NAV));
-            tombol.setHorizontalAlignment(SwingConstants.LEFT);
-            tombol.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-            tombol.setAlignmentX(Component.LEFT_ALIGNMENT);
-            tombol.setFocusPainted(true);
-            tombol.setOpaque(true);
-            tombol.setContentAreaFilled(false);
-            tombol.setCursor(java.awt.Cursor.getPredefinedCursor(
-                    java.awt.Cursor.HAND_CURSOR));
-            tombol.setBorder(aturBorderNav(false));
             tombol.addActionListener(event -> tampilkanHalaman(item[0]));
             tombol.addItemListener(event -> aturGayaNav(tombol));
-            tombol.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent event) {
-                    if (!tombol.isSelected()) {
-                        tombol.setBackground(Ui.HOVER);
-                    }
-                }
-
-                @Override
-                public void mouseExited(MouseEvent event) {
-                    if (!tombol.isSelected()) {
-                        tombol.setBackground(Ui.KARTU);
-                    }
-                }
-            });
             grupNavigasi.add(tombol);
             tombolNavigasi.put(item[0], tombol);
-            nav.add(tombol);
-            nav.add(Box.createVerticalStrut(3));
+            isi.add(tombol);
+            isi.add(Box.createVerticalStrut(Ui.skala(5)));
         }
-        nav.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pembungkusNav = new JPanel(null);
-        pembungkusNav.setOpaque(false);
-        pembungkusNav.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pembungkusNav.add(nav);
-        indikatorNav = new JPanel();
-        indikatorNav.setBackground(Ui.AKSEN);
-        indikatorNav.setOpaque(true);
-        pembungkusNav.add(indikatorNav);
-        pembungkusNav.setPreferredSize(new Dimension(0,
-                nav.getPreferredSize().height));
-        pembungkusNav.setMaximumSize(new Dimension(Integer.MAX_VALUE,
-                nav.getPreferredSize().height));
-        isi.add(pembungkusNav);
 
         JScrollPane scroll = new JScrollPane(isi,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -231,56 +206,33 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         scroll.getViewport().setBackground(Ui.KARTU);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
 
+        // Footer versi dipisahkan garis hairline #E4E4E7
         JLabel footer = new JLabel("KantinFlow · v1.0");
         footer.setFont(Ui.font(Font.PLAIN, Ui.FONT_FOOTER));
         footer.setForeground(Ui.TEKS_LEMBUT);
-        footer.setBorder(new EmptyBorder(10, 16, 14, 16));
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Ui.GARIS),
+                new EmptyBorder(Ui.skala(13), Ui.skala(18),
+                        Ui.skala(13), Ui.skala(18))));
 
-        pembungkusNav.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent event) {
-                int lebar = pembungkusNav.getWidth();
-                int tinggi = pembungkusNav.getHeight();
-                nav.setBounds(0, 0, lebar, tinggi);
-                if (indikatorNav.getWidth() <= 0) {
-                    indikatorNav.setBounds(0, 0, Ui.skala(3), Ui.skala(30));
-                }
-                geserIndikator();
-            }
-        });
-        isi.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentShown(java.awt.event.ComponentEvent event) {
-                geserIndikator();
-            }
-        });
+        sidebar.add(merekBaris, BorderLayout.NORTH);
         sidebar.add(scroll, BorderLayout.CENTER);
         sidebar.add(footer, BorderLayout.SOUTH);
         return sidebar;
     }
 
-    private javax.swing.border.Border aturBorderNav(boolean aktif) {
-        return BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 3, 0, 0,
-                        aktif ? Ui.AKSEN : Ui.KARTU),
-                new EmptyBorder(8, 9, 8, 10));
-    }
-
     private void aturGayaNav(JToggleButton tombol) {
         String kunci = (String) tombol.getClientProperty("navIcon");
         if (tombol.isSelected()) {
-            tombol.setBackground(Ui.AKSEN_LEMBUT);
-            tombol.setForeground(Ui.AKSEN);
-            tombol.setFont(Ui.font(Font.BOLD, Ui.FONT_NAV));
-            tombol.setBorder(aturBorderNav(true));
-            tombol.setIcon(Ui.ikonMenu(kunci, 20, Ui.AKSEN));
+            tombol.setForeground(Ui.TEKS);
+            tombol.setFont(Ui.fontSemiBold(Ui.FONT_NAV));
+            tombol.setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS));
         } else {
-            tombol.setBackground(Ui.KARTU);
             tombol.setForeground(Ui.TEKS_LEMBUT);
             tombol.setFont(Ui.font(Font.PLAIN, Ui.FONT_NAV));
-            tombol.setBorder(aturBorderNav(false));
-            tombol.setIcon(Ui.ikonMenu(kunci, 20, Ui.TEKS_LEMBUT));
+            tombol.setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS_LEMBUT));
         }
+        tombol.repaint();
     }
 
     private JPanel buatKonten() {
@@ -322,38 +274,31 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         JPanel header = new JPanel(new GridBagLayout());
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(
-                Ui.skala(24), Ui.skala(24), 0, Ui.skala(24)));
+                Ui.skala(24), Ui.skala(28), 0, Ui.skala(28)));
 
-        JLabel ikon = new JLabel(Ui.ikonMenu(kunci, 24, Ui.AKSEN));
-        ikon.setVerticalAlignment(SwingConstants.CENTER);
         JLabel judul = new JLabel(halaman.getJudul());
         judul.setFont(Ui.font(Font.BOLD, Ui.FONT_JUDUL));
         judul.setForeground(Ui.TEKS);
         JLabel keterangan = new JLabel(halaman.getKeterangan());
-        keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_CATATAN));
+        keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_SUBJUDUL));
         keterangan.setForeground(Ui.TEKS_LEMBUT);
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.gridy = 0;
-        c.anchor = GridBagConstraints.WEST;
-        c.insets = new Insets(0, 0, 0, Ui.skala(12));
-        header.add(ikon, c);
-
-        c.gridx = 1;
         c.weightx = 1;
+        c.anchor = GridBagConstraints.WEST;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(0, 0, 0, 0);
         header.add(judul, c);
 
         c.gridy = 1;
-        c.insets = new Insets(Ui.skala(6), 0, 0, 0);
+        c.insets = new Insets(Ui.skala(4), 0, 0, 0);
         header.add(keterangan, c);
         return header;
     }
 
     private void tampilkanHalaman(String kunci) {
-        halamanAktif = kunci;
         cardLayout.show(kartu, kunci);
         JScrollPane gulir = gulirHalaman.get(kunci);
         if (gulir != null) {
@@ -363,40 +308,11 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         if (tombol != null) {
             tombol.setSelected(true);
         }
-        geserIndikator();
         fade.mulai();
-    }
-
-    private void geserIndikator() {
-        if (indikatorNav == null || pembungkusNav == null) {
-            return;
-        }
-        JToggleButton tombol = tombolNavigasi.get(halamanAktif);
-        if (tombol == null) {
-            return;
-        }
-        int target = tombol.getY() + Math.max(0,
-                (tombol.getHeight() - Ui.skala(30)) / 2);
-        int awal = indikatorNav.getY();
-        indikatorNav.setBounds(0, awal, Ui.skala(3), Ui.skala(30));
-        final int[] langkah = {0};
-        final int jumlah = 8;
-        Timer timer = new Timer(15, event -> {
-            langkah[0]++;
-            double t = Math.min(1.0, langkah[0] / (double) jumlah);
-            int y = (int) Math.round(awal + (target - awal) * t);
-            indikatorNav.setBounds(0, y, Ui.skala(3), Ui.skala(30));
-            indikatorNav.repaint();
-            if (langkah[0] >= jumlah) {
-                ((Timer) event.getSource()).stop();
-            }
-        });
-        timer.start();
     }
 
     public void tampilkan() {
         setVisible(true);
-        SwingUtilities.invokeLater(this::geserIndikator);
     }
 
     public JFrame getFrame() {
@@ -803,6 +719,71 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         @Override
         public boolean getScrollableTracksViewportHeight() {
             return false;
+        }
+    }
+
+    private static final class TombolNavigasi extends JToggleButton {
+        private static final long serialVersionUID = 1L;
+        private boolean hover;
+
+        private TombolNavigasi(String label, String kunci) {
+            super(label);
+            putClientProperty("navIcon", kunci);
+            setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS_LEMBUT));
+            setIconTextGap(Ui.skala(10));
+            setFont(Ui.font(Font.PLAIN, Ui.FONT_NAV));
+            setForeground(Ui.TEKS_LEMBUT);
+            setHorizontalAlignment(SwingConstants.LEFT);
+            int tinggi = Ui.skala(38);
+            setPreferredSize(new Dimension(0, tinggi));
+            setMinimumSize(new Dimension(0, tinggi));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, tinggi));
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorder(new EmptyBorder(Ui.skala(8), Ui.skala(12),
+                    Ui.skala(8), Ui.skala(12)));
+            setCursor(java.awt.Cursor.getPredefinedCursor(
+                    java.awt.Cursor.HAND_CURSOR));
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent event) {
+                    hover = true;
+                    if (!isSelected()) {
+                        setForeground(Ui.TEKS);
+                        setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS));
+                    }
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent event) {
+                    hover = false;
+                    if (!isSelected()) {
+                        setForeground(Ui.TEKS_LEMBUT);
+                        setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS_LEMBUT));
+                    }
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            if (isSelected() || hover) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+                    int arc = Ui.skala(Ui.RADIUS_KONTROL);
+                    g2.setColor(isSelected() ? Ui.NAV_AKTIF_BG : Ui.HOVER);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                } finally {
+                    g2.dispose();
+                }
+            }
+            super.paintComponent(graphics);
         }
     }
 }

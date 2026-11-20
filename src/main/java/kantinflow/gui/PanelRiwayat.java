@@ -106,6 +106,8 @@ public class PanelRiwayat extends PanelKantin {
         pilihanBarang.setName("barangRiwayat");
         pilihanBarang.addActionListener(event -> pilihDariPengguna());
         fieldCari.setName("cariRiwayat");
+        fieldCari.putClientProperty("JTextField.placeholderText",
+                "Cari kode batch atau alasan...");
         tanggalMulai.komponenTeks().setName("tanggalAwalRiwayat");
         tanggalAkhir.komponenTeks().setName("tanggalAkhirRiwayat");
         tanggalMulai.setPertahankanTeksTidakValid(true);
@@ -192,7 +194,7 @@ public class PanelRiwayat extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 12));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
         JPanel filter = Ui.kartu("Filter riwayat", "search");
@@ -795,6 +797,7 @@ public class PanelRiwayat extends PanelKantin {
         JDialog dialog = new JDialog(
                 SwingUtilities.getWindowAncestor(this), "Detail Transaksi",
                 Dialog.ModalityType.APPLICATION_MODAL);
+        Ui.pasangTitleBar(dialog.getRootPane());
         JPanel konten = new JPanel(new BorderLayout(0, 14));
         konten.setOpaque(true);
         konten.setBackground(Ui.LATAR);

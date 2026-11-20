@@ -105,7 +105,7 @@ public class PanelPemantauan extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 16));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
         JPanel kontrol = Ui.kartu("Filter pemantauan", "monitor");

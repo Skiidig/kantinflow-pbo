@@ -97,7 +97,7 @@ public class PanelBarang extends PanelKantin {
         tabel.setName("tabelBarang");
         fieldCari.setName("cariBarang");
         fieldCari.putClientProperty("JTextField.placeholderText",
-                "Cari nama barang");
+                "Cari nama barang...");
         tombolTambah.setName("tombolTambahBarang");
         tombolTambah.setIcon(Ui.ikonAksi("plus", 16, java.awt.Color.WHITE));
         tombolTambah.setIconTextGap(7);
@@ -528,6 +528,7 @@ public class PanelBarang extends PanelKantin {
                 Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setName("dialog" + judul.replace(" ", ""));
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        Ui.pasangTitleBar(dialog.getRootPane());
         return dialog;
     }
 
@@ -701,8 +702,8 @@ public class PanelBarang extends PanelKantin {
         String label = "Atur stok minimum " + nama;
         tombol.setToolTipText(label);
         tombol.getAccessibleContext().setAccessibleName(label);
-        tombol.setIcon(Ui.ikonAksi("pencil", 16,
-                hover ? Ui.AKSEN_GELAP : Ui.AKSEN));
+        tombol.setIcon(Ui.ikonAksi("pencil", 15,
+                hover ? Ui.TEKS : Ui.TEKS_LEMBUT));
         tombol.setContentAreaFilled(true);
         tombol.setOpaque(true);
         tombol.setBackground(dipilih

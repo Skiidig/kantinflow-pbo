@@ -39,6 +39,7 @@ public final class DialogKonfirmasi {
                 Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setName("dialogKonfirmasi");
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        Ui.pasangTitleBar(dialog.getRootPane());
 
         JPanel konten = new JPanel(new BorderLayout(0, 16));
         konten.setBackground(Ui.LATAR);

@@ -40,7 +40,7 @@ public final class ToastNotification {
         SUKSES("Berhasil", "circle-check", Ui.HIJAU, Ui.HIJAU_LEMBUT),
         GAGAL("Gagal", "alert-triangle", Ui.MERAH, Ui.MERAH_LEMBUT),
         PERINGATAN("Peringatan", "alert-triangle", Ui.KUNING, Ui.KUNING_LEMBUT),
-        INFO("Informasi", "circle-check", Ui.AKSEN, Ui.AKSEN_LEMBUT);
+        INFO("Informasi", "circle-check", Ui.BIRU, Ui.BIRU_LEMBUT);
 
         private final String judul;
         private final String ikon;

@@ -112,11 +112,11 @@ final class PemilihTanggal extends DatePicker {
     }
 
     private void aturGaris(boolean fokus) {
-        Color warna = fokus ? Ui.AKSEN : Ui.GARIS_KUAT;
+        Color warna = fokus ? Ui.AKSEN : Ui.GARIS;
         setBorder(new FlatLineBorder(
                 new Insets(Ui.skala(1), Ui.skala(1),
                         Ui.skala(1), Ui.skala(1)),
-                warna, fokus ? 1.5f : 1f, Ui.RADIUS_KONTROL));
+                warna, fokus ? 1.25f : 1f, Ui.RADIUS_KONTROL));
     }
 
     static String format(LocalDate tanggal) {

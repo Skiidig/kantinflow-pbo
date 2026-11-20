@@ -49,6 +49,8 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
                 "Terima batch baru untuk barang terpilih.");
         pilihanBarang.setName("barangStokMasuk");
         fieldJumlah.setName("jumlah");
+        fieldJumlah.putClientProperty("JTextField.placeholderText",
+                "Contoh: 20");
         tanggalMasuk.komponenTeks().setName("tanggalMasuk");
         tanggalKedaluwarsa.komponenTeks().setName("tanggalKedaluwarsa");
         pesanTanggalMasuk.setName("pesanTanggalMasuk");
@@ -109,7 +111,7 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
     }
 
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 16));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
         JPanel form = Ui.kartu("Form Penerimaan", "stock-in");

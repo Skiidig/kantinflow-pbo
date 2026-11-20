@@ -58,7 +58,7 @@ public class Badge extends JLabel {
             return new Color[]{Ui.HIJAU_BADGE, Ui.HIJAU_LEMBUT};
         }
         if (nilai.contains("fefo")) {
-            return new Color[]{Ui.BIRU_BADGE, Ui.AKSEN_LEMBUT};
+            return new Color[]{Ui.BIRU_BADGE, Ui.BIRU_LEMBUT};
         }
         if (nilai.contains("pengeluaran") || nilai.contains("keluar")
                 || nilai.contains("manual")) {

@@ -18,77 +18,60 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Kartu statistik ringkas dengan ikon, angka utama, keterangan, dan dukungan
- * aksi klik (shortcut navigasi/filter) dengan umpan balik hover & fokus.
+ * Kartu KPI minimalis (Linear/Vercel style): fokus pada label kecil di atas,
+ * angka besar 28px Bold, indikator titik warna halus, dan border tegas saat
+ * hover (#A1A1AA).
  */
 public class StatCard extends CardPanel {
     private static final long serialVersionUID = 1L;
-    private static final Color LATAR_HOVER = new Color(0xF8FAFC);
 
     private final JLabel nilai = new JLabel("-");
     private final JLabel judul;
     private final JLabel keterangan;
-    private final JLabel ikon;
+    private final TitikIndikator indikator;
     private final JLabel panahPintasan = new JLabel();
     private final JPanel strip;
-    private final String ikonNama;
     private Color aksenSaatIni;
     private transient Runnable aksiKlik;
     private boolean hover;
     private boolean aktif;
 
     public StatCard(String judul, String ikonNama, Color aksen) {
-        super(new BorderLayout(0, 7));
-        this.ikonNama = ikonNama;
+        super(new BorderLayout(0, Ui.skala(10)));
         this.aksenSaatIni = aksen;
-        setBorder(new EmptyBorder(Ui.skala(18), Ui.skala(18),
-                Ui.skala(18), Ui.skala(18)));
-        this.judul = new JLabel(judul);
-        this.judul.setFont(Ui.font(Font.BOLD, Ui.FONT_LABEL));
-        this.judul.setForeground(Ui.TEKS_LEMBUT);
-        this.keterangan = new JLabel(" ");
-        this.keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_KECIL));
-        this.keterangan.setForeground(Ui.TEKS_LEMBUT);
-        this.nilai.setFont(Ui.font(Font.BOLD, 28f));
-        this.nilai.setForeground(Ui.TEKS);
-        this.ikon = new JLabel(Ui.ikonAksi(ikonNama, 18, aksen)) {
-            private static final long serialVersionUID = 1L;
+        setBorder(new EmptyBorder(
+                Ui.skala(Ui.PADDING_KARTU.top),
+                Ui.skala(Ui.PADDING_KARTU.left),
+                Ui.skala(Ui.PADDING_KARTU.bottom),
+                Ui.skala(Ui.PADDING_KARTU.right)));
 
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                try {
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                            RenderingHints.VALUE_ANTIALIAS_ON);
-                    Color warna = getForeground();
-                    g2.setColor(new Color(warna.getRed(), warna.getGreen(),
-                            warna.getBlue(), 22));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(),
-                            Ui.skala(10), Ui.skala(10));
-                } finally {
-                    g2.dispose();
-                }
-                super.paintComponent(g);
-            }
-        };
-        this.ikon.setForeground(aksen);
-        this.ikon.setHorizontalAlignment(SwingConstants.CENTER);
-        this.ikon.setVerticalAlignment(SwingConstants.CENTER);
-        this.ikon.setPreferredSize(new Dimension(Ui.skala(32), Ui.skala(32)));
+        this.judul = new JLabel(judul);
+        this.judul.setFont(Ui.fontSemiBold(Ui.FONT_LABEL));
+        this.judul.setForeground(Ui.TEKS_LEMBUT);
+
+        this.indikator = new TitikIndikator(aksen);
+
+        this.nilai.setFont(Ui.font(Font.BOLD, Ui.FONT_NILAI));
+        this.nilai.setForeground(Ui.TEKS);
+
+        this.keterangan = new JLabel(" ");
+        this.keterangan.setFont(Ui.font(Font.PLAIN, Ui.FONT_LABEL));
+        this.keterangan.setForeground(Ui.TEKS_LEMBUT);
+
         this.panahPintasan.setIcon(
-                Ui.ikonAksi("arrow-up-right", 14, Ui.TEKS_LEMBUT));
+                Ui.ikonAksi("arrow-up-right", 13, Ui.TEKS_LEMBUT));
         this.panahPintasan.setVisible(false);
+
         this.strip = new JPanel();
         this.strip.setOpaque(false);
 
         JPanel atas = new JPanel(new BorderLayout(8, 0));
         atas.setOpaque(false);
         atas.add(this.judul, BorderLayout.CENTER);
-        atas.add(this.ikon, BorderLayout.EAST);
+        atas.add(this.indikator, BorderLayout.EAST);
 
         JPanel barisKeterangan = new JPanel(new BorderLayout(6, 0));
         barisKeterangan.setOpaque(false);
@@ -99,6 +82,7 @@ public class StatCard extends CardPanel {
         bawah.setOpaque(false);
         bawah.add(barisKeterangan, BorderLayout.NORTH);
         bawah.add(this.strip, BorderLayout.SOUTH);
+
         add(atas, BorderLayout.NORTH);
         add(this.nilai, BorderLayout.CENTER);
         add(bawah, BorderLayout.SOUTH);
@@ -183,40 +167,32 @@ public class StatCard extends CardPanel {
         if (!panahPintasan.isVisible()) {
             return;
         }
-        Color warna = (hover || aktif)
-                ? (aksenSaatIni.equals(Ui.TEKS_LEMBUT) ? Ui.AKSEN : aksenSaatIni)
-                : Ui.TEKS_LEMBUT;
-        panahPintasan.setIcon(Ui.ikonAksi("arrow-up-right", 14, warna));
+        Color warna = (hover || aktif) ? Ui.TEKS : Ui.PLACEHOLDER;
+        panahPintasan.setIcon(Ui.ikonAksi("arrow-up-right", 13, warna));
     }
 
     @Override
     protected Color warnaLatarKartu() {
-        if (aktif) {
-            Color dasar = aksenSaatIni.equals(Ui.TEKS_LEMBUT)
-                    ? Ui.AKSEN : aksenSaatIni;
-            return new Color(dasar.getRed(), dasar.getGreen(),
-                    dasar.getBlue(), 14);
-        }
-        return hover && aksiKlik != null ? LATAR_HOVER : Ui.KARTU;
+        return aktif ? Ui.LATAR : Ui.KARTU;
     }
 
     @Override
     protected Color warnaGarisKartu() {
-        Color fokusWarna = aksenSaatIni.equals(Ui.TEKS_LEMBUT)
-                ? Ui.AKSEN : aksenSaatIni;
-        if (aktif || isFocusOwner()) {
-            return fokusWarna;
+        if (aktif) {
+            return Ui.AKSEN;
+        }
+        if (isFocusOwner()) {
+            return Ui.AKSEN;
         }
         if (hover && aksiKlik != null) {
-            return new Color(fokusWarna.getRed(), fokusWarna.getGreen(),
-                    fokusWarna.getBlue(), 140);
+            return Ui.GARIS_HOVER;
         }
         return Ui.GARIS;
     }
 
     @Override
     protected float tebalGarisKartu() {
-        return (aktif || isFocusOwner()) ? 1.8f : 1f;
+        return (aktif || isFocusOwner()) ? 1.5f : 1f;
     }
 
     public JLabel getNilai() {
@@ -249,11 +225,56 @@ public class StatCard extends CardPanel {
 
     public void setAksen(Color warna) {
         this.aksenSaatIni = warna;
-        ikon.setIcon(Ui.ikonAksi(ikonNama, 18, warna));
-        ikon.setForeground(warna);
-        nilai.setForeground(warna.equals(Ui.TEKS_LEMBUT) ? Ui.TEKS : warna);
+        indikator.aturWarna(warna);
+        boolean peringatan = warna.equals(Ui.MERAH)
+                || warna.equals(Ui.MERAH_BADGE)
+                || warna.equals(Ui.KUNING)
+                || warna.equals(Ui.KUNING_BADGE);
+        nilai.setForeground(peringatan ? warna : Ui.TEKS);
         perbaruiPanah();
-        ikon.repaint();
         repaint();
+    }
+
+    private static final class TitikIndikator extends JPanel {
+        private static final long serialVersionUID = 1L;
+        private Color warna;
+
+        private TitikIndikator(Color warna) {
+            this.warna = warna;
+            setOpaque(false);
+            Dimension ukuran = new Dimension(Ui.skala(14), Ui.skala(14));
+            setPreferredSize(ukuran);
+            setMinimumSize(ukuran);
+            setMaximumSize(ukuran);
+        }
+
+        private void aturWarna(Color baru) {
+            this.warna = baru;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                Color dasar = warna == null ? Ui.GARIS_KUAT : warna;
+                int dLuar = Ui.skala(12);
+                int dDalam = Ui.skala(6);
+                int xLuar = (getWidth() - dLuar) / 2;
+                int yLuar = (getHeight() - dLuar) / 2;
+                g2.setColor(new Color(dasar.getRed(), dasar.getGreen(),
+                        dasar.getBlue(), 34));
+                g2.fillOval(xLuar, yLuar, dLuar, dLuar);
+                int xDalam = (getWidth() - dDalam) / 2;
+                int yDalam = (getHeight() - dDalam) / 2;
+                g2.setColor(dasar.equals(Ui.TEKS_LEMBUT)
+                        ? Ui.GARIS_KUAT : dasar);
+                g2.fillOval(xDalam, yDalam, dDalam, dDalam);
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 }

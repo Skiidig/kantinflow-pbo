@@ -62,11 +62,15 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         peringatanBatchManual.setFont(Ui.font(Font.BOLD, Ui.FONT_KECIL));
         peringatanBatchManual.setForeground(Ui.MERAH);
         fieldJumlahManual.setName("jumlahKeluar");
+        fieldJumlahManual.putClientProperty("JTextField.placeholderText",
+                "Contoh: 10");
         tombolManual.setName("tombolKeluarkan");
         tombolManual.setIcon(
                 Ui.ikonAksi("stock-out", 16, java.awt.Color.WHITE));
         tombolManual.setIconTextGap(7);
         fieldJumlahFefo.setName("jumlahFefo");
+        fieldJumlahFefo.putClientProperty("JTextField.placeholderText",
+                "Contoh: 10");
         tanggalFefo.komponenTeks().setName("tanggalFefo");
         pesanTanggalFefo.setName("pesanTanggalFefo");
         labelPreviewFefo.setName("previewFefo");
@@ -188,9 +192,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         fefoIsi.add(hasilAlokasi);
 
         JTabbedPane mode = new JTabbedPane();
-        mode.setFont(Ui.font(Font.BOLD, Ui.FONT_CATATAN));
-        mode.setBackground(Ui.KARTU);
-        mode.setOpaque(true);
+        Ui.gayaTab(mode);
         mode.setCursor(java.awt.Cursor.getPredefinedCursor(
                 java.awt.Cursor.HAND_CURSOR));
         manualIsi.setCursor(java.awt.Cursor.getDefaultCursor());
@@ -377,7 +379,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                         .append(")");
             }
             aturPreviewFefo(detail.toString(),
-                    Ui.AKSEN_LEMBUT, Ui.AKSEN, Ui.AKSEN_GELAP);
+                    Ui.BIRU_LEMBUT, new Color(0xBFDBFE), Ui.BIRU_BADGE);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             aturPreviewFefo("Preview FEFO: " + exception.getMessage(),
                     Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);

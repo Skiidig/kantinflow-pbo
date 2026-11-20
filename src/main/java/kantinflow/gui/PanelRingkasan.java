@@ -229,7 +229,7 @@ public class PanelRingkasan extends PanelKantin {
     }
 
     private void bangunIsi() {
-        JPanel isi = new JPanel(new BorderLayout(0, 16));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
 
         JPanel kontrol = kartuRingkasan("Filter barang", "search");
@@ -286,12 +286,12 @@ public class PanelRingkasan extends PanelKantin {
         semuaIsi.add(kaki, BorderLayout.SOUTH);
         semua.add(semuaIsi, BorderLayout.CENTER);
 
-        JPanel bawah = new JPanel(new BorderLayout(0, 12));
+        JPanel bawah = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         bawah.setOpaque(false);
         bawah.add(semua, BorderLayout.NORTH);
         bawah.add(peringatan, BorderLayout.CENTER);
 
-        JPanel atas = new JPanel(new BorderLayout(0, 12));
+        JPanel atas = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         atas.setOpaque(false);
         atas.add(kontrol, BorderLayout.NORTH);
         atas.add(nilai, BorderLayout.CENTER);
@@ -306,9 +306,9 @@ public class PanelRingkasan extends PanelKantin {
      */
     private JScrollPane buatGulirTabel(JTable tabel, int tinggi) {
         tabel.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        tabel.getTableHeader().setBackground(Ui.NETRAL_LEMBUT);
+        tabel.getTableHeader().setBackground(Ui.LATAR);
         tabel.getTableHeader().setPreferredSize(
-                new Dimension(0, Ui.skala(40)));
+                new Dimension(0, Ui.skala(Ui.TINGGI_HEADER_TABEL)));
         tabel.setFillsViewportHeight(false);
         JScrollPane gulir = new JScrollPane(tabel);
         gulir.setBorder(javax.swing.BorderFactory.createEmptyBorder());
@@ -572,14 +572,14 @@ public class PanelRingkasan extends PanelKantin {
         kartuPerluRestok.setNilai(perluRestok + " barang");
         kartuPerluRestok.setKeterangan("Layak \u2264 minimum");
         kartuPerluRestok.setAksen(
-                perluRestok > 0 ? Ui.MERAH : Ui.TEKS_LEMBUT);
+                perluRestok > 0 ? Ui.MERAH : Ui.HIJAU);
         kartuSegera.setNilai(segera + " batch");
         kartuSegera.setKeterangan("Sisa batch segera");
-        kartuSegera.setAksen(segera > 0 ? Ui.KUNING : Ui.TEKS_LEMBUT);
+        kartuSegera.setAksen(segera > 0 ? Ui.KUNING : Ui.HIJAU);
         kartuKedaluwarsa.setNilai(kedaluwarsa + " batch");
         kartuKedaluwarsa.setKeterangan("Sisa batch lewat");
         kartuKedaluwarsa.setAksen(
-                kedaluwarsa > 0 ? Ui.MERAH : Ui.TEKS_LEMBUT);
+                kedaluwarsa > 0 ? Ui.MERAH : Ui.HIJAU);
     }
 
     @Override
@@ -622,7 +622,7 @@ public class PanelRingkasan extends PanelKantin {
         kartuStatus.setKeterangan(perluRestok
                 ? "Pada atau di bawah batas"
                 : "Di atas batas");
-        kartuStatus.setAksen(perluRestok ? Ui.MERAH : Ui.AKSEN);
+        kartuStatus.setAksen(perluRestok ? Ui.MERAH : Ui.HIJAU);
 
         perbaruiTabel(acuan);
         perbaruiPeringatan(acuan);

@@ -57,6 +57,8 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         pilihanBarang.setName("barangPembuangan");
         comboBatch.setName("batchBuang");
         fieldJumlah.setName("jumlahBuang");
+        fieldJumlah.putClientProperty("JTextField.placeholderText",
+                "Contoh: 5");
         tanggalPembuangan.komponenTeks().setName("tanggalBuang");
         pesanTanggal.setName("pesanTanggalBuang");
         fieldAlasan.setName("alasanBuang");
@@ -176,7 +178,7 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         tindakanIsi.add(catatan, BorderLayout.CENTER);
         tindakan.add(tindakanIsi, BorderLayout.CENTER);
 
-        JPanel isi = new JPanel(new BorderLayout(0, 16));
+        JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);
         isi.add(form, BorderLayout.NORTH);
         isi.add(tindakan, BorderLayout.CENTER);
