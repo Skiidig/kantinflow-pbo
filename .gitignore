@@ -1,2 +1,31 @@
+# Build & dependency lokal
 /lib/
 /out/
+*.class
+*.log
+tmp/
+
+# File sensitif & kredensial
+.env
+.env.*
+*.pem
+*.key
+serviceAccountKey.json
+
+# Konfigurasi tool AI, editor, & OS
+.commandcode/
+.cursor/
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Database demo lokal & sidecar SQLite
+data/*-demo.db
+*.db-wal
+*.db-shm
+
+# Dokumen laporan lokal di root proyek
+/*.docx
+/*.pdf
