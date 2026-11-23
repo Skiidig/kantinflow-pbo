@@ -170,12 +170,42 @@ final class PemilihTanggal extends DatePicker {
     @Override
     public Dimension getPreferredSize() {
         Dimension ukuran = super.getPreferredSize();
-        return new Dimension(ukuran.width, Ui.tinggiKontrol());
+        return new Dimension(
+                Math.max(ukuran.width, lebarMinimalTanggal()),
+                Ui.tinggiKontrol());
     }
 
     @Override
     public Dimension getMinimumSize() {
         Dimension ukuran = super.getMinimumSize();
-        return new Dimension(ukuran.width, Ui.tinggiKontrol());
+        return new Dimension(
+                Math.max(ukuran.width, lebarMinimalTanggal()),
+                Ui.tinggiKontrol());
+    }
+
+    /**
+     * Menghitung lebar minimum berbasis FontMetrics aktual agar tanggal lengkap
+     * ({@code dd MMM yyyy}) dan tombol kalender tidak terpotong pada scaling
+     * 125% maupun 150%.
+     */
+    private int lebarMinimalTanggal() {
+        JTextField teks = getComponentDateTextField();
+        java.awt.FontMetrics metrik = teks.getFontMetrics(teks.getFont());
+        int lebarTeks = Math.max(
+                Math.max(metrik.stringWidth("28 Des 2026"),
+                        metrik.stringWidth("30 Agu 2026")),
+                Math.max(metrik.stringWidth("28 Sep 2026"),
+                        metrik.stringWidth("30 Mei 2026")));
+        String isiSaatIni = teks.getText();
+        if (isiSaatIni != null && !isiSaatIni.isEmpty()) {
+            lebarTeks = Math.max(lebarTeks, metrik.stringWidth(isiSaatIni));
+        }
+        Insets insetTeks = teks.getInsets();
+        Insets insetKomponen = getInsets();
+        int lebarTombol = getComponentToggleCalendarButton()
+                .getPreferredSize().width;
+        return lebarTeks + insetTeks.left + insetTeks.right
+                + lebarTombol + insetKomponen.left + insetKomponen.right
+                + Ui.skala(10);
     }
 }

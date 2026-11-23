@@ -290,8 +290,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         int jarak = Ui.skala(Ui.GAP_FORM);
         if (!sempit) {
             panel.setLayout(new GridLayout(1, 2, jarak, 0));
-            panel.add(kiri);
-            panel.add(kanan);
+            panel.add(bungkusRataAtas(kiri));
+            panel.add(bungkusRataAtas(kanan));
             return;
         }
         panel.setLayout(new GridBagLayout());
@@ -311,6 +311,17 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         c.gridy = 1;
         c.insets = new Insets(jarak, 0, 0, 0);
         panel.add(kanan, c);
+    }
+
+    /**
+     * Menjaga kolom form tetap rata atas di dalam GridLayout agar input pada
+     * kolom sebelah tidak ikut meregang vertikal saat pesan peringatan tampil.
+     */
+    private static JPanel bungkusRataAtas(JPanel isi) {
+        JPanel wadah = new JPanel(new BorderLayout());
+        wadah.setOpaque(false);
+        wadah.add(isi, BorderLayout.NORTH);
+        return wadah;
     }
 
     private JLabel bantuanMode(String teks) {

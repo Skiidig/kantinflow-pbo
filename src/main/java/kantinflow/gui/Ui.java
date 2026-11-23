@@ -605,40 +605,95 @@ final class Ui {
 
     /**
      * Grid bertahap: empat kolom pada layar lebar, dua kolom pada lebar sedang,
-     * dan satu kolom saat ruang menyempit.
+     * dan satu kolom saat ruang menyempit. Ambang kolom mempertimbangkan
+     * preferred width aktual komponen dan skala UI agar kartu tidak terpotong.
      */
     static JPanel gridBertahap(int kolomMaks, int ambangDua, int ambangSatu,
             Component... komponen) {
-        int kolomAwal = Math.min(kolomMaks, komponen.length);
-        JPanel panel = new JPanel(new GridLayout(
+        int kolomAwal = Math.max(1, Math.min(kolomMaks, komponen.length));
+        JPanel panel = new JPanel() {
+            private static final long serialVersionUID = 1L;
+            private int kolomTerakhir = kolomAwal;
+
+            private int hitungKolom(int lebar) {
+                if (lebar <= 0) {
+                    return kolomAwal;
+                }
+                int gap = skala(GAP_FORM);
+                int lebarKartuMaks = 0;
+                for (Component item : komponen) {
+                    Dimension pref = item.getPreferredSize();
+                    if (pref != null) {
+                        lebarKartuMaks = Math.max(lebarKartuMaks, pref.width);
+                    }
+                }
+                int kolomDua = Math.min(2, komponen.length);
+                int butuhEmpat = kolomAwal * lebarKartuMaks
+                        + Math.max(0, kolomAwal - 1) * gap;
+                int butuhDua = kolomDua * lebarKartuMaks
+                        + Math.max(0, kolomDua - 1) * gap;
+                int batasEmpat = Math.max(ambangDua, butuhEmpat);
+                int batasDua = Math.min(batasEmpat,
+                        Math.max(ambangSatu, butuhDua));
+                if (lebar < batasDua) {
+                    return 1;
+                }
+                if (lebar < batasEmpat) {
+                    return kolomDua;
+                }
+                return kolomAwal;
+            }
+
+            private boolean sinkronkanKolom(int lebar) {
+                int kolom = hitungKolom(lebar);
+                if (kolom == kolomTerakhir) {
+                    return false;
+                }
+                kolomTerakhir = kolom;
+                int gap = skala(GAP_FORM);
+                int baris = Math.max(1,
+                        (komponen.length + kolom - 1) / kolom);
+                setLayout(new GridLayout(baris, kolom, gap, gap));
+                return true;
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                int lebar = getWidth();
+                if (lebar <= 0 && getParent() != null) {
+                    lebar = getParent().getWidth();
+                }
+                sinkronkanKolom(lebar);
+                return super.getPreferredSize();
+            }
+
+            @Override
+            public void doLayout() {
+                boolean berubah = sinkronkanKolom(getWidth());
+                super.doLayout();
+                if (berubah) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        revalidate();
+                        if (getParent() != null) {
+                            getParent().revalidate();
+                        }
+                        repaint();
+                    });
+                }
+            }
+        };
+        int gapAwal = skala(GAP_FORM);
+        panel.setLayout(new GridLayout(
                 Math.max(1, (komponen.length + kolomAwal - 1) / kolomAwal),
-                Math.max(1, kolomAwal), skala(GAP_FORM), skala(GAP_FORM)));
+                kolomAwal, gapAwal, gapAwal));
         panel.setOpaque(false);
         for (Component item : komponen) {
             panel.add(item);
         }
         panel.addComponentListener(new ComponentAdapter() {
-            private int kolomTerakhir = kolomAwal;
-
             @Override
             public void componentResized(ComponentEvent event) {
-                int lebar = panel.getWidth();
-                if (lebar <= 0) {
-                    return;
-                }
-                int kolom = lebar < ambangSatu ? 1
-                        : lebar < ambangDua ? Math.min(2, komponen.length)
-                        : kolomAwal;
-                if (kolom == kolomTerakhir) {
-                    return;
-                }
-                kolomTerakhir = kolom;
-                int baris = Math.max(1,
-                        (komponen.length + kolom - 1) / kolom);
-                panel.setLayout(new GridLayout(baris, kolom,
-                        skala(GAP_FORM), skala(GAP_FORM)));
-                panel.revalidate();
-                panel.repaint();
+                panel.doLayout();
             }
         });
         return panel;

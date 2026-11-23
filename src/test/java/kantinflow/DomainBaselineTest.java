@@ -101,6 +101,8 @@ public final class DomainBaselineTest {
                 DomainBaselineTest::guiPhase3bAksesibilitasShortcutDanFadeOverlay);
         uji("23. GUI Phase 3C: Badge enum, BadgeRenderer reuse, tinggiKontrol, StatCard, & pesan",
                 DomainBaselineTest::guiPhase3cKonsistensiVisualDanCleanup);
+        uji("24. GUI Phase 3E: tinggi Jumlah Manual, lebar PemilihTanggal, & grid StatCard responsif",
+                DomainBaselineTest::guiPhase3ePerbaikanVisualP2);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -1081,6 +1083,125 @@ public final class DomainBaselineTest {
             throw new AssertionError("Kegagalan uji GUI Phase 3C: "
                     + galat.get(), galat.get());
         }
+    }
+
+    private static void guiPhase3ePerbaikanVisualP2() throws Exception {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("       (Dilewati: lingkungan headless)");
+            return;
+        }
+        AtomicReference<Throwable> galat = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            PenyimpananTerhitung db = new PenyimpananTerhitung();
+            JendelaKantinFlow jendela = null;
+            try {
+                LocalDate hariIni = LocalDate.now();
+                Barang susu = db.muatSemuaBarang().get(0);
+                PenerimaanStok terimaExp = new PenerimaanStok(hariIni.minusDays(10));
+                terimaExp.terima(susu, "EXP-P2", 5,
+                        hariIni.minusDays(10), hariIni.minusDays(2));
+                db.simpanTransaksi(susu, terimaExp);
+
+                jendela = new JendelaKantinFlow(db);
+                jendela.pack();
+                jendela.setSize(1280, 800);
+                jendela.doLayout();
+                jendela.validate();
+
+                Class<?> kelasUi = Class.forName("kantinflow.gui.Ui");
+                java.lang.reflect.Method mTinggi = kelasUi.getDeclaredMethod("tinggiKontrol");
+                mTinggi.setAccessible(true);
+                int tinggiNormal = (Integer) mTinggi.invoke(null);
+
+                // 1. FIX 1: Tinggi field Jumlah pada tab Manual tidak meregang saat warning tampil
+                jendela.bukaHalaman("stok-keluar");
+                jendela.getContentPane().setSize(1280, 800);
+                jendela.getContentPane().doLayout();
+                jendela.getContentPane().validate();
+                Component peringatan = cariKomponen(jendela, "peringatanBatchManual");
+                Component jumlahKeluar = cariKomponen(jendela, "jumlahKeluar");
+                Component tombolManual = cariKomponen(jendela, "tombolKeluarkan");
+                benar(peringatan != null && peringatan.isVisible(),
+                        "peringatan batch kedaluwarsa tampil pada tab Manual");
+                benar(tombolManual != null && !tombolManual.isEnabled(),
+                        "tombol Keluarkan Manual nonaktif untuk batch kedaluwarsa");
+                benar(jumlahKeluar != null, "field jumlahKeluar ditemukan");
+                sama(tinggiNormal, jumlahKeluar.getHeight(),
+                        "tinggi field jumlahKeluar tetap normal saat warning tampil");
+
+                // 2. FIX 2: Preferred width PemilihTanggal cukup untuk tanggal lengkap + tombol kalender
+                jendela.bukaHalaman("ringkasan");
+                Component teksTanggal = cariKomponen(jendela, "tanggalRingkasan");
+                DatePicker pemilih = cariParentDatePicker(teksTanggal);
+                benar(pemilih != null, "PemilihTanggal ditemukan di Ringkasan");
+                javax.swing.JTextField fieldTgl = pemilih.getComponentDateTextField();
+                int lebarTeks = fieldTgl.getFontMetrics(fieldTgl.getFont())
+                        .stringWidth("28 Des 2026");
+                int lebarMinDiharapkan = lebarTeks
+                        + fieldTgl.getInsets().left + fieldTgl.getInsets().right
+                        + pemilih.getComponentToggleCalendarButton().getPreferredSize().width
+                        + pemilih.getInsets().left + pemilih.getInsets().right;
+                benar(pemilih.getPreferredSize().width >= lebarMinDiharapkan,
+                        "preferred width PemilihTanggal cukup untuk tanggal penuh dan tombol kalender");
+                benar(pemilih.getComponentToggleCalendarButton().isFocusable(),
+                        "tombol kalender PemilihTanggal tetap fokusabel");
+
+                // 3. FIX 3: Grid StatCard responsif pada 1280px, 1100px, dan 960px
+                Container gridKartu = cariParentGridStatCard(jendela);
+                benar(gridKartu != null, "grid StatCard ditemukan di Ringkasan");
+                for (int lebarJendela : new int[]{1280, 1100, 960}) {
+                    jendela.setSize(lebarJendela, 800);
+                    jendela.getContentPane().setSize(lebarJendela, 800);
+                    jendela.getContentPane().doLayout();
+                    jendela.getContentPane().validate();
+                    gridKartu.doLayout();
+                    java.awt.GridLayout gl = (java.awt.GridLayout) gridKartu.getLayout();
+                    int kolom = gl.getColumns();
+                    benar(kolom == 1 || kolom == 2 || kolom == 4,
+                            "jumlah kolom grid StatCard valid pada " + lebarJendela + "px");
+                    if (lebarJendela == 960) {
+                        benar(kolom <= 2,
+                                "grid StatCard memakai <=2 kolom pada lebar 960px agar tidak terpotong");
+                    }
+                    // Pastikan tidak ada StatCard yang lebih sempit dari preferred width-nya bila kolom > 1
+                    if (kolom > 1 && gridKartu.getComponentCount() > 0) {
+                        Component c0 = gridKartu.getComponent(0);
+                        benar(c0.getWidth() >= c0.getPreferredSize().width - 2,
+                                "StatCard tidak terpotong pada " + lebarJendela + "px (w="
+                                        + c0.getWidth() + ", pref=" + c0.getPreferredSize().width + ")");
+                    }
+                }
+
+                // 4. Navigasi setelah perubahan tetap lancar
+                jendela.bukaHalaman("pemantauan");
+                jendela.bukaHalaman("riwayat");
+            } catch (Throwable t) {
+                galat.set(t);
+            } finally {
+                if (jendela != null) {
+                    jendela.tutup();
+                }
+            }
+        });
+        if (galat.get() != null) {
+            throw new AssertionError("Kegagalan uji GUI Phase 3E: "
+                    + galat.get(), galat.get());
+        }
+    }
+
+    private static Container cariParentGridStatCard(Container akar) {
+        for (Component anak : akar.getComponents()) {
+            if (anak instanceof StatCard && akar.getLayout() instanceof java.awt.GridLayout) {
+                return akar;
+            }
+            if (anak instanceof Container wadah) {
+                Container ketemu = cariParentGridStatCard(wadah);
+                if (ketemu != null) {
+                    return ketemu;
+                }
+            }
+        }
+        return null;
     }
 
     private static DatePicker cariParentDatePicker(Component komponen) {
