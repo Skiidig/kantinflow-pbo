@@ -13,8 +13,10 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +43,7 @@ public class PenyimpananSQLite implements AutoCloseable {
         }
 
         this.lokasiDatabase = lokasiDatabase;
+        Connection koneksiBaru = null;
         try {
             if (!":memory:".equals(lokasiDatabase)) {
                 Path file = Paths.get(lokasiDatabase).toAbsolutePath();
@@ -50,19 +53,36 @@ public class PenyimpananSQLite implements AutoCloseable {
                 }
             }
             Class.forName("org.sqlite.JDBC");
-            this.koneksi = DriverManager.getConnection("jdbc:sqlite:" + lokasiDatabase);
+            koneksiBaru = DriverManager.getConnection("jdbc:sqlite:" + lokasiDatabase);
+            this.koneksi = koneksiBaru;
             try (Statement statement = koneksi.createStatement()) {
                 statement.execute("PRAGMA foreign_keys = ON");
+                statement.execute("PRAGMA busy_timeout = 5000");
             }
             siapkanSkema();
         } catch (ClassNotFoundException exception) {
+            tutupDiam(koneksiBaru);
             throw new PenyimpananException(
                     "Driver SQLite JDBC tidak ditemukan. Tambahkan sqlite-jdbc ke classpath.",
                     exception);
-        } catch (IOException | SQLException exception) {
+        } catch (IOException | SQLException | RuntimeException exception) {
+            tutupDiam(koneksiBaru);
+            if (exception instanceof PenyimpananException penyimpananException) {
+                throw penyimpananException;
+            }
             throw new PenyimpananException(
                     "Gagal membuka database: " + lokasiDatabase,
                     exception);
+        }
+    }
+
+    private static void tutupDiam(Connection kandidat) {
+        if (kandidat != null) {
+            try {
+                kandidat.close();
+            } catch (SQLException ignored) {
+                // Kegagalan inisialisasi utama tetap dilempar.
+            }
         }
     }
 
@@ -165,19 +185,51 @@ public class PenyimpananSQLite implements AutoCloseable {
     }
 
     /**
-     * Memuat seluruh barang beserta batch-nya. Data lama dengan id=1 ikut
-     * terambil tanpa penyalinan.
+     * Memuat seluruh barang beserta batch-nya dalam maksimal 2 query SQL
+     * dengan tetap mempertahankan urutan barang dan batch berdasarkan id.
      */
-    public List<Barang> muatSemuaBarang() {
-        List<Barang> daftar = new ArrayList<>();
-        try (Statement statement = koneksi.createStatement();
-                ResultSet result = statement.executeQuery(
-                        "SELECT id FROM barang ORDER BY id")) {
-            while (result.next()) {
-                daftar.add(muatBarang(result.getInt("id")));
+    public synchronized List<Barang> muatSemuaBarang() {
+        Map<Integer, Barang> petaBarang = new LinkedHashMap<>();
+        try {
+            try (Statement statement = koneksi.createStatement();
+                    ResultSet result = statement.executeQuery(
+                            "SELECT id, nama, satuan, stok_minimum "
+                            + "FROM barang ORDER BY id")) {
+                while (result.next()) {
+                    int id = result.getInt("id");
+                    Barang barang = new Barang(
+                            id,
+                            result.getString("nama"),
+                            result.getString("satuan"),
+                            result.getInt("stok_minimum"));
+                    petaBarang.put(id, barang);
+                }
             }
-            return daftar;
-        } catch (SQLException exception) {
+            if (petaBarang.isEmpty()) {
+                return new ArrayList<>();
+            }
+            try (Statement statement = koneksi.createStatement();
+                    ResultSet result = statement.executeQuery(
+                            "SELECT barang_id, kode, tanggal_masuk, "
+                            + "tanggal_kedaluwarsa, sisa_jumlah "
+                            + "FROM batch ORDER BY id")) {
+                while (result.next()) {
+                    Barang barang = petaBarang.get(result.getInt("barang_id"));
+                    if (barang == null) {
+                        continue;
+                    }
+                    BatchStok batch = new BatchStok(
+                            result.getString("kode"),
+                            parseTanggal(result.getString("tanggal_masuk"),
+                                    "masuk batch"),
+                            parseTanggal(result.getString("tanggal_kedaluwarsa"),
+                                    "kedaluwarsa batch"),
+                            result.getInt("sisa_jumlah"));
+                    barang.tambahBatch(batch);
+                }
+            }
+            return new ArrayList<>(petaBarang.values());
+        } catch (SQLException | IllegalArgumentException exception) {
             throw new PenyimpananException("Gagal memuat daftar barang", exception);
         }
     }
@@ -185,7 +237,7 @@ public class PenyimpananSQLite implements AutoCloseable {
     /**
      * Kompatibilitas untuk pemanggil lama: barang pertama pada database.
      */
-    public Barang muatBarang() {
+    public synchronized Barang muatBarang() {
         List<Barang> daftar = muatSemuaBarang();
         if (daftar.isEmpty()) {
             throw new PenyimpananException("Data barang tidak ditemukan di database");
@@ -193,7 +245,7 @@ public class PenyimpananSQLite implements AutoCloseable {
         return daftar.get(0);
     }
 
-    public Barang muatBarang(int id) {
+    public synchronized Barang muatBarang(int id) {
         if (id <= 0) {
             throw new IllegalArgumentException("ID barang tidak valid");
         }
@@ -224,15 +276,17 @@ public class PenyimpananSQLite implements AutoCloseable {
                     while (result.next()) {
                         BatchStok batch = new BatchStok(
                                 result.getString("kode"),
-                                LocalDate.parse(result.getString("tanggal_masuk")),
-                                LocalDate.parse(result.getString("tanggal_kedaluwarsa")),
+                                parseTanggal(result.getString("tanggal_masuk"),
+                                        "masuk batch"),
+                                parseTanggal(result.getString("tanggal_kedaluwarsa"),
+                                        "kedaluwarsa batch"),
                                 result.getInt("sisa_jumlah"));
                         barang.tambahBatch(batch);
                     }
                 }
             }
             return barang;
-        } catch (SQLException exception) {
+        } catch (SQLException | IllegalArgumentException exception) {
             throw new PenyimpananException("Gagal memuat barang dari database", exception);
         }
     }
@@ -242,7 +296,7 @@ public class PenyimpananSQLite implements AutoCloseable {
      * sama. Pencarian memakai id barang dan semua batch tersimpan, termasuk
      * batch yang sudah habis.
      */
-    public String kodeBatchBerikutnya(Barang barang, LocalDate tanggalMasuk) {
+    public synchronized String kodeBatchBerikutnya(Barang barang, LocalDate tanggalMasuk) {
         if (barang == null || barang.getId() <= 0) {
             throw new IllegalArgumentException("Barang aktif tidak valid");
         }
@@ -287,7 +341,7 @@ public class PenyimpananSQLite implements AutoCloseable {
     /**
      * Menyimpan barang baru dan mengembalikan objek dengan id database.
      */
-    public Barang simpanBarang(Barang barang) {
+    public synchronized Barang simpanBarang(Barang barang) {
         if (barang == null) {
             throw new IllegalArgumentException("Barang wajib diisi");
         }
@@ -341,7 +395,7 @@ public class PenyimpananSQLite implements AutoCloseable {
         }
     }
 
-    public void simpanStokMinimum(Barang barang, int stokMinimum) {
+    public synchronized void simpanStokMinimum(Barang barang, int stokMinimum) {
         if (barang == null || barang.getId() <= 0) {
             throw new IllegalArgumentException("Barang aktif tidak valid");
         }
@@ -362,7 +416,7 @@ public class PenyimpananSQLite implements AutoCloseable {
         }
     }
 
-    public List<Transaksi> muatRiwayat(Barang barang) {
+    public synchronized List<Transaksi> muatRiwayat(Barang barang) {
         if (barang == null || barang.getId() <= 0) {
             throw new IllegalArgumentException("Barang aktif tidak valid");
         }
@@ -370,22 +424,6 @@ public class PenyimpananSQLite implements AutoCloseable {
             Map<String, BatchStok> batchBerdasarkanKode = new HashMap<>();
             for (BatchStok batch : barang.getDaftarBatch()) {
                 batchBerdasarkanKode.put(batch.getKode(), batch);
-            }
-
-            Map<Integer, BatchStok> batchBerdasarkanId = new HashMap<>();
-            try (PreparedStatement statement = koneksi.prepareStatement(
-                    "SELECT id, kode FROM batch WHERE barang_id = ?")) {
-                statement.setInt(1, barang.getId());
-                try (ResultSet result = statement.executeQuery()) {
-                    while (result.next()) {
-                        BatchStok batch = batchBerdasarkanKode.get(result.getString("kode"));
-                        if (batch == null) {
-                            throw new PenyimpananException("Batch rujukan tidak ditemukan: "
-                                    + result.getString("kode"));
-                        }
-                        batchBerdasarkanId.put(result.getInt("id"), batch);
-                    }
-                }
             }
 
             List<Transaksi> riwayat = new ArrayList<>();
@@ -396,9 +434,11 @@ public class PenyimpananSQLite implements AutoCloseable {
             List<RincianTransaksi> rincian = new ArrayList<>();
 
             String sql = "SELECT t.id, t.jenis, t.tanggal, t.alasan, "
-                    + "r.batch_id, r.jumlah "
+                    + "b.kode AS kode_batch, r.jumlah "
                     + "FROM transaksi t "
                     + "JOIN rincian_transaksi r ON r.transaksi_id = t.id "
+                    + "LEFT JOIN batch b ON b.id = r.batch_id "
+                    + "AND b.barang_id = t.barang_id "
                     + "WHERE t.barang_id = ? "
                     + "ORDER BY t.id, r.id";
             try (PreparedStatement statement = koneksi.prepareStatement(sql)) {
@@ -413,13 +453,19 @@ public class PenyimpananSQLite implements AutoCloseable {
                             }
                             idTransaksi = id;
                             jenis = result.getString("jenis");
-                            tanggal = LocalDate.parse(result.getString("tanggal"));
+                            tanggal = parseTanggal(
+                                    result.getString("tanggal"), "transaksi");
                             alasan = result.getString("alasan");
                             rincian = new ArrayList<>();
                         }
-                        BatchStok batch = batchBerdasarkanId.get(result.getInt("batch_id"));
-                        if (batch == null) {
+                        String kodeBatch = result.getString("kode_batch");
+                        if (kodeBatch == null) {
                             throw new PenyimpananException("Batch rincian tidak ditemukan");
+                        }
+                        BatchStok batch = batchBerdasarkanKode.get(kodeBatch.trim());
+                        if (batch == null) {
+                            throw new PenyimpananException("Batch rujukan tidak ditemukan: "
+                                    + kodeBatch);
                         }
                         rincian.add(new RincianTransaksi(batch, result.getInt("jumlah")));
                     }
@@ -429,8 +475,21 @@ public class PenyimpananSQLite implements AutoCloseable {
                 riwayat.add(buatTransaksi(idTransaksi, jenis, tanggal, alasan, rincian));
             }
             return riwayat;
-        } catch (SQLException exception) {
+        } catch (SQLException | IllegalArgumentException exception) {
             throw new PenyimpananException("Gagal memuat riwayat dari database", exception);
+        }
+    }
+
+    private static LocalDate parseTanggal(String teks, String kolom) {
+        if (teks == null || teks.isBlank()) {
+            throw new PenyimpananException("Tanggal " + kolom + " kosong di database");
+        }
+        try {
+            return LocalDate.parse(teks.trim());
+        } catch (DateTimeParseException exception) {
+            throw new PenyimpananException(
+                    "Format tanggal " + kolom + " tidak valid di database: " + teks,
+                    exception);
         }
     }
 
@@ -467,7 +526,7 @@ public class PenyimpananSQLite implements AutoCloseable {
      * Menyimpan transaksi untuk barang aktif. Kepemilikan batch diperiksa
      * kembali di lapisan penyimpanan sebelum transaksi SQL dimulai.
      */
-    public void simpanTransaksi(Barang barang, Transaksi transaksi) {
+    public synchronized void simpanTransaksi(Barang barang, Transaksi transaksi) {
         if (barang == null || barang.getId() <= 0) {
             throw new IllegalArgumentException("Barang aktif tidak valid");
         }
@@ -618,7 +677,7 @@ public class PenyimpananSQLite implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         try {
             koneksi.close();
         } catch (SQLException exception) {

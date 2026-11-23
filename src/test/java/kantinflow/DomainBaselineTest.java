@@ -3,9 +3,18 @@ package kantinflow;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
@@ -42,6 +51,20 @@ public final class DomainBaselineTest {
         uji("10. Normalisasi input (trim) & duplikat kode", DomainBaselineTest::normalisasiInput);
         uji("11. SQLite in-memory round-trip", DomainBaselineTest::sqliteRoundTrip);
         uji("12. Kompatibilitas mode demo", DomainBaselineTest::modeDemo);
+        uji("13. Multi-item & multi-batch loading serta urutan barang/batch",
+                DomainBaselineTest::multiBarangDanUrutanBatch);
+        uji("14. Riwayat multi-rincian & validasi batch rujukan",
+                DomainBaselineTest::riwayatMultiRincianDanRujukan);
+        uji("15. Penanganan tanggal & data database korup",
+                DomainBaselineTest::penangananDataKorup);
+        uji("16. Pembersihan koneksi saat konstruktor PenyimpananSQLite gagal",
+                DomainBaselineTest::pembersihanKoneksiKonstruktorGagal);
+        uji("17. Rollback transaksi SQLite saat gagal di tengah transaksi",
+                DomainBaselineTest::rollbackTransaksiSqlite);
+        uji("18. Akses konkuren multi-thread PenyimpananSQLite",
+                DomainBaselineTest::aksesKonkurenSqlite);
+        uji("19. Pemulihan state in-memory MenuKonsol saat simpan gagal",
+                DomainBaselineTest::pemulihanStateMenuKonsol);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -329,6 +352,279 @@ public final class DomainBaselineTest {
         benar(keluaran.contains("Stok tidak cukup: diminta 4 kotak, tersedia 3 kotak"),
                 "skenario 4");
         benar(keluaran.contains("Saldo: 3 kotak"), "saldo akhir demo");
+    }
+
+    private static void multiBarangDanUrutanBatch() {
+        try (PenyimpananSQLite db = new PenyimpananSQLite(":memory:")) {
+            // Barang 1 sudah ada dari seed ("Susu Kotak")
+            Barang b2 = db.simpanBarang(new Barang("Teh Botol", "botol"));
+            Barang b3 = db.simpanBarang(new Barang("Air Mineral", "botol"));
+            db.simpanStokMinimum(b2, 5);
+            db.simpanStokMinimum(b3, 12);
+
+            Barang b1 = db.muatBarang(1);
+            // Sisipkan batch berselang-seling lintas barang untuk menguji urutan ORDER BY id
+            PenerimaanStok p1 = new PenerimaanStok(HARI.minusDays(5));
+            p1.terima(b1, "SUSU-01", 6, HARI.minusDays(5), HARI.plusDays(10));
+            db.simpanTransaksi(b1, p1);
+
+            PenerimaanStok p2 = new PenerimaanStok(HARI.minusDays(4));
+            p2.terima(b2, "TEH-01", 8, HARI.minusDays(4), HARI.plusDays(15));
+            db.simpanTransaksi(b2, p2);
+
+            PenerimaanStok p3 = new PenerimaanStok(HARI.minusDays(3));
+            p3.terima(b1, "SUSU-02", 4, HARI.minusDays(3), HARI.plusDays(20));
+            db.simpanTransaksi(b1, p3);
+
+            PenerimaanStok p4 = new PenerimaanStok(HARI.minusDays(2));
+            p4.terima(b3, "AIR-01", 15, HARI.minusDays(2), HARI.plusDays(30));
+            db.simpanTransaksi(b3, p4);
+
+            PenerimaanStok p5 = new PenerimaanStok(HARI.minusDays(1));
+            p5.terima(b2, "TEH-02", 7, HARI.minusDays(1), HARI.plusDays(25));
+            db.simpanTransaksi(b2, p5);
+
+            List<Barang> semua = db.muatSemuaBarang();
+            sama(3, semua.size(), "jumlah barang dimuat");
+            sama(1, semua.get(0).getId(), "urutan barang 1");
+            sama(b2.getId(), semua.get(1).getId(), "urutan barang 2");
+            sama(b3.getId(), semua.get(2).getId(), "urutan barang 3");
+            sama(5, semua.get(1).getStokMinimum(), "stok minimum barang 2");
+            sama(12, semua.get(2).getStokMinimum(), "stok minimum barang 3");
+
+            sama(2, semua.get(0).jumlahBatch(), "batch barang 1");
+            sama("SUSU-01", semua.get(0).getDaftarBatch().get(0).getKode(), "urutan batch 1.1");
+            sama("SUSU-02", semua.get(0).getDaftarBatch().get(1).getKode(), "urutan batch 1.2");
+
+            sama(2, semua.get(1).jumlahBatch(), "batch barang 2");
+            sama("TEH-01", semua.get(1).getDaftarBatch().get(0).getKode(), "urutan batch 2.1");
+            sama("TEH-02", semua.get(1).getDaftarBatch().get(1).getKode(), "urutan batch 2.2");
+
+            // Bandingkan dengan muatBarang(id) individual
+            for (Barang dariSemua : semua) {
+                Barang tunggal = db.muatBarang(dariSemua.getId());
+                sama(tunggal.getNama(), dariSemua.getNama(), "nama cocok");
+                sama(tunggal.hitungSaldo(), dariSemua.hitungSaldo(), "saldo cocok");
+                sama(tunggal.jumlahBatch(), dariSemua.jumlahBatch(), "jumlah batch cocok");
+            }
+        }
+    }
+
+    private static void riwayatMultiRincianDanRujukan() {
+        try (PenyimpananSQLite db = new PenyimpananSQLite(":memory:")) {
+            Barang barang = db.muatBarang(1);
+            for (int i = 1; i <= 3; i++) {
+                PenerimaanStok masuk = new PenerimaanStok(HARI.minusDays(5));
+                masuk.terima(barang, "B-" + i, 5, HARI.minusDays(5), HARI.plusDays(i * 3));
+                db.simpanTransaksi(barang, masuk);
+            }
+            PengeluaranStok fefo = new PengeluaranStok(HARI);
+            fefo.keluarkanFefo(barang, 12);
+            db.simpanTransaksi(barang, fefo);
+
+            Barang dimuat = db.muatSemuaBarang().get(0);
+            List<Transaksi> riwayat = db.muatRiwayat(dimuat);
+            sama(4, riwayat.size(), "3 penerimaan + 1 FEFO");
+            Transaksi txFefo = riwayat.get(3);
+            sama("Pengeluaran FEFO", txFefo.getJenis(), "jenis FEFO");
+            sama(12, txFefo.getJumlah(), "total jumlah FEFO");
+            sama(3, txFefo.getRincian().size(), "3 rincian FEFO");
+            sama("B-1", txFefo.getRincian().get(0).getBatch().getKode(), "rincian 1");
+            sama(5, txFefo.getRincian().get(0).getJumlah(), "jumlah rincian 1");
+            sama("B-2", txFefo.getRincian().get(1).getBatch().getKode(), "rincian 2");
+            sama(5, txFefo.getRincian().get(1).getJumlah(), "jumlah rincian 2");
+            sama("B-3", txFefo.getRincian().get(2).getBatch().getKode(), "rincian 3");
+            sama(2, txFefo.getRincian().get(2).getJumlah(), "jumlah rincian 3");
+            benar(dimuat.memilikiBatch(txFefo.getRincian().get(0).getBatch()),
+                    "referensi batch rincian terhubung ke daftarBatch barang");
+
+            // Jika objek Barang belum memuat batch rujukan, muatRiwayat melempar PenyimpananException
+            Barang tanpaBatch = new Barang(dimuat.getId(), dimuat.getNama(), dimuat.getSatuan());
+            lempar(PenyimpananException.class, () -> db.muatRiwayat(tanpaBatch));
+        }
+    }
+
+    private static void penangananDataKorup() throws Exception {
+        Path file = Files.createTempFile("kf-corrupt-", ".db");
+        try {
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                Barang b = db.muatBarang(1);
+                PenerimaanStok masuk = new PenerimaanStok(HARI);
+                masuk.terima(b, "B-1", 5, HARI, HARI.plusDays(5));
+                db.simpanTransaksi(b, masuk);
+            }
+            // Rusak tanggal_masuk di tabel batch
+            try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file);
+                    Statement s = c.createStatement()) {
+                s.executeUpdate("UPDATE batch SET tanggal_masuk = 'bukan-tanggal'");
+            }
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                // Kesalahan pemrograman (argumen tidak valid) tetap IllegalArgumentException
+                lempar(IllegalArgumentException.class, () -> db.muatBarang(0));
+                lempar(IllegalArgumentException.class, () -> db.muatRiwayat(null));
+
+                try {
+                    db.muatSemuaBarang();
+                    throw new AssertionError("Harusnya gagal karena tanggal korup");
+                } catch (PenyimpananException expected) {
+                    benar(expected.getCause() instanceof DateTimeParseException,
+                            "cause harus DateTimeParseException: " + expected.getCause());
+                }
+                try {
+                    db.muatBarang(1);
+                    throw new AssertionError("Harusnya gagal karena tanggal korup");
+                } catch (PenyimpananException expected) {
+                    benar(expected.getCause() instanceof DateTimeParseException,
+                            "cause muatBarang harus DateTimeParseException");
+                }
+            }
+            // Perbaiki batch, tetapi rusak tanggal di tabel transaksi
+            try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file);
+                    Statement s = c.createStatement()) {
+                s.executeUpdate("UPDATE batch SET tanggal_masuk = '2026-11-20'");
+                s.executeUpdate("UPDATE transaksi SET tanggal = '2026-99-99'");
+            }
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                Barang b = db.muatBarang(1);
+                try {
+                    db.muatRiwayat(b);
+                    throw new AssertionError("Harusnya gagal karena tanggal transaksi korup");
+                } catch (PenyimpananException expected) {
+                    benar(expected.getCause() instanceof DateTimeParseException,
+                            "cause muatRiwayat harus DateTimeParseException");
+                }
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    private static void pembersihanKoneksiKonstruktorGagal() throws Exception {
+        Path file = Files.createTempFile("kf-leak-", ".db");
+        try {
+            // Buat VIEW bernama 'barang' agar siapkanSkema() gagal saat INSERT INTO barang
+            try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file);
+                    Statement s = c.createStatement()) {
+                s.executeUpdate("CREATE VIEW barang AS SELECT 1 AS id");
+            }
+            lempar(PenyimpananException.class,
+                    () -> new PenyimpananSQLite(file.toString()));
+            // Di Windows, Files.delete akan gagal jika koneksi JDBC bocor (belum ditutup)
+            Files.delete(file);
+            benar(!Files.exists(file), "file DB berhasil dihapus karena koneksi sudah ditutup");
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    private static void rollbackTransaksiSqlite() throws Exception {
+        Path file = Files.createTempFile("kf-rollback-", ".db");
+        try {
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                Barang b = db.muatBarang(1);
+                PenerimaanStok masuk = new PenerimaanStok(HARI);
+                masuk.terima(b, "B-1", 10, HARI, HARI.plusDays(5));
+                db.simpanTransaksi(b, masuk);
+            }
+            // Pasang trigger yang menggagalkan INSERT rincian_transaksi berikutnya
+            try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file);
+                    Statement s = c.createStatement()) {
+                s.executeUpdate("CREATE TRIGGER gagal_rincian BEFORE INSERT ON rincian_transaksi "
+                        + "BEGIN SELECT RAISE(ABORT, 'simulasi gagal rincian'); END;");
+            }
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                Barang b = db.muatBarang(1);
+                BatchStok batch = b.getDaftarBatch().get(0);
+                PengeluaranStok keluar = new PengeluaranStok(HARI);
+                keluar.keluarkan(b, batch, 4);
+                lempar(PenyimpananException.class, () -> db.simpanTransaksi(b, keluar));
+
+                // Pastikan rollback berhasil: sisa batch di DB tetap 10 dan riwayat tetap 1
+                Barang setelahRollback = db.muatBarang(1);
+                sama(10, setelahRollback.hitungSaldo(), "saldo DB tetap 10 setelah rollback");
+                sama(1, db.muatRiwayat(setelahRollback).size(), "riwayat DB tetap 1 setelah rollback");
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    private static void aksesKonkurenSqlite() throws Exception {
+        try (PenyimpananSQLite db = new PenyimpananSQLite(":memory:")) {
+            Barang b = db.muatBarang(1);
+            PenerimaanStok awal = new PenerimaanStok(HARI.minusDays(5));
+            awal.terima(b, "B-AWAL", 100, HARI.minusDays(5), HARI.plusDays(30));
+            db.simpanTransaksi(b, awal);
+
+            int jumlahThread = 4;
+            CountDownLatch mulai = new CountDownLatch(1);
+            CountDownLatch selesai = new CountDownLatch(jumlahThread);
+            AtomicReference<Throwable> galat = new AtomicReference<>();
+
+            for (int t = 0; t < jumlahThread; t++) {
+                final int idx = t;
+                new Thread(() -> {
+                    try {
+                        mulai.await();
+                        for (int i = 0; i < 5; i++) {
+                            Barang baru = db.simpanBarang(
+                                    new Barang("Barang-" + idx + "-" + i, "pcs"));
+                            db.simpanStokMinimum(baru, i);
+                            List<Barang> semua = db.muatSemuaBarang();
+                            benar(!semua.isEmpty(), "muatSemuaBarang tidak kosong");
+                            List<Transaksi> r = db.muatRiwayat(semua.get(0));
+                            sama(1, r.size(), "riwayat barang 1 konsisten");
+                        }
+                    } catch (Throwable throwable) {
+                        galat.compareAndSet(null, throwable);
+                    } finally {
+                        selesai.countDown();
+                    }
+                }).start();
+            }
+            mulai.countDown();
+            selesai.await();
+            if (galat.get() != null) {
+                throw new AssertionError("Kegagalan akses konkuren: " + galat.get(), galat.get());
+            }
+            sama(1 + jumlahThread * 5, db.muatSemuaBarang().size(),
+                    "seluruh barang dari semua thread tersimpan utuh");
+        }
+    }
+
+    private static void pemulihanStateMenuKonsol() throws Exception {
+        Path file = Files.createTempFile("kf-konsol-", ".db");
+        try {
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                Barang b = db.muatBarang(1);
+                PenerimaanStok masuk = new PenerimaanStok(HARI);
+                masuk.terima(b, "SUSU-1", 10, HARI, HARI.plusDays(10));
+                db.simpanTransaksi(b, masuk);
+            }
+            try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file);
+                    Statement s = c.createStatement()) {
+                s.executeUpdate("CREATE TRIGGER tolak_tx BEFORE INSERT ON transaksi "
+                        + "BEGIN SELECT RAISE(ABORT, 'simulasi gagal tx'); END;");
+            }
+            try (PenyimpananSQLite db = new PenyimpananSQLite(file.toString())) {
+                // Menu 5 (FEFO 4 kotak pada HARI) -> gagal simpan di DB -> Menu 6 (cek saldo) -> Menu 10 (keluar)
+                String input = "5\n4\n" + HARI + "\n6\n10\n";
+                PrintStream asli = System.out;
+                ByteArrayOutputStream tangkap = new ByteArrayOutputStream();
+                try {
+                    System.setOut(new PrintStream(tangkap, true, StandardCharsets.UTF_8));
+                    new MenuKonsol(new Scanner(input), db).jalankan();
+                } finally {
+                    System.setOut(asli);
+                }
+                String keluaran = tangkap.toString(StandardCharsets.UTF_8);
+                benar(keluaran.contains("Penyimpanan gagal"), "pesan gagal tampil");
+                benar(keluaran.contains("Stok fisik: 10 kotak"),
+                        "saldo in-memory pulih ke 10 kotak setelah gagal simpan");
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 
     // ---------- helper ----------

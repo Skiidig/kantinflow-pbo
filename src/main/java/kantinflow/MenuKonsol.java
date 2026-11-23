@@ -437,7 +437,7 @@ public class MenuKonsol {
         try {
             penyimpanan.simpanTransaksi(barang, transaksi);
             return true;
-        } catch (PenyimpananException exception) {
+        } catch (PenyimpananException | IllegalArgumentException exception) {
             System.out.println("Penyimpanan gagal: " + exception.getMessage());
             muatUlang();
             return false;
@@ -445,12 +445,11 @@ public class MenuKonsol {
     }
 
     private void muatUlang() {
-        if (penyimpanan == null) {
+        if (penyimpanan == null || barang == null || barang.getId() <= 0) {
             return;
         }
         try {
             Barang barangTerbaru = penyimpanan.muatBarang(barang.getId());
-            List<Transaksi> riwayatTerbaru = penyimpanan.muatRiwayat(barangTerbaru);
             for (int i = 0; i < daftarBarang.size(); i++) {
                 if (daftarBarang.get(i).getId() == barang.getId()) {
                     daftarBarang.set(i, barangTerbaru);
@@ -458,9 +457,10 @@ public class MenuKonsol {
                 }
             }
             this.barang = barangTerbaru;
+            List<Transaksi> riwayatTerbaru = penyimpanan.muatRiwayat(barangTerbaru);
             this.riwayat.clear();
             this.riwayat.addAll(riwayatTerbaru);
-        } catch (PenyimpananException exception) {
+        } catch (PenyimpananException | IllegalArgumentException exception) {
             System.out.println("Gagal memuat ulang data: " + exception.getMessage());
         }
     }
