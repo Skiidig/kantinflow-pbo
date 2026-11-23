@@ -167,7 +167,7 @@ public class StatCard extends CardPanel {
         if (!panahPintasan.isVisible()) {
             return;
         }
-        Color warna = (hover || aktif) ? Ui.TEKS : Ui.PLACEHOLDER;
+        Color warna = (hover || aktif) ? Ui.TEKS : Ui.TEKS_LEMBUT;
         panahPintasan.setIcon(Ui.ikonAksi("arrow-up-right", 13, warna));
     }
 

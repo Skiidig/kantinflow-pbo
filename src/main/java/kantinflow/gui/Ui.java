@@ -79,6 +79,7 @@ final class Ui {
     static Color MERAH_BADGE = new Color(0xB91C1C);
     static Color BIRU = new Color(0x2563EB);
     static Color BIRU_LEMBUT = new Color(0xEFF6FF);
+    static Color BIRU_GARIS = new Color(0xBFDBFE);
     static Color BIRU_BADGE = new Color(0x1D4ED8);
     static Color ORANYE = new Color(0xEA580C);
     static Color ORANYE_LEMBUT = new Color(0xFFF7ED);
@@ -137,15 +138,31 @@ final class Ui {
         return UIScale.scale(nilai);
     }
 
+    private static Font fontTinggiKontrolTerakhir;
+    private static float skalaTinggiKontrolTerakhir = -1f;
+    private static int tinggiKontrolTerakhir;
+
     /**
      * Tinggi dasar kontrol mengikuti metrik font tema dan skala FlatLaf,
-     * sehingga teks tidak terpotong saat font atau DPI diperbesar.
+     * sehingga teks tidak terpotong saat font atau DPI diperbesar. Hasil
+     * di-cache per kombinasi font dan faktor skala agar tidak mengalokasikan
+     * JLabel baru pada setiap layout pass.
      */
     static int tinggiKontrol() {
+        Font fontBody = font(Font.PLAIN, FONT_BODY);
+        float skalaSaatIni = UIScale.getUserScaleFactor();
+        if (skalaSaatIni == skalaTinggiKontrolTerakhir
+                && fontBody.equals(fontTinggiKontrolTerakhir)) {
+            return tinggiKontrolTerakhir;
+        }
         JLabel contoh = new JLabel();
-        contoh.setFont(font(Font.PLAIN, FONT_BODY));
-        int tinggiTeks = contoh.getFontMetrics(contoh.getFont()).getHeight();
-        return Math.max(skala(TINGGI_INPUT), tinggiTeks + skala(18));
+        contoh.setFont(fontBody);
+        int tinggiTeks = contoh.getFontMetrics(fontBody).getHeight();
+        int hasil = Math.max(skala(TINGGI_INPUT), tinggiTeks + skala(18));
+        fontTinggiKontrolTerakhir = fontBody;
+        skalaTinggiKontrolTerakhir = skalaSaatIni;
+        tinggiKontrolTerakhir = hasil;
+        return hasil;
     }
 
     static Font font(int gaya, float ukuran) {

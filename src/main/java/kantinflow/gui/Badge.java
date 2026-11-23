@@ -12,6 +12,8 @@ import java.util.Locale;
 import javax.swing.JLabel;
 import javax.swing.border.EmptyBorder;
 
+import kantinflow.StatusKedaluwarsa;
+
 /**
  * Label rounded pill untuk status dan jenis transaksi dengan latar pastel
  * lembut, garis halus, dan teks semi-bold kontras tinggi.
@@ -35,9 +37,26 @@ public class Badge extends JLabel {
                 Ui.skala(3), Ui.skala(10)));
     }
 
+    public static Badge status(StatusKedaluwarsa status) {
+        String teks = status == null ? "" : status.getLabel();
+        Color[] warna = warnaUntuk(status);
+        return new Badge(teks, warna[0], warna[1]);
+    }
+
     public static Badge status(String teks) {
         Color[] warna = warnaUntuk(teks);
         return new Badge(teks, warna[0], warna[1]);
+    }
+
+    public static Color[] warnaUntuk(StatusKedaluwarsa status) {
+        if (status == null) {
+            return new Color[]{Ui.NETRAL_BADGE, Ui.NETRAL_LEMBUT};
+        }
+        return switch (status) {
+            case KEDALUWARSA -> new Color[]{Ui.MERAH_BADGE, Ui.MERAH_LEMBUT};
+            case SEGERA_KEDALUWARSA -> new Color[]{Ui.KUNING_BADGE, Ui.KUNING_LEMBUT};
+            case AMAN -> new Color[]{Ui.HIJAU_BADGE, Ui.HIJAU_LEMBUT};
+        };
     }
 
     public static Color[] warnaUntuk(String teks) {

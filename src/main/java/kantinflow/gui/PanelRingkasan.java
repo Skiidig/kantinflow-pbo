@@ -46,7 +46,6 @@ public class PanelRingkasan extends PanelKantin {
     private final PemilihTanggal tanggalPilihan = new PemilihTanggal();
     private final JButton tombolPeriksa = Ui.utama("Periksa");
     private final JLabel pesanTanggal = Ui.pesan();
-    private LocalDate tanggalTerakhir;
     private LocalDate tanggalKonteksTerakhir;
 
     private static final String KARTU_SEMUA = "semua";
@@ -106,9 +105,9 @@ public class PanelRingkasan extends PanelKantin {
         tanggalPilihan.komponenTeks().setName("tanggalRingkasan");
         pesanTanggal.setName("pesanTanggalRingkasan");
         pesanTanggal.setVisible(false);
-        tanggalTerakhir = konteks.getTanggalAcuan();
-        tanggalKonteksTerakhir = tanggalTerakhir;
-        tanggalPilihan.setTanggal(tanggalTerakhir);
+        LocalDate tanggalAwal = konteks.getTanggalAcuan();
+        tanggalKonteksTerakhir = tanggalAwal;
+        tanggalPilihan.setTanggal(tanggalAwal);
         tombolPeriksa.setName("periksaRingkasan");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
@@ -471,7 +470,6 @@ public class PanelRingkasan extends PanelKantin {
         }
         pesanTanggal.setText(" ");
         pesanTanggal.setVisible(false);
-        tanggalTerakhir = dipilih;
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);
         konteks.tampilkanPesan("Ringkasan diperiksa untuk tanggal "
@@ -593,7 +591,6 @@ public class PanelRingkasan extends PanelKantin {
             tanggalPilihan.setTanggal(dariKonteks);
         }
         tanggalKonteksTerakhir = dariKonteks;
-        tanggalTerakhir = dariKonteks;
         LocalDate acuan = dariKonteks;
 
         if (barang == null) {

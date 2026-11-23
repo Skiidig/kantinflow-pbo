@@ -346,17 +346,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         return panel;
     }
 
-    private void aturPesan(JLabel label, String teks) {
-        boolean tampil = teks != null && !teks.isBlank();
-        label.setText(tampil ? teks : " ");
-        label.setVisible(tampil);
-        label.revalidate();
-    }
-
-    private void kosongkanPesan(JLabel label) {
-        aturPesan(label, null);
-    }
-
     /**
      * Tanggal transaksi pengeluaran manual adalah hari ini. Ini sengaja
      * terpisah dari tanggal pemantauan ({@code konteks.getTanggalAcuan()})
@@ -500,7 +489,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                         .append(")");
             }
             aturPreviewFefo(detail.toString(),
-                    Ui.BIRU_LEMBUT, new Color(0xBFDBFE), Ui.BIRU_BADGE);
+                    Ui.BIRU_LEMBUT, Ui.BIRU_GARIS, Ui.BIRU_BADGE);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
             aturPreviewFefo("Preview FEFO: " + exception.getMessage(),
                     Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);

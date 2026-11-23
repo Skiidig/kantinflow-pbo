@@ -38,7 +38,6 @@ public class PanelPemantauan extends PanelKantin {
     private JPanel aksiTabel;
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel pesanTanggal = Ui.pesan();
-    private LocalDate tanggalTerakhir;
     private LocalDate tanggalKonteksTerakhir;
     private int idFilter = -1;
     private StatusKedaluwarsa statusFilter;
@@ -79,9 +78,9 @@ public class PanelPemantauan extends PanelKantin {
                 event -> terapkanFilterStatus(null));
         tanggalPilihan.komponenTeks().setName("tanggalPemantauan");
         pesanTanggal.setName("pesanTanggalPemantauan");
-        tanggalTerakhir = konteks.getTanggalAcuan();
-        tanggalKonteksTerakhir = tanggalTerakhir;
-        tanggalPilihan.setTanggal(tanggalTerakhir);
+        LocalDate tanggalAwal = konteks.getTanggalAcuan();
+        tanggalKonteksTerakhir = tanggalAwal;
+        tanggalPilihan.setTanggal(tanggalAwal);
         tombolPeriksa.setName("tombolPeriksa");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
@@ -234,7 +233,6 @@ public class PanelPemantauan extends PanelKantin {
         }
         kosongkanPesan(pesanTanggal);
         kosongkanPesan(pesanValidasi);
-        tanggalTerakhir = dipilih;
         tanggalKonteksTerakhir = dipilih;
         konteks.setTanggalPemantauan(dipilih);
         konteks.tampilkanPesan("Pemantauan "
@@ -301,7 +299,6 @@ public class PanelPemantauan extends PanelKantin {
             kosongkanPesan(pesanTanggal);
         }
         tanggalKonteksTerakhir = dariKonteks;
-        tanggalTerakhir = dariKonteks;
         LocalDate acuan = dariKonteks;
 
         if (!adaBarang) {
@@ -424,17 +421,6 @@ public class PanelPemantauan extends PanelKantin {
             return null;
         }
         return barisModel.get(modelIndex);
-    }
-
-    private void aturPesan(JLabel label, String teks) {
-        boolean tampil = teks != null && !teks.isBlank();
-        label.setText(tampil ? teks : " ");
-        label.setVisible(tampil);
-        label.revalidate();
-    }
-
-    private void kosongkanPesan(JLabel label) {
-        aturPesan(label, null);
     }
 
     private void siapkanKosong() {

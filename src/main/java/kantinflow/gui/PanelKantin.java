@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Rectangle;
 
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
@@ -80,6 +81,34 @@ public abstract class PanelKantin extends JPanel implements Scrollable {
      */
     public boolean adaIsianBelumDisimpan() {
         return false;
+    }
+
+    protected void aturPesan(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        label.revalidate();
+    }
+
+    protected final void kosongkanPesan(JLabel label) {
+        aturPesan(label, null);
+    }
+
+    protected static void aturPesanKompak(JLabel label, String teks) {
+        boolean tampil = teks != null && !teks.isBlank();
+        label.setText(tampil ? teks : " ");
+        label.setVisible(tampil);
+        if (tampil) {
+            label.setPreferredSize(null);
+            label.setMinimumSize(null);
+            label.setMaximumSize(null);
+        } else {
+            Dimension kosong = new Dimension(0, 0);
+            label.setPreferredSize(kosong);
+            label.setMinimumSize(kosong);
+            label.setMaximumSize(kosong);
+        }
+        label.revalidate();
     }
 
     public abstract void perbarui();

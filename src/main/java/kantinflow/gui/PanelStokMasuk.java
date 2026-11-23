@@ -99,17 +99,6 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         kosongkanPesan(pesanKedaluwarsa);
     }
 
-    private void aturPesan(JLabel label, String teks) {
-        boolean tampil = teks != null && !teks.isBlank();
-        label.setText(tampil ? teks : " ");
-        label.setVisible(tampil);
-        label.revalidate();
-    }
-
-    private void kosongkanPesan(JLabel label) {
-        aturPesan(label, null);
-    }
-
     private void bangunIsi() {
         JPanel isi = new JPanel(new BorderLayout(0, Ui.skala(Ui.GAP_KARTU)));
         isi.setOpaque(false);

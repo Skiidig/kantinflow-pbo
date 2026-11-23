@@ -40,7 +40,10 @@ import javax.swing.table.TableCellRenderer;
 
 import com.github.lgooddatepicker.components.DatePicker;
 
+import kantinflow.gui.Badge;
+import kantinflow.gui.BadgeRenderer;
 import kantinflow.gui.JendelaKantinFlow;
+import kantinflow.gui.StatCard;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
@@ -96,6 +99,8 @@ public final class DomainBaselineTest {
                 DomainBaselineTest::guiPhase3aSortPemantauanDanBarisFilter);
         uji("22. GUI Phase 3B: focus sidebar, aksesibilitas, shortcut Ctrl+1..7, & FadeOverlay",
                 DomainBaselineTest::guiPhase3bAksesibilitasShortcutDanFadeOverlay);
+        uji("23. GUI Phase 3C: Badge enum, BadgeRenderer reuse, tinggiKontrol, StatCard, & pesan",
+                DomainBaselineTest::guiPhase3cKonsistensiVisualDanCleanup);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -976,6 +981,104 @@ public final class DomainBaselineTest {
         });
         if (galat.get() != null) {
             throw new AssertionError("Kegagalan uji GUI Phase 3B: "
+                    + galat.get(), galat.get());
+        }
+    }
+
+    private static void guiPhase3cKonsistensiVisualDanCleanup() throws Exception {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("       (Dilewati: lingkungan headless)");
+            return;
+        }
+        AtomicReference<Throwable> galat = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            PenyimpananTerhitung db = new PenyimpananTerhitung();
+            JendelaKantinFlow jendela = null;
+            try {
+                jendela = new JendelaKantinFlow(db);
+
+                // 1. Uji U7: Badge color mapping eksplisit StatusKedaluwarsa vs String label
+                for (StatusKedaluwarsa status : StatusKedaluwarsa.values()) {
+                    java.awt.Color[] dariEnum = Badge.warnaUntuk(status);
+                    java.awt.Color[] dariTeks = Badge.warnaUntuk(status.getLabel());
+                    sama(dariTeks[0], dariEnum[0], "warna teks badge " + status);
+                    sama(dariTeks[1], dariEnum[1], "warna latar badge " + status);
+                    Badge b = Badge.status(status);
+                    sama(status.getLabel(), b.getText(), "label badge " + status);
+                }
+                sama(Badge.warnaUntuk((String) null)[0],
+                        Badge.warnaUntuk((StatusKedaluwarsa) null)[0],
+                        "warna badge null netral");
+
+                // 2. Uji U12: BadgeRenderer reuse & state reset antarbaris
+                JTable tabel = new JTable(new Object[][]{
+                    {StatusKedaluwarsa.AMAN},
+                    {StatusKedaluwarsa.AMAN},
+                    {StatusKedaluwarsa.KEDALUWARSA}
+                }, new Object[]{"Status"});
+                BadgeRenderer renderer = new BadgeRenderer();
+                Container sel0 = (Container) renderer.getTableCellRendererComponent(
+                        tabel, StatusKedaluwarsa.AMAN, true, false, 0, 0);
+                Component badge0 = sel0.getComponent(0);
+                java.awt.Color bgTerpilih = sel0.getBackground();
+
+                Container sel1 = (Container) renderer.getTableCellRendererComponent(
+                        tabel, StatusKedaluwarsa.AMAN, false, false, 1, 0);
+                Component badge1 = sel1.getComponent(0);
+                benar(badge0 == badge1, "BadgeRenderer memakai ulang instance Badge untuk status sama");
+                benar(!bgTerpilih.equals(sel1.getBackground()),
+                        "background reset saat berpindah dari selected ke unselected");
+
+                Container sel2 = (Container) renderer.getTableCellRendererComponent(
+                        tabel, StatusKedaluwarsa.KEDALUWARSA, false, false, 2, 0);
+                Component badge2 = sel2.getComponent(0);
+                benar(badge2 != badge1, "BadgeRenderer mengganti Badge saat status berubah");
+                sama("Kedaluwarsa", ((Badge) badge2).getText(), "teks badge baris 2");
+
+                // 3. Uji U10: Konsistensi Ui.tinggiKontrol()
+                Class<?> kelasUi = Class.forName("kantinflow.gui.Ui");
+                java.lang.reflect.Method mTinggi = kelasUi.getDeclaredMethod("tinggiKontrol");
+                mTinggi.setAccessible(true);
+                int t1 = (Integer) mTinggi.invoke(null);
+                int t2 = (Integer) mTinggi.invoke(null);
+                benar(t1 >= 38, "tinggiKontrol minimal 38");
+                sama(t1, t2, "tinggiKontrol konsisten antar pemanggilan");
+
+                // 4. Uji U8 & U9: Token Ui.BIRU_GARIS & StatCard non-hover panah pintasan
+                java.lang.reflect.Field fBiruGaris = kelasUi.getDeclaredField("BIRU_GARIS");
+                fBiruGaris.setAccessible(true);
+                sama(new java.awt.Color(0xBFDBFE), fBiruGaris.get(null), "token Ui.BIRU_GARIS");
+
+                StatCard kartu = new StatCard("Uji", "boxes", java.awt.Color.BLACK);
+                kartu.setAksiKlik(() -> {}, "Klik uji");
+                java.lang.reflect.Field fPanah = StatCard.class.getDeclaredField("panahPintasan");
+                fPanah.setAccessible(true);
+                JLabel panah = (JLabel) fPanah.get(kartu);
+                benar(panah.isVisible() && panah.getIcon() != null,
+                        "panah pintasan StatCard tampil dengan ikon");
+
+                // 5. Uji U11: Feedback pesan setelah konsolidasi di PanelKantin
+                jendela.bukaHalaman("pembuangan");
+                JLabel pesanTanggalBuang = (JLabel) cariKomponen(jendela, "pesanTanggalBuang");
+                benar(pesanTanggalBuang != null && !pesanTanggalBuang.isVisible(),
+                        "pesanTanggalBuang tersembunyi saat kosong");
+                sama(new Dimension(0, 0), pesanTanggalBuang.getPreferredSize(),
+                        "pesanTanggalBuang memakai mode kompak (0,0) saat kosong");
+
+                jendela.bukaHalaman("pemantauan");
+                JLabel pesanPemantauan = (JLabel) cariKomponen(jendela, "pesanPemantauan");
+                benar(pesanPemantauan != null && !pesanPemantauan.isVisible(),
+                        "pesanPemantauan tersembunyi saat kosong");
+            } catch (Throwable t) {
+                galat.set(t);
+            } finally {
+                if (jendela != null) {
+                    jendela.tutup();
+                }
+            }
+        });
+        if (galat.get() != null) {
+            throw new AssertionError("Kegagalan uji GUI Phase 3C: "
                     + galat.get(), galat.get());
         }
     }

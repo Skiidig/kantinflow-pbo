@@ -238,25 +238,9 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         labelJumlah.setText(Ui.teksJumlah(barang));
     }
 
-    private void aturPesan(JLabel label, String teks) {
-        boolean tampil = teks != null && !teks.isBlank();
-        label.setText(tampil ? teks : " ");
-        label.setVisible(tampil);
-        if (tampil) {
-            label.setPreferredSize(null);
-            label.setMinimumSize(null);
-            label.setMaximumSize(null);
-        } else {
-            Dimension kosong = new Dimension(0, 0);
-            label.setPreferredSize(kosong);
-            label.setMinimumSize(kosong);
-            label.setMaximumSize(kosong);
-        }
-        label.revalidate();
-    }
-
-    private void kosongkanPesan(JLabel label) {
-        aturPesan(label, null);
+    @Override
+    protected void aturPesan(JLabel label, String teks) {
+        aturPesanKompak(label, teks);
     }
 
     private LocalDate tanggalAcuanPembuangan() {
