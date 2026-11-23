@@ -33,17 +33,6 @@ final class PemilihTanggal extends DatePicker {
         teks.setMargin(new Insets(0, 0, 0, 0));
         teks.setBackground(Ui.KARTU);
         teks.setForeground(Ui.TEKS);
-        teks.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent event) {
-                aturGaris(true);
-            }
-
-            @Override
-            public void focusLost(java.awt.event.FocusEvent event) {
-                aturGaris(false);
-            }
-        });
 
         javax.swing.JButton tombol = getComponentToggleCalendarButton();
         tombol.setText("\u25BE");
@@ -54,7 +43,26 @@ final class PemilihTanggal extends DatePicker {
         tombol.setBorder(new EmptyBorder(0, Ui.skala(4), 0, Ui.skala(8)));
         tombol.setCursor(java.awt.Cursor.getPredefinedCursor(
                 java.awt.Cursor.HAND_CURSOR));
-        tombol.setFocusable(false);
+        tombol.setFocusable(true);
+        tombol.setFocusPainted(true);
+        tombol.setToolTipText("Buka kalender");
+        tombol.getAccessibleContext().setAccessibleName("Buka kalender");
+
+        java.awt.event.FocusAdapter pendengarFokus = new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent event) {
+                aturGaris(true);
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent event) {
+                java.awt.Component lawan = event.getOppositeComponent();
+                boolean masihDiDalam = lawan == teks || lawan == tombol;
+                aturGaris(masihDiDalam);
+            }
+        };
+        teks.addFocusListener(pendengarFokus);
+        tombol.addFocusListener(pendengarFokus);
         addDateChangeListener(event -> teksTidakValid = false);
         setTanggalMinimum(null);
     }

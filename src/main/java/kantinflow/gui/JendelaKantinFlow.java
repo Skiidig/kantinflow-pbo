@@ -1,6 +1,7 @@
 package kantinflow.gui;
 
 import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -17,6 +18,11 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -31,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -39,6 +46,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
 import javax.swing.JToggleButton;
 import javax.swing.ScrollPaneConstants;
@@ -46,6 +54,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.JComponent;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
 import kantinflow.Barang;
@@ -70,6 +79,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
     private final Map<String, JScrollPane> gulirHalaman = new LinkedHashMap<>();
     private final Set<String> panelPerluSegar = new HashSet<>();
+    private JPanel panelKonten;
     private String halamanAktif;
     private LocalDate tanggalPemantauan;
     private boolean sudahDitutup;
@@ -112,10 +122,37 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Ui.LATAR);
         root.add(buatSidebar(), BorderLayout.WEST);
-        root.add(buatKonten(), BorderLayout.CENTER);
+        panelKonten = buatKonten();
+        root.add(panelKonten, BorderLayout.CENTER);
         setContentPane(root);
+        pasangShortcutNavigasi();
         panelPerluSegar.addAll(panel.keySet());
         tampilkanHalaman(daftarBarang.isEmpty() ? "barang" : "ringkasan");
+    }
+
+    private void pasangShortcutNavigasi() {
+        String[] urutan = {
+            "ringkasan", "barang", "stok-masuk", "stok-keluar",
+            "pemantauan", "pembuangan", "riwayat"
+        };
+        javax.swing.InputMap inputMap = getRootPane().getInputMap(
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
+        javax.swing.ActionMap actionMap = getRootPane().getActionMap();
+        for (int i = 0; i < urutan.length; i++) {
+            String kunci = urutan[i];
+            String namaAksi = "navShortcut-" + kunci;
+            KeyStroke pintasan = KeyStroke.getKeyStroke(
+                    KeyEvent.VK_1 + i, InputEvent.CTRL_DOWN_MASK);
+            inputMap.put(pintasan, namaAksi);
+            actionMap.put(namaAksi, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    if (!sudahDitutup && !sedangMemproses) {
+                        bukaHalaman(kunci);
+                    }
+                }
+            });
+        }
     }
 
     private JPanel buatSidebar() {
@@ -191,8 +228,9 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             {"pembuangan", "Pembuangan"},
             {"riwayat", "Riwayat"}
         };
-        for (String[] item : halaman) {
-            TombolNavigasi tombol = new TombolNavigasi(item[1], item[0]);
+        for (int i = 0; i < halaman.length; i++) {
+            String[] item = halaman[i];
+            TombolNavigasi tombol = new TombolNavigasi(item[1], item[0], i + 1);
             tombol.setName("nav-" + item[0]);
             tombol.addActionListener(event -> tampilkanHalaman(item[0]));
             tombol.addItemListener(event -> aturGayaNav(tombol));
@@ -722,6 +760,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     private final class FadeOverlay extends JPanel {
+        private static final float ALPHA_AWAL = 0.45f;
+        private static final float LANGKAH_ALPHA = 0.075f;
         private float alpha;
         private final Timer timer;
 
@@ -729,7 +769,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             setOpaque(false);
             setFocusable(false);
             timer = new Timer(15, event -> {
-                alpha -= 0.1f;
+                alpha -= LANGKAH_ALPHA;
                 if (alpha <= 0f) {
                     alpha = 0f;
                     setVisible(false);
@@ -743,7 +783,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             if (sudahDitutup || !isDisplayable()) {
                 return;
             }
-            alpha = 1f;
+            alpha = ALPHA_AWAL;
             setVisible(true);
             timer.restart();
         }
@@ -754,17 +794,29 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             setVisible(false);
         }
 
+        Rectangle areaKonten() {
+            if (panelKonten != null && panelKonten.getParent() != null
+                    && panelKonten.getWidth() > 0 && panelKonten.getHeight() > 0) {
+                return SwingUtilities.convertRectangle(
+                        panelKonten.getParent(),
+                        panelKonten.getBounds(),
+                        this);
+            }
+            return new Rectangle(0, 0, getWidth(), getHeight());
+        }
+
         @Override
         protected void paintComponent(Graphics graphics) {
             if (alpha <= 0f) {
                 return;
             }
+            Rectangle area = areaKonten();
             Graphics2D g2 = (Graphics2D) graphics.create();
             try {
                 g2.setComposite(AlphaComposite.getInstance(
                         AlphaComposite.SRC_OVER, Math.max(0f, alpha)));
                 g2.setColor(Ui.LATAR);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.fillRect(area.x, area.y, area.width, area.height);
             } finally {
                 g2.dispose();
             }
@@ -804,7 +856,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         private static final long serialVersionUID = 1L;
         private boolean hover;
 
-        private TombolNavigasi(String label, String kunci) {
+        private TombolNavigasi(String label, String kunci, int urutan) {
             super(label);
             putClientProperty("navIcon", kunci);
             setIcon(Ui.ikonMenu(kunci, 17, Ui.TEKS_LEMBUT));
@@ -824,6 +876,28 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
                     Ui.skala(8), Ui.skala(12)));
             setCursor(java.awt.Cursor.getPredefinedCursor(
                     java.awt.Cursor.HAND_CURSOR));
+            setToolTipText(label + " (Ctrl+" + urutan + ")");
+            getAccessibleContext().setAccessibleName("Navigasi " + label);
+            getInputMap(JComponent.WHEN_FOCUSED).put(
+                    KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+                    "aktifkanNav");
+            getActionMap().put("aktifkanNav", new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent event) {
+                    doClick();
+                }
+            });
+            addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusGained(FocusEvent event) {
+                    repaint();
+                }
+
+                @Override
+                public void focusLost(FocusEvent event) {
+                    repaint();
+                }
+            });
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent event) {
@@ -849,14 +923,29 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
         @Override
         protected void paintComponent(Graphics graphics) {
-            if (isSelected() || hover) {
+            boolean fokus = isFocusOwner();
+            if (isSelected() || hover || fokus) {
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 try {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                             RenderingHints.VALUE_ANTIALIAS_ON);
                     int arc = Ui.skala(8);
-                    g2.setColor(isSelected() ? Ui.NAV_AKTIF_BG : Ui.HOVER);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                    if (isSelected() || hover) {
+                        g2.setColor(isSelected() ? Ui.NAV_AKTIF_BG : Ui.HOVER);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                    }
+                    if (fokus) {
+                        Color warnaFokus = UIManager.getColor(
+                                "Component.focusedBorderColor");
+                        if (warnaFokus == null) {
+                            warnaFokus = Ui.AKSEN;
+                        }
+                        g2.setColor(warnaFokus);
+                        g2.setStroke(new BasicStroke(1.5f));
+                        g2.drawRoundRect(1, 1,
+                                Math.max(0, getWidth() - 3),
+                                Math.max(0, getHeight() - 3), arc, arc);
+                    }
                 } finally {
                     g2.dispose();
                 }

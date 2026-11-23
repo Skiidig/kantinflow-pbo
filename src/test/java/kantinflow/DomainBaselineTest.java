@@ -4,6 +4,10 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -20,16 +24,21 @@ import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.Action;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.table.TableCellRenderer;
+
+import com.github.lgooddatepicker.components.DatePicker;
 
 import kantinflow.gui.JendelaKantinFlow;
 import kantinflow.penyimpanan.PenyimpananException;
@@ -85,6 +94,8 @@ public final class DomainBaselineTest {
                 DomainBaselineTest::guiLazyRefreshGuardDanShutdown);
         uji("21. GUI Phase 3A: sort indicator, buang dari Pemantauan, & BarisFilter",
                 DomainBaselineTest::guiPhase3aSortPemantauanDanBarisFilter);
+        uji("22. GUI Phase 3B: focus sidebar, aksesibilitas, shortcut Ctrl+1..7, & FadeOverlay",
+                DomainBaselineTest::guiPhase3bAksesibilitasShortcutDanFadeOverlay);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -856,6 +867,128 @@ public final class DomainBaselineTest {
             throw new AssertionError("Kegagalan uji GUI Phase 3A: "
                     + galat.get(), galat.get());
         }
+    }
+
+    private static void guiPhase3bAksesibilitasShortcutDanFadeOverlay() throws Exception {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("       (Dilewati: lingkungan headless)");
+            return;
+        }
+        AtomicReference<Throwable> galat = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            PenyimpananTerhitung db = new PenyimpananTerhitung();
+            JendelaKantinFlow jendela = null;
+            try {
+                jendela = new JendelaKantinFlow(db);
+                jendela.pack();
+                jendela.setSize(1280, 800);
+                jendela.validate();
+                jendela.doLayout();
+
+                // 1 & 2. Uji U4 & U5: FocusListener, Enter binding, AccessibleName, & tooltip pada 7 tombol navigasi
+                String[][] nav = {
+                    {"ringkasan", "Ringkasan"},
+                    {"barang", "Barang"},
+                    {"stok-masuk", "Stok Masuk"},
+                    {"stok-keluar", "Stok Keluar"},
+                    {"pemantauan", "Pemantauan"},
+                    {"pembuangan", "Pembuangan"},
+                    {"riwayat", "Riwayat"}
+                };
+                for (int i = 0; i < nav.length; i++) {
+                    JToggleButton tombol = (JToggleButton) cariKomponen(jendela, "nav-" + nav[i][0]);
+                    benar(tombol != null, "tombol nav-" + nav[i][0] + " ditemukan");
+                    benar(tombol.isFocusable(), "tombol nav focusable");
+                    benar(tombol.getFocusListeners().length > 0, "FocusListener terpasang pada tombol nav");
+                    sama("Navigasi " + nav[i][1],
+                            tombol.getAccessibleContext().getAccessibleName(),
+                            "AccessibleName tombol nav");
+                    benar(tombol.getToolTipText() != null
+                            && tombol.getToolTipText().contains("Ctrl+" + (i + 1)),
+                            "tooltip menampilkan shortcut Ctrl+" + (i + 1));
+                    benar(tombol.getInputMap(JComponent.WHEN_FOCUSED)
+                            .get(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)) != null,
+                            "binding Enter terpasang pada tombol nav");
+                }
+
+                // 3. Uji U5: Keyboard accessibility tombol kalender pada PemilihTanggal
+                jendela.bukaHalaman("pemantauan");
+                Component teksTanggal = cariKomponen(jendela, "tanggalPemantauan");
+                DatePicker picker = cariParentDatePicker(teksTanggal);
+                benar(picker != null, "PemilihTanggal ditemukan");
+                JButton tombolKalender = picker.getComponentToggleCalendarButton();
+                benar(tombolKalender.isFocusable(), "tombol kalender focusable via keyboard");
+                benar(tombolKalender.isFocusPainted(), "tombol kalender menampilkan focus ring");
+                sama("Buka kalender",
+                        tombolKalender.getAccessibleContext().getAccessibleName(),
+                        "AccessibleName tombol kalender");
+                sama("Buka kalender", tombolKalender.getToolTipText(),
+                        "tooltip tombol kalender");
+
+                // 4. Uji U5: Shortcut Ctrl+1..Ctrl+7 melalui InputMap/ActionMap RootPane
+                javax.swing.InputMap im = jendela.getRootPane().getInputMap(
+                        JComponent.WHEN_IN_FOCUSED_WINDOW);
+                javax.swing.ActionMap am = jendela.getRootPane().getActionMap();
+                for (int i = 0; i < nav.length; i++) {
+                    Object key = im.get(KeyStroke.getKeyStroke(
+                            KeyEvent.VK_1 + i, InputEvent.CTRL_DOWN_MASK));
+                    benar(key != null && am.get(key) != null,
+                            "shortcut Ctrl+" + (i + 1) + " terdaftar di InputMap/ActionMap");
+                }
+                Object keyRiwayat = im.get(KeyStroke.getKeyStroke(
+                        KeyEvent.VK_7, InputEvent.CTRL_DOWN_MASK));
+                Action aksiRiwayat = am.get(keyRiwayat);
+                aksiRiwayat.actionPerformed(new ActionEvent(jendela.getRootPane(), 0, "shortcut"));
+                JToggleButton navRiwayat = (JToggleButton) cariKomponen(jendela, "nav-riwayat");
+                benar(navRiwayat != null && navRiwayat.isSelected(),
+                        "shortcut Ctrl+7 membuka halaman Riwayat");
+
+                // 5. Uji U6: FadeOverlay area konten tidak menutupi sidebar & clean shutdown
+                Component glass = jendela.getGlassPane();
+                java.lang.reflect.Method mArea = glass.getClass().getDeclaredMethod("areaKonten");
+                mArea.setAccessible(true);
+                Rectangle area = (Rectangle) mArea.invoke(glass);
+                benar(area.x > 0, "FadeOverlay dimulai di kanan sidebar (x=" + area.x + ")");
+                benar(area.width > 0 && area.width < jendela.getWidth(),
+                        "FadeOverlay lebar hanya area konten");
+
+                // 6. Uji navigasi cepat lintas 7 halaman tanpa state stale
+                Barang susu = jendela.getDaftarBarang().get(0);
+                PenerimaanStok masuk = new PenerimaanStok(HARI);
+                masuk.terima(susu, "CEPAT-1", 5, HARI, HARI.plusDays(10));
+                benar(jendela.simpanTransaksi(susu, masuk, "masuk cepat"), "simpan transaksi");
+                for (String[] item : nav) {
+                    jendela.bukaHalaman(item[0]);
+                }
+                JTable tabelRiwayat = (JTable) cariKomponen(jendela, "tabelRiwayat");
+                benar(tabelRiwayat != null && tabelRiwayat.getRowCount() == 1,
+                        "navigasi cepat berakhir di Riwayat dengan 1 baris terbaru");
+
+                jendela.tutup();
+                benar(!glass.isVisible(), "FadeOverlay non-aktif setelah tutup()");
+            } catch (Throwable t) {
+                galat.set(t);
+            } finally {
+                if (jendela != null) {
+                    jendela.tutup();
+                }
+            }
+        });
+        if (galat.get() != null) {
+            throw new AssertionError("Kegagalan uji GUI Phase 3B: "
+                    + galat.get(), galat.get());
+        }
+    }
+
+    private static DatePicker cariParentDatePicker(Component komponen) {
+        Container p = komponen == null ? null : komponen.getParent();
+        while (p != null) {
+            if (p instanceof DatePicker dp) {
+                return dp;
+            }
+            p = p.getParent();
+        }
+        return null;
     }
 
     private static Icon ikonHeaderKolom(JTable tabel, int viewCol) {
