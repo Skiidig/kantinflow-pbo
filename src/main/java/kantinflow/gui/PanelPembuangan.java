@@ -420,7 +420,6 @@ public class PanelPembuangan extends PanelBarangTerpilih {
         try {
             pembuangan.buang(barang, batch, jumlah, alasanInput);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
-            konteks.muatUlang();
             aturPesan(pesanValidasi,
                     "Pembuangan ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pembuangan gagal: "

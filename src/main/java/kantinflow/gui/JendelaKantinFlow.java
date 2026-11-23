@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -23,9 +24,12 @@ import java.awt.event.WindowEvent;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -36,7 +40,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
-import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
@@ -63,12 +66,14 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     private final Map<String, PanelKantin> panel = new LinkedHashMap<>();
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel kartu = new JPanel(cardLayout);
-    private final JTextArea status = new JTextArea(2, 40);
     private final ButtonGroup grupNavigasi = new ButtonGroup();
     private final Map<String, JToggleButton> tombolNavigasi = new LinkedHashMap<>();
     private final Map<String, JScrollPane> gulirHalaman = new LinkedHashMap<>();
+    private final Set<String> panelPerluSegar = new HashSet<>();
+    private String halamanAktif;
     private LocalDate tanggalPemantauan;
     private boolean sudahDitutup;
+    private boolean sedangMemproses;
     private final FadeOverlay fade = new FadeOverlay();
 
     public JendelaKantinFlow(PenyimpananSQLite penyimpanan) {
@@ -94,9 +99,8 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
         setGlassPane(fade);
         fade.setVisible(false);
-        bangunTampilan();
         Notifikasi.pasang(this);
-        perbaruiSemua();
+        bangunTampilan();
         if (daftarBarang.isEmpty()) {
             tampilkanPesan("Belum ada barang. Tambahkan barang melalui halaman Barang.", false);
         } else {
@@ -110,6 +114,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         root.add(buatSidebar(), BorderLayout.WEST);
         root.add(buatKonten(), BorderLayout.CENTER);
         setContentPane(root);
+        panelPerluSegar.addAll(panel.keySet());
         tampilkanHalaman(daftarBarang.isEmpty() ? "barang" : "ringkasan");
     }
 
@@ -305,13 +310,18 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     private void tampilkanHalaman(String kunci) {
+        if (kunci == null || !panel.containsKey(kunci)) {
+            return;
+        }
+        halamanAktif = kunci;
+        segarkanBilaPerlu(kunci);
         cardLayout.show(kartu, kunci);
         JScrollPane gulir = gulirHalaman.get(kunci);
         if (gulir != null) {
             gulir.getViewport().setViewPosition(new java.awt.Point(0, 0));
         }
         JToggleButton tombol = tombolNavigasi.get(kunci);
-        if (tombol != null) {
+        if (tombol != null && !tombol.isSelected()) {
             tombol.setSelected(true);
         }
         fade.mulai();
@@ -330,6 +340,9 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
             return;
         }
         sudahDitutup = true;
+        fade.hentikan();
+        Notifikasi.bersihkan();
+        Notifikasi.pasang(null);
         try {
             penyimpanan.close();
         } catch (PenyimpananException exception) {
@@ -347,17 +360,30 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     @Override
     public List<Transaksi> getRiwayat(Barang target) {
-        if (target == null) {
+        if (target == null || sudahDitutup) {
             return List.of();
         }
         try {
-            Barang terbaru = penyimpanan.muatBarang(target.getId());
-            return penyimpanan.muatRiwayat(terbaru);
+            Barang acuan = cariBarangTerbaru(target);
+            return penyimpanan.muatRiwayat(acuan);
         } catch (IllegalArgumentException | PenyimpananException exception) {
             tampilkanPesan("Gagal memuat riwayat: " + exception.getMessage(),
                     false);
             return List.of();
         }
+    }
+
+    private Barang cariBarangTerbaru(Barang target) {
+        int id = target.getId();
+        if (id > 0) {
+            for (Barang item : daftarBarang) {
+                if (item.getId() == id) {
+                    return item;
+                }
+            }
+            return penyimpanan.muatBarang(id);
+        }
+        return target;
     }
 
     @Override
@@ -368,11 +394,9 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     @Override
     public void setTanggalPemantauan(LocalDate tanggal) {
         this.tanggalPemantauan = tanggal;
-        perbaruiPanel("ringkasan");
-        perbaruiPanel("stok-masuk");
-        perbaruiPanel("stok-keluar");
-        perbaruiPanel("pemantauan");
-        perbaruiPanel("pembuangan");
+        tandaiPerluSegar("ringkasan", "stok-masuk", "stok-keluar",
+                "pemantauan", "pembuangan");
+        segarkanBilaPerlu(halamanAktif);
     }
 
     @Override
@@ -386,6 +410,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     public void bukaPemantauanStatus(StatusKedaluwarsa status) {
         PanelKantin halaman = panel.get("pemantauan");
         if (halaman instanceof PanelPemantauan pemantauan) {
+            panelPerluSegar.remove("pemantauan");
             pemantauan.terapkanFilterStatus(status);
         }
         tampilkanHalaman("pemantauan");
@@ -393,6 +418,12 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     @Override
     public boolean bukaPembuanganDariPemantauan(
+            int idBarangTarget, String kodeBatch, LocalDate tanggal) {
+        return jalankanOperasiTulis(() -> bukaPembuanganInternal(
+                idBarangTarget, kodeBatch, tanggal));
+    }
+
+    private boolean bukaPembuanganInternal(
             int idBarangTarget, String kodeBatch, LocalDate tanggal) {
         if (idBarangTarget < 0 || kodeBatch == null
                 || kodeBatch.isBlank() || tanggal == null) {
@@ -462,6 +493,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         daftarBarang.clear();
         daftarBarang.addAll(terbaru);
         perbaruiSemua();
+        segarkanBilaPerlu("pembuangan");
         if (!pembuangan.siapkanDariPemantauan(
                 idBarangTarget, kodeBatch, tanggal)) {
             tampilkanPesan("Formulir Pembuangan tidak dapat diisi untuk batch "
@@ -478,7 +510,7 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
 
     @Override
     public String kodeBatchOtomatis(Barang target, LocalDate tanggalMasuk) {
-        if (target == null) {
+        if (target == null || sudahDitutup) {
             return null;
         }
         try {
@@ -493,67 +525,79 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     @Override
     public boolean simpanTransaksi(Barang target, Transaksi transaksi,
             String pesanSukses) {
-        if (target == null) {
-            tampilkanPesan("Pilih barang terlebih dahulu.", false);
-            return false;
-        }
-        try {
-            penyimpanan.simpanTransaksi(target, transaksi);
-        } catch (PenyimpananException exception) {
-            boolean dimuat = muatUlang();
-            tampilkanPesan("Penyimpanan gagal: " + exception.getMessage()
-                    + (dimuat ? ". Tampilan dimuat ulang dari database." : "."),
-                    false);
-            return false;
-        }
-        if (!muatUlang()) {
-            return false;
-        }
-        tampilkanPesan(pesanSukses, true);
-        return true;
+        return jalankanOperasiTulis(() -> {
+            if (target == null) {
+                tampilkanPesan("Pilih barang terlebih dahulu.", false);
+                return false;
+            }
+            try {
+                penyimpanan.simpanTransaksi(target, transaksi);
+            } catch (PenyimpananException exception) {
+                boolean dimuat = muatUlangInternal();
+                tampilkanPesan("Penyimpanan gagal: " + exception.getMessage()
+                        + (dimuat ? ". Tampilan dimuat ulang dari database." : "."),
+                        false);
+                return false;
+            }
+            if (!muatUlangInternal()) {
+                return false;
+            }
+            tampilkanPesan(pesanSukses, true);
+            return true;
+        });
     }
 
     @Override
     public boolean tambahBarang(String nama, String satuan) {
-        try {
-            Barang baru = penyimpanan.simpanBarang(new Barang(nama, satuan));
-            daftarBarang.add(baru);
-            perbaruiSemua();
-            tampilkanHalaman("barang");
-            tampilkanPesan("Barang ditambahkan: " + baru.getNama()
-                    + " (" + baru.getSatuan() + ").", true);
-            return true;
-        } catch (IllegalArgumentException | PenyimpananException exception) {
-            tampilkanPesan("Tambah barang gagal: " + exception.getMessage(), false);
-            return false;
-        }
+        return jalankanOperasiTulis(() -> {
+            try {
+                Barang baru = penyimpanan.simpanBarang(new Barang(nama, satuan));
+                daftarBarang.add(baru);
+                perbaruiSemua();
+                tampilkanHalaman("barang");
+                tampilkanPesan("Barang ditambahkan: " + baru.getNama()
+                        + " (" + baru.getSatuan() + ").", true);
+                return true;
+            } catch (IllegalArgumentException | PenyimpananException exception) {
+                tampilkanPesan("Tambah barang gagal: " + exception.getMessage(), false);
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean simpanStokMinimum(Barang target, int minimum) {
-        if (target == null) {
-            tampilkanPesan("Pilih barang yang akan diatur minimumnya terlebih dahulu.", false);
-            return false;
-        }
-        if (minimum < 0) {
-            tampilkanPesan("Stok minimum tidak boleh negatif.", false);
-            return false;
-        }
-        try {
-            penyimpanan.simpanStokMinimum(target, minimum);
-            muatUlang();
-            tampilkanPesan("Stok minimum " + target.getNama() + " disimpan: "
-                    + minimum + " " + target.getSatuan() + ".", true);
-            return true;
-        } catch (IllegalArgumentException | PenyimpananException exception) {
-            tampilkanPesan("Gagal menyimpan stok minimum: "
-                    + exception.getMessage(), false);
-            return false;
-        }
+        return jalankanOperasiTulis(() -> {
+            if (target == null) {
+                tampilkanPesan("Pilih barang yang akan diatur minimumnya terlebih dahulu.", false);
+                return false;
+            }
+            if (minimum < 0) {
+                tampilkanPesan("Stok minimum tidak boleh negatif.", false);
+                return false;
+            }
+            try {
+                penyimpanan.simpanStokMinimum(target, minimum);
+                if (!muatUlangInternal()) {
+                    return false;
+                }
+                tampilkanPesan("Stok minimum " + target.getNama() + " disimpan: "
+                        + minimum + " " + target.getSatuan() + ".", true);
+                return true;
+            } catch (IllegalArgumentException | PenyimpananException exception) {
+                tampilkanPesan("Gagal menyimpan stok minimum: "
+                        + exception.getMessage(), false);
+                return false;
+            }
+        });
     }
 
     @Override
     public boolean muatUlang() {
+        return jalankanOperasiTulis(this::muatUlangInternal);
+    }
+
+    private boolean muatUlangInternal() {
         try {
             List<Barang> terbaru = penyimpanan.muatSemuaBarang();
             daftarBarang.clear();
@@ -567,11 +611,26 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         }
     }
 
+    private boolean jalankanOperasiTulis(BooleanSupplier aksi) {
+        if (sudahDitutup || sedangMemproses) {
+            return false;
+        }
+        sedangMemproses = true;
+        Cursor kursorSebelum = getCursor();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            return aksi.getAsBoolean();
+        } finally {
+            setCursor(kursorSebelum);
+            sedangMemproses = false;
+        }
+    }
+
     @Override
     public void tampilkanPesan(String pesan, boolean sukses) {
-        status.setText(pesan);
-        status.setForeground(sukses ? Ui.HIJAU : Ui.MERAH);
-        status.setCaretPosition(0);
+        if (sudahDitutup) {
+            return;
+        }
         if (sukses) {
             Notifikasi.sukses(pesan);
         } else {
@@ -580,15 +639,27 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
     }
 
     private void perbaruiSemua() {
-        for (PanelKantin halaman : panel.values()) {
-            halaman.perbarui();
+        panelPerluSegar.addAll(panel.keySet());
+        segarkanBilaPerlu(halamanAktif);
+    }
+
+    private void tandaiPerluSegar(String... daftarKunci) {
+        for (String kunci : daftarKunci) {
+            if (kunci != null && panel.containsKey(kunci)) {
+                panelPerluSegar.add(kunci);
+            }
         }
     }
 
-    private void perbaruiPanel(String kunci) {
-        PanelKantin halaman = panel.get(kunci);
-        if (halaman != null) {
-            halaman.perbarui();
+    private void segarkanBilaPerlu(String kunci) {
+        if (kunci == null) {
+            return;
+        }
+        if (panelPerluSegar.remove(kunci)) {
+            PanelKantin halaman = panel.get(kunci);
+            if (halaman != null) {
+                halaman.perbarui();
+            }
         }
     }
 
@@ -669,12 +740,18 @@ public class JendelaKantinFlow extends JFrame implements KonteksKantin {
         }
 
         private void mulai() {
-            if (!isDisplayable()) {
+            if (sudahDitutup || !isDisplayable()) {
                 return;
             }
             alpha = 1f;
             setVisible(true);
             timer.restart();
+        }
+
+        private void hentikan() {
+            timer.stop();
+            alpha = 0f;
+            setVisible(false);
         }
 
         @Override

@@ -249,7 +249,6 @@ public class PanelStokMasuk extends PanelBarangTerpilih {
         try {
             penerimaan.terima(barang, kode, jumlah, masuk, kedaluwarsa);
         } catch (IllegalArgumentException exception) {
-            konteks.muatUlang();
             aturPesan(pesanValidasi,
                     "Penerimaan ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Penerimaan gagal: "

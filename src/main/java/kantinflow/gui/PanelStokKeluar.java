@@ -561,7 +561,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         try {
             pengeluaran.keluarkan(barang, batch, jumlah);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
-            konteks.muatUlang();
             aturPesan(pesanManual,
                     "Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran gagal: "
@@ -574,7 +573,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                 + " " + barang.getSatuan() + ".")) {
             fieldJumlahManual.setText("");
             kosongkanPesan(pesanManual);
-            perbaruiBatchTersedia();
         } else {
             aturPesan(pesanManual,
                     "Pengeluaran gagal disimpan. Lihat status.");
@@ -614,7 +612,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         try {
             pengeluaran.keluarkanFefo(barang, jumlah, tanggal);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
-            konteks.muatUlang();
             aturPesan(pesanFefo,
                     "Pengeluaran ditolak: " + exception.getMessage());
             konteks.tampilkanPesan("Pengeluaran FEFO gagal: "
@@ -634,7 +631,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             hasilAlokasi.setVisible(true);
             hasilAlokasi.revalidate();
             perbaruiPreviewFefo();
-            perbaruiBatchTersedia();
         } else {
             aturPesan(pesanFefo,
                     "Pengeluaran gagal disimpan. Lihat status.");

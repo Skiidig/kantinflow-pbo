@@ -1,5 +1,6 @@
 package kantinflow;
 
+import java.awt.GraphicsEnvironment;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,9 @@ import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.SwingUtilities;
+
+import kantinflow.gui.JendelaKantinFlow;
 import kantinflow.penyimpanan.PenyimpananException;
 import kantinflow.penyimpanan.PenyimpananSQLite;
 
@@ -65,6 +69,8 @@ public final class DomainBaselineTest {
                 DomainBaselineTest::aksesKonkurenSqlite);
         uji("19. Pemulihan state in-memory MenuKonsol saat simpan gagal",
                 DomainBaselineTest::pemulihanStateMenuKonsol);
+        uji("20. GUI lazy refresh, getRiwayat, duplicate guard, & clean shutdown",
+                DomainBaselineTest::guiLazyRefreshGuardDanShutdown);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -624,6 +630,152 @@ public final class DomainBaselineTest {
             }
         } finally {
             Files.deleteIfExists(file);
+        }
+    }
+
+    private static void guiLazyRefreshGuardDanShutdown() throws Exception {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("       (Dilewati: lingkungan headless)");
+            return;
+        }
+        AtomicReference<Throwable> galat = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            PenyimpananTerhitung db = new PenyimpananTerhitung();
+            JendelaKantinFlow jendela = null;
+            try {
+                jendela = new JendelaKantinFlow(db);
+                // 1. Saat startup (halaman awal "ringkasan"):
+                // muatSemuaBarang dipanggil 1x, muatRiwayat = 0x, muatBarang(id) = 0x.
+                sama(1, db.hitungMuatSemua, "startup hanya 1x muatSemuaBarang");
+                sama(0, db.hitungMuatBarangId, "startup 0x muatBarang(id)");
+                sama(0, db.hitungMuatRiwayat, "startup 0x muatRiwayat (riwayat lazy)");
+
+                // 2. Tambah barang & simpan transaksi ketika halaman "riwayat" belum dibuka:
+                benar(jendela.tambahBarang("Teh Botol", "botol"), "tambahBarang berhasil");
+                sama(0, db.hitungMuatRiwayat, "tambahBarang tidak memicu muatRiwayat");
+
+                Barang susu = jendela.getDaftarBarang().get(0);
+                PenerimaanStok masuk = new PenerimaanStok(HARI.minusDays(5));
+                masuk.terima(susu, "SUSU-BASI", 4, HARI.minusDays(5), HARI.minusDays(1));
+                benar(jendela.simpanTransaksi(susu, masuk, "masuk 1"), "simpanTransaksi 1");
+                sama(0, db.hitungMuatRiwayat, "simpanTransaksi tidak memicu PanelRiwayat tersembunyi");
+                sama(0, db.hitungMuatBarangId, "simpanTransaksi 0x muatBarang(id)");
+
+                // 3. Perubahan tanggal pemantauan tidak memicu query DB sama sekali:
+                int semuaSebelumTanggal = db.hitungMuatSemua;
+                jendela.setTanggalPemantauan(HARI);
+                sama(semuaSebelumTanggal, db.hitungMuatSemua,
+                        "setTanggalPemantauan 0 query DB");
+                sama(0, db.hitungMuatRiwayat,
+                        "setTanggalPemantauan tidak memicu muatRiwayat");
+
+                // 4. Navigasi programatik ke "pemantauan" dan bukaPembuanganDariPemantauan:
+                jendela.bukaPemantauanStatus(StatusKedaluwarsa.KEDALUWARSA);
+                benar(jendela.bukaPembuanganDariPemantauan(
+                        susu.getId(), "SUSU-BASI", HARI),
+                        "bukaPembuanganDariPemantauan berhasil dengan data segar");
+
+                // 5. Navigasi ke "riwayat" menyegarkan PanelRiwayat tepat 1x (1 query per barang, 0 muatBarang(id)):
+                jendela.bukaHalaman("riwayat");
+                int jumlahBarang = jendela.getDaftarBarang().size();
+                sama(jumlahBarang, db.hitungMuatRiwayat,
+                        "bukaHalaman('riwayat') memanggil muatRiwayat 1x per barang");
+                sama(0, db.hitungMuatBarangId,
+                        "getRiwayat memakai daftarBarang tanpa muatBarang(id)");
+
+                // Membuka halaman "riwayat" lagi saat tidak dirty tidak menambah query:
+                jendela.bukaHalaman("riwayat");
+                sama(jumlahBarang, db.hitungMuatRiwayat,
+                        "navigasi ulang ke halaman bersih 0 query");
+
+                // Fallback getRiwayat untuk Barang dengan ID valid yang belum ada di daftarBarang:
+                Barang luar = db.simpanBarangLangsung(new Barang("Kopi", "cup"));
+                List<Transaksi> rLuar = jendela.getRiwayat(luar);
+                benar(rLuar.isEmpty(), "fallback getRiwayat barang luar berhasil");
+                sama(1, db.hitungMuatBarangId,
+                        "fallback memanggil muatBarang(id) tepat 1x");
+
+                // 6. Duplicate submission guard menolak panggilan tulis re-entrant:
+                final JendelaKantinFlow refJendela = jendela;
+                db.aksiSaatSimpanMinimum = () -> {
+                    benar(!refJendela.muatUlang(),
+                            "panggilan muatUlang re-entrant harus ditolak");
+                    benar(!refJendela.tambahBarang("Duplikat", "pcs"),
+                            "panggilan tambahBarang re-entrant harus ditolak");
+                };
+                benar(jendela.simpanStokMinimum(
+                        jendela.getDaftarBarang().get(0), 3),
+                        "simpanStokMinimum utama tetap berhasil (muatUlangInternal tidak terblokir)");
+                db.aksiSaatSimpanMinimum = null;
+
+                // 7. Clean shutdown menutup DB tepat 1x dan menolak operasi setelah ditutup:
+                jendela.tutup();
+                jendela.tutup();
+                sama(1, db.hitungClose, "close() dipanggil tepat 1x");
+                benar(!jendela.muatUlang(), "muatUlang ditolak setelah tutup");
+                benar(!jendela.tambahBarang("Baru", "pcs"),
+                        "tambahBarang ditolak setelah tutup");
+                benar(jendela.getRiwayat(susu).isEmpty(),
+                        "getRiwayat kosong setelah tutup");
+            } catch (Throwable t) {
+                galat.set(t);
+            } finally {
+                if (jendela != null) {
+                    jendela.tutup();
+                }
+            }
+        });
+        if (galat.get() != null) {
+            throw new AssertionError("Kegagalan uji GUI Phase 2B-1: "
+                    + galat.get(), galat.get());
+        }
+    }
+
+    private static final class PenyimpananTerhitung extends PenyimpananSQLite {
+        int hitungMuatSemua;
+        int hitungMuatBarangId;
+        int hitungMuatRiwayat;
+        int hitungClose;
+        Runnable aksiSaatSimpanMinimum;
+
+        PenyimpananTerhitung() {
+            super(":memory:");
+        }
+
+        Barang simpanBarangLangsung(Barang barang) {
+            return super.simpanBarang(barang);
+        }
+
+        @Override
+        public synchronized List<Barang> muatSemuaBarang() {
+            hitungMuatSemua++;
+            return super.muatSemuaBarang();
+        }
+
+        @Override
+        public synchronized Barang muatBarang(int id) {
+            hitungMuatBarangId++;
+            return super.muatBarang(id);
+        }
+
+        @Override
+        public synchronized List<Transaksi> muatRiwayat(Barang barang) {
+            hitungMuatRiwayat++;
+            return super.muatRiwayat(barang);
+        }
+
+        @Override
+        public synchronized void simpanStokMinimum(Barang barang, int stokMinimum) {
+            if (aksiSaatSimpanMinimum != null) {
+                aksiSaatSimpanMinimum.run();
+            }
+            super.simpanStokMinimum(barang, stokMinimum);
+        }
+
+        @Override
+        public synchronized void close() {
+            hitungClose++;
+            super.close();
         }
     }
 
