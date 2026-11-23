@@ -32,6 +32,10 @@ public class PanelPemantauan extends PanelKantin {
 
     private final JButton tombolPeriksa = Ui.utama("Periksa");
     private final JButton tombolResetStatus = Ui.ghost("Tampilkan Semua Status");
+    private final JButton tombolBuang = Ui.sekunder("Buang Batch Terpilih");
+    private final JLabel petunjukBuang = Ui.keterangan(
+            "Pilih baris berstatus Kedaluwarsa untuk membuka form Pembuangan.");
+    private JPanel aksiTabel;
     private final JLabel pesanValidasi = Ui.pesan();
     private final JLabel pesanTanggal = Ui.pesan();
     private LocalDate tanggalTerakhir;
@@ -81,10 +85,21 @@ public class PanelPemantauan extends PanelKantin {
         tombolPeriksa.setName("tombolPeriksa");
         tombolPeriksa.setIcon(Ui.ikonAksi("monitor", 16, java.awt.Color.WHITE));
         tombolPeriksa.setIconTextGap(7);
+        tombolBuang.setName("tombolBuangPemantauan");
+        tombolBuang.setIcon(Ui.ikonAksi("trash", 15, Ui.MERAH_BADGE));
+        tombolBuang.setIconTextGap(7);
+        tombolBuang.setEnabled(false);
+        tombolBuang.addActionListener(event -> buangTerpilih());
         tabel.setName("tabelPemantauan");
         tabel.setRowSorter(sorter);
         sorter.setComparator(2, Comparator.nullsLast(Comparator.naturalOrder()));
         sorter.setComparator(4, Comparator.nullsLast(Comparator.naturalOrder()));
+        tabel.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                perbaruiAksiBuang();
+            }
+        });
+        sorter.addRowSorterListener(event -> perbaruiAksiBuang());
         labelInfo.setName("infoPemantauan");
         pesanValidasi.setName("pesanPemantauan");
         kosongkanPesan(pesanValidasi);
@@ -130,7 +145,16 @@ public class PanelPemantauan extends PanelKantin {
         hasil.add(gulirTabel, "tabel");
         hasil.add(kosong, "kosong");
         hasil.add(kosongBarang, "kosongBarang");
+        aksiTabel = new JPanel(new java.awt.FlowLayout(
+                java.awt.FlowLayout.LEFT, 8, 0));
+        aksiTabel.setOpaque(false);
+        aksiTabel.setBorder(new javax.swing.border.EmptyBorder(
+                Ui.skala(8), 0, 0, 0));
+        aksiTabel.add(tombolBuang);
+        aksiTabel.add(petunjukBuang);
+        aksiTabel.setVisible(false);
         daftarIsi.add(hasil, BorderLayout.CENTER);
+        daftarIsi.add(aksiTabel, BorderLayout.SOUTH);
         daftar.add(daftarIsi, BorderLayout.CENTER);
 
         isi.add(kontrol, BorderLayout.NORTH);
@@ -289,6 +313,7 @@ public class PanelPemantauan extends PanelKantin {
             kosongkanPesan(pesanValidasi);
             tombolPeriksa.setEnabled(false);
             tampilkanHasil("kosongBarang");
+            perbaruiAksiBuang();
             return;
         }
 
@@ -323,6 +348,7 @@ public class PanelPemantauan extends PanelKantin {
         } else {
             tampilkanHasil("tabel");
         }
+        perbaruiAksiBuang();
     }
 
     private void tambahBaris(Barang barang, LocalDate acuan) {
@@ -349,6 +375,37 @@ public class PanelPemantauan extends PanelKantin {
                 status.getLabel()
             });
         }
+    }
+
+    private void perbaruiAksiBuang() {
+        boolean adaBaris = model.getRowCount() > 0;
+        if (aksiTabel != null) {
+            aksiTabel.setVisible(adaBaris);
+        }
+        BarisPemantauan terpilih = barisTerpilih();
+        boolean bisa = adaBaris && terpilih != null && terpilih.bisaDibuang();
+        tombolBuang.setEnabled(bisa);
+        tombolBuang.setToolTipText(bisa
+                ? "Buka form Pembuangan untuk batch " + terpilih.kodeBatch()
+                : "Pilih batch bersisa berstatus Kedaluwarsa.");
+        petunjukBuang.setVisible(!bisa);
+    }
+
+    private void buangTerpilih() {
+        BarisPemantauan terpilih = barisTerpilih();
+        if (terpilih == null || !terpilih.bisaDibuang()) {
+            perbaruiAksiBuang();
+            aturPesan(pesanValidasi,
+                    "Pilih baris batch bersisa berstatus Kedaluwarsa terlebih dahulu.");
+            konteks.tampilkanPesan(
+                    "Batch terpilih tidak lagi valid untuk Pembuangan.", false);
+            return;
+        }
+        kosongkanPesan(pesanValidasi);
+        konteks.bukaPembuanganDariPemantauan(
+                terpilih.idBarang(),
+                terpilih.kodeBatch(),
+                terpilih.tanggalAcuan());
     }
 
     private BarisPemantauan barisTerpilih() {

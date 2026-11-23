@@ -1,5 +1,8 @@
 package kantinflow;
 
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -17,7 +20,16 @@ import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JTable;
+import javax.swing.JToggleButton;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.table.TableCellRenderer;
 
 import kantinflow.gui.JendelaKantinFlow;
 import kantinflow.penyimpanan.PenyimpananException;
@@ -71,6 +83,8 @@ public final class DomainBaselineTest {
                 DomainBaselineTest::pemulihanStateMenuKonsol);
         uji("20. GUI lazy refresh, getRiwayat, duplicate guard, & clean shutdown",
                 DomainBaselineTest::guiLazyRefreshGuardDanShutdown);
+        uji("21. GUI Phase 3A: sort indicator, buang dari Pemantauan, & BarisFilter",
+                DomainBaselineTest::guiPhase3aSortPemantauanDanBarisFilter);
 
         System.out.println();
         System.out.println("Lulus: " + lulus + ", Gagal: " + gagal.size());
@@ -729,6 +743,158 @@ public final class DomainBaselineTest {
             throw new AssertionError("Kegagalan uji GUI Phase 2B-1: "
                     + galat.get(), galat.get());
         }
+    }
+
+    private static void guiPhase3aSortPemantauanDanBarisFilter() throws Exception {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("       (Dilewati: lingkungan headless)");
+            return;
+        }
+        AtomicReference<Throwable> galat = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            PenyimpananTerhitung db = new PenyimpananTerhitung();
+            JendelaKantinFlow jendela = null;
+            try {
+                jendela = new JendelaKantinFlow(db);
+                Barang susu = jendela.getDaftarBarang().get(0);
+
+                PenerimaanStok masukAman = new PenerimaanStok(HARI.minusDays(2));
+                masukAman.terima(susu, "SUSU-AMAN", 10, HARI.minusDays(2), HARI.plusDays(15));
+                benar(jendela.simpanTransaksi(susu, masukAman, "masuk aman"), "masuk aman");
+
+                susu = jendela.getDaftarBarang().get(0);
+                PenerimaanStok masukBasi = new PenerimaanStok(HARI.minusDays(10));
+                masukBasi.terima(susu, "SUSU-BASI", 4, HARI.minusDays(10), HARI.minusDays(1));
+                benar(jendela.simpanTransaksi(susu, masukBasi, "masuk basi"), "masuk basi");
+
+                jendela.setTanggalPemantauan(HARI);
+                jendela.bukaHalaman("pemantauan");
+
+                JTable tabel = (JTable) cariKomponen(jendela, "tabelPemantauan");
+                JButton tombolBuang = (JButton) cariKomponen(jendela, "tombolBuangPemantauan");
+                benar(tabel != null, "tabelPemantauan ditemukan");
+                benar(tombolBuang != null, "tombolBuangPemantauan ditemukan");
+
+                // 1. Uji U1: Sort indicators ascending & descending + kolom tanpa sort
+                tabel.getRowSorter().setSortKeys(List.of(
+                        new RowSorter.SortKey(2, SortOrder.ASCENDING)));
+                Icon ascIcon = UIManager.getIcon("Table.ascendingSortIcon");
+                Icon descIcon = UIManager.getIcon("Table.descendingSortIcon");
+                benar(ascIcon != null && descIcon != null, "ikon sort FlatLaf tersedia");
+                sama(ascIcon, ikonHeaderKolom(tabel, 2), "kolom 2 menampilkan ikon ascending");
+                benar(ikonHeaderKolom(tabel, 0) == null, "kolom 0 tanpa ikon sort");
+
+                tabel.getRowSorter().setSortKeys(List.of(
+                        new RowSorter.SortKey(2, SortOrder.DESCENDING)));
+                sama(descIcon, ikonHeaderKolom(tabel, 2), "kolom 2 menampilkan ikon descending");
+
+                // Tabel non-sortable tidak menampilkan ikon
+                JTable tabelRingkasan = (JTable) cariKomponen(jendela, "tabelRingkasan");
+                benar(tabelRingkasan != null, "tabelRingkasan ditemukan");
+                benar(ikonHeaderKolom(tabelRingkasan, 0) == null,
+                        "tabel non-sortable tidak menampilkan ikon sort");
+
+                // 2. Uji U2: Tombol Buang Batch Terpilih + RowSorter view-to-model + navigasi
+                benar(!tombolBuang.isEnabled(), "tombol buang nonaktif saat belum ada pilihan");
+
+                // Dengan SortOrder.DESCENDING pada kolom 2 (Sisa): baris view 0 = SUSU-AMAN (10), view 1 = SUSU-BASI (4)
+                sama("SUSU-AMAN", tabel.getValueAt(0, 1), "baris view 0 adalah SUSU-AMAN");
+                sama("SUSU-BASI", tabel.getValueAt(1, 1), "baris view 1 adalah SUSU-BASI");
+
+                tabel.setRowSelectionInterval(0, 0);
+                benar(!tombolBuang.isEnabled(), "tombol buang nonaktif untuk batch AMAN");
+
+                tabel.setRowSelectionInterval(1, 1);
+                benar(tombolBuang.isEnabled(), "tombol buang aktif untuk batch KEDALUWARSA");
+
+                tombolBuang.doClick();
+                JToggleButton navPembuangan = (JToggleButton) cariKomponen(jendela, "nav-pembuangan");
+                benar(navPembuangan != null && navPembuangan.isSelected(),
+                        "klik tombol membuka halaman Pembuangan");
+                // Pastikan stok belum berkurang (hanya membuka form, tidak langsung eksekusi)
+                sama(14, jendela.getDaftarBarang().get(0).hitungSaldo(),
+                        "stok belum berkurang sebelum konfirmasi di Pembuangan");
+
+                // 3. Uji U3: BarisFilter responsif pada lebar 1280, 1100, 960, dan sempit (wrap)
+                jendela.bukaHalaman("pemantauan");
+                Container filterBar = cariParentBarisFilter(
+                        cariKomponen(jendela, "barangPemantauan"));
+                benar(filterBar != null, "BarisFilter ditemukan di PanelPemantauan");
+
+                int[] lebarUji = {1280, 1100, 960};
+                for (int w : lebarUji) {
+                    jendela.setSize(w, 720);
+                    jendela.validate();
+                    jendela.doLayout();
+                }
+                // Uji mode 1 baris (lebar luas 1000 px) vs mode 2 baris (lebar sempit 480 px)
+                filterBar.setSize(1000, 200);
+                filterBar.doLayout();
+                Dimension prefLebar = filterBar.getPreferredSize();
+                Component c0 = filterBar.getComponent(0);
+                Component c1 = filterBar.getComponent(1);
+                sama(c0.getY(), c1.getY(), "mode 1 baris: komponen sejajar pada Y yang sama");
+
+                filterBar.setSize(480, 300);
+                filterBar.doLayout();
+                Dimension prefSempit = filterBar.getPreferredSize();
+                benar(prefSempit.height > prefLebar.height,
+                        "preferred height saat wrap lebih tinggi dari 1 baris");
+                benar(c1.getY() > c0.getY() + c0.getHeight(),
+                        "baris 2 memiliki gap vertikal positif di bawah baris 1");
+                benar(c1.getY() + c1.getHeight() <= prefSempit.height,
+                        "tidak ada clipping vertikal pada baris 2");
+            } catch (Throwable t) {
+                galat.set(t);
+            } finally {
+                if (jendela != null) {
+                    jendela.tutup();
+                }
+            }
+        });
+        if (galat.get() != null) {
+            throw new AssertionError("Kegagalan uji GUI Phase 3A: "
+                    + galat.get(), galat.get());
+        }
+    }
+
+    private static Icon ikonHeaderKolom(JTable tabel, int viewCol) {
+        TableCellRenderer r = tabel.getColumnModel().getColumn(viewCol).getHeaderRenderer();
+        if (r == null) {
+            r = tabel.getTableHeader().getDefaultRenderer();
+        }
+        Component c = r.getTableCellRendererComponent(
+                tabel, tabel.getColumnName(viewCol), false, false, -1, viewCol);
+        return c instanceof JLabel label ? label.getIcon() : null;
+    }
+
+    private static Component cariKomponen(Container akar, String nama) {
+        if (nama.equals(akar.getName())) {
+            return akar;
+        }
+        for (Component anak : akar.getComponents()) {
+            if (nama.equals(anak.getName())) {
+                return anak;
+            }
+            if (anak instanceof Container wadah) {
+                Component ketemu = cariKomponen(wadah, nama);
+                if (ketemu != null) {
+                    return ketemu;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Container cariParentBarisFilter(Component komponen) {
+        Container p = komponen == null ? null : komponen.getParent();
+        while (p != null) {
+            if ("BarisFilter".equals(p.getClass().getSimpleName())) {
+                return p;
+            }
+            p = p.getParent();
+        }
+        return null;
     }
 
     private static final class PenyimpananTerhitung extends PenyimpananSQLite {

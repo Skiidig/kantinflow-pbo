@@ -706,47 +706,156 @@ final class Ui {
     }
 
     /**
-     * Menata baris filter tanpa tinggi tetap: satu baris saat cukup, dua
-     * baris saat menyempit. Tinggi mengikuti isi agar kartu tidak menyisakan
-     * ruang kosong.
+     * Menata baris filter secara responsif: satu baris saat ruang cukup, dua
+     * baris dengan gap vertikal seragam saat menyempit. Preferred height selalu
+     * mengikuti layout aktual agar tidak terjadi clipping pada lebar sempit.
      */
     private static final class BarisFilter extends JPanel {
         private final Component[] bagian;
+        private boolean modeWrap;
 
         private BarisFilter(Component[] bagian) {
-            super(new GridBagLayout());
+            super(null);
             this.bagian = bagian;
             if (bagian.length > 0) {
                 Dimension minimum = bagian[0].getMinimumSize();
                 bagian[0].setMinimumSize(new Dimension(0, minimum.height));
             }
+            addComponentListener(new ComponentAdapter() {
+                @Override
+                public void componentResized(ComponentEvent event) {
+                    boolean sekarang = harusWrap(getWidth());
+                    if (sekarang != modeWrap) {
+                        modeWrap = sekarang;
+                        revalidate();
+                        repaint();
+                    }
+                }
+            });
+        }
+
+        private int lebarTetapSisa(int jarak) {
+            int total = 0;
+            for (int i = 1; i < bagian.length; i++) {
+                total += bagian[i].getPreferredSize().width;
+            }
+            total += jarak * Math.max(0, bagian.length - 1);
+            return total;
+        }
+
+        private boolean harusWrap(int lebarTersedia) {
+            if (bagian.length <= 1 || lebarTersedia <= 0) {
+                return false;
+            }
+            int jarak = skala(GAP_FORM);
+            return lebarTersedia < lebarTetapSisa(jarak) + skala(220);
+        }
+
+        private int lebarAcuan() {
+            int lebar = getWidth();
+            if (lebar > 0) {
+                return lebar;
+            }
+            if (getParent() != null && getParent().getWidth() > 0) {
+                return getParent().getWidth();
+            }
+            return 0;
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            if (bagian.length == 0) {
+                return new Dimension(0, 0);
+            }
+            Insets in = getInsets();
+            int jarak = skala(GAP_FORM);
+            int lebarTersedia = Math.max(0, lebarAcuan() - in.left - in.right);
+            boolean wrap = lebarTersedia > 0 ? harusWrap(lebarTersedia) : modeWrap;
+            if (!wrap) {
+                int lebarTotal = bagian[0].getPreferredSize().width
+                        + lebarTetapSisa(jarak);
+                int tinggiMaks = 0;
+                for (Component item : bagian) {
+                    tinggiMaks = Math.max(tinggiMaks,
+                            item.getPreferredSize().height);
+                }
+                return new Dimension(
+                        lebarTotal + in.left + in.right,
+                        tinggiMaks + in.top + in.bottom);
+            }
+            int tinggiBaris1 = bagian[0].getPreferredSize().height;
+            int lebarBaris2 = 0;
+            int tinggiBaris2 = 0;
+            for (int i = 1; i < bagian.length; i++) {
+                Dimension pref = bagian[i].getPreferredSize();
+                lebarBaris2 += pref.width;
+                tinggiBaris2 = Math.max(tinggiBaris2, pref.height);
+            }
+            lebarBaris2 += jarak * Math.max(0, bagian.length - 2);
+            int lebarHasil = Math.max(bagian[0].getPreferredSize().width,
+                    lebarBaris2);
+            return new Dimension(
+                    lebarHasil + in.left + in.right,
+                    tinggiBaris1 + jarak + tinggiBaris2 + in.top + in.bottom);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            Dimension pref = getPreferredSize();
+            return new Dimension(0, pref.height);
         }
 
         @Override
         public void doLayout() {
+            if (bagian.length == 0) {
+                return;
+            }
+            Insets in = getInsets();
             int jarak = skala(GAP_FORM);
-            int lebarTetap = 0;
+            int lebar = Math.max(0, getWidth() - in.left - in.right);
+            boolean wrap = harusWrap(lebar);
+            modeWrap = wrap;
+
+            if (!wrap) {
+                int lebarSisa = lebarTetapSisa(jarak);
+                int lebarPertama = Math.max(0, lebar - lebarSisa);
+                int x = in.left;
+                for (int i = 0; i < bagian.length; i++) {
+                    Dimension pref = bagian[i].getPreferredSize();
+                    int w = i == 0 ? lebarPertama : pref.width;
+                    bagian[i].setBounds(x, in.top, w, pref.height);
+                    x += w + jarak;
+                }
+                return;
+            }
+
+            int tinggiBaris1 = bagian[0].getPreferredSize().height;
+            bagian[0].setBounds(in.left, in.top, lebar, tinggiBaris1);
+
+            int yBaris2 = in.top + tinggiBaris1 + jarak;
+            int jumlahSisa = bagian.length - 1;
+            int totalGap = jarak * Math.max(0, jumlahSisa - 1);
+            int totalPref = 0;
             for (int i = 1; i < bagian.length; i++) {
-                lebarTetap += bagian[i].getPreferredSize().width;
+                totalPref += bagian[i].getPreferredSize().width;
             }
-            lebarTetap += jarak * Math.max(0, bagian.length - 1);
-            int lebar = getWidth();
-            boolean wrap = bagian.length > 1
-                    && lebar < lebarTetap + skala(220);
-            for (int i = 0; i < bagian.length; i++) {
-                GridBagConstraints c = new GridBagConstraints();
-                c.gridx = wrap && i > 0 ? i - 1 : i;
-                c.gridy = wrap && i > 0 ? 1 : 0;
-                c.gridwidth = 1;
-                c.weightx = i == 0 && !wrap ? 1 : 0;
-                c.weighty = 0;
-                c.fill = GridBagConstraints.HORIZONTAL;
-                c.anchor = GridBagConstraints.NORTH;
-                c.insets = new Insets(0, i == 0 || (wrap && i == 1)
-                        ? 0 : jarak, 0, 0);
-                ((GridBagLayout) getLayout()).setConstraints(bagian[i], c);
+            boolean perluSkala = totalPref + totalGap > lebar && totalPref > 0;
+            int ruangSisa = Math.max(0, lebar - totalGap);
+            int x = in.left;
+            for (int i = 1; i < bagian.length; i++) {
+                Dimension pref = bagian[i].getPreferredSize();
+                int w;
+                if (!perluSkala) {
+                    w = pref.width;
+                } else if (i == bagian.length - 1) {
+                    w = Math.max(0, in.left + lebar - x);
+                } else {
+                    w = Math.max(0, (int) Math.round(
+                            (double) pref.width * ruangSisa / totalPref));
+                }
+                bagian[i].setBounds(x, yBaris2, w, pref.height);
+                x += w + jarak;
             }
-            super.doLayout();
         }
     }
 
@@ -777,11 +886,33 @@ final class Ui {
                 }
                 setHorizontalAlignment(perataan);
                 setVerticalAlignment(SwingConstants.CENTER);
+                setHorizontalTextPosition(SwingConstants.LEADING);
+                setIconTextGap(skala(6));
+                setIcon(ikonSort(table, column));
                 setBorder(new EmptyBorder(0, skala(PADDING_SEL_TABEL),
                         0, skala(PADDING_SEL_TABEL)));
                 return this;
             }
         };
+    }
+
+    private static Icon ikonSort(JTable table, int viewColumn) {
+        if (table == null || table.getRowSorter() == null
+                || viewColumn < 0 || viewColumn >= table.getColumnCount()) {
+            return null;
+        }
+        int modelColumn = table.convertColumnIndexToModel(viewColumn);
+        for (javax.swing.RowSorter.SortKey key : table.getRowSorter().getSortKeys()) {
+            if (key.getColumn() == modelColumn) {
+                if (key.getSortOrder() == javax.swing.SortOrder.ASCENDING) {
+                    return javax.swing.UIManager.getIcon("Table.ascendingSortIcon");
+                }
+                if (key.getSortOrder() == javax.swing.SortOrder.DESCENDING) {
+                    return javax.swing.UIManager.getIcon("Table.descendingSortIcon");
+                }
+            }
+        }
+        return null;
     }
 
     static JTable tabel(DefaultTableModel model) {
