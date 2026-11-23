@@ -29,7 +29,8 @@ mengakses database.
   batch sebelum disimpan). Batch kedaluwarsa tidak dapat dikeluarkan manual.
   Kartu **Batch Tersedia** menampilkan batch bersisa diurutkan FEFO.
 - **Pemantauan** — filter barang, status kedaluwarsa, dan tanggal pemeriksaan;
-  tabel batch bersisa beserta statusnya.
+  tabel batch bersisa beserta statusnya, serta tombol **Buang Batch Terpilih**
+  untuk membuka form Pembuangan langsung pada batch kedaluwarsa yang dipilih.
 - **Pembuangan** — membuang stok kedaluwarsa atau rusak. Batch kedaluwarsa
   boleh tanpa alasan (otomatis dicatat `Kedaluwarsa`); batch belum kedaluwarsa
   wajib diberi alasan. Aksi memakai dialog konfirmasi dan tercatat di riwayat.
@@ -37,10 +38,11 @@ mengakses database.
   rentang tanggal; detail per transaksi. Ekspor **CSV** (UTF-8 BOM, escaping
   CSV, penulisan atomik) dan **PDF** (A4 landscape, header tabel berulang,
   nomor halaman, font DejaVu Sans) mengikuti baris yang sedang ditampilkan.
-- **UI** — tema terang minimalis Zinc/Slate berbasis FlatLaf, sidebar tujuh
-  halaman, layout full-width mengikuti lebar jendela (ukuran awal 1280×800,
-  minimum 960×640), kartu KPI, pill badge, empty state, toast notification,
-  dan date picker.
+- **UI** — tema terang minimalis Zinc/Slate berbasis FlatLaf (`FlatLightLaf`),
+  sidebar tujuh halaman dengan pintasan keyboard `Ctrl+1` sampai `Ctrl+7`,
+  indikator pengurutan kolom tabel, layout responsif mengikuti lebar jendela
+  (ukuran awal 1280×800, minimum 960×640, adaptif untuk scaling 100%–150%),
+  kartu KPI, pill badge, empty state, toast notification, dan date picker.
 - **Mode konsol** — 10 menu: pilih barang, tambah barang, terima stok, keluar
   manual, keluar FEFO, saldo/riwayat, pemantauan, pembuangan, stok minimum,
   keluar.
@@ -50,7 +52,8 @@ Aturan stok yang dipakai aplikasi:
 - Status batch pada tanggal acuan: **Kedaluwarsa** jika tanggal kedaluwarsa
   sudah lewat; **Segera kedaluwarsa** jika tinggal ≤ 3 hari; selain itu
   **Aman**.
-- **Stok layak** = total sisa batch bersisa yang belum kedaluwarsa.
+- **Stok layak** = total sisa batch bersisa yang sudah masuk pada tanggal acuan
+  dan belum kedaluwarsa.
 - FEFO mengurutkan batch layak berdasarkan tanggal kedaluwarsa, lalu tanggal
   masuk, lalu kode batch.
 - Barang dianggap **perlu restok** jika stok layak ≤ stok minimum.
@@ -70,10 +73,10 @@ Aturan stok yang dipakai aplikasi:
 | `jsvg-2.2.0.jar` | Parser SVG untuk FlatLaf Extras |
 | `flatlaf-fonts-inter-3.19.jar` | Font antarmuka Inter |
 | `LGoodDatePicker-11.2.1.jar` | Komponen pemilih tanggal |
-| `swing-toast-notifications-1.0.4.jar` | Toast notification |
+| `swing-toast-notifications-1.0.4.jar` | Tersedia di `lib/` (dicek `setup.ps1`), belum dipakai kode saat ini (toast memakai implementasi Swing internal) |
 | `pdfbox-3.0.8.jar`, `pdfbox-io-3.0.8.jar`, `fontbox-3.0.8.jar` | Ekspor PDF |
 | `commons-logging-1.4.0.jar` | Dependensi logging PDFBox |
-| `xchart-3.8.8.jar` | Tersedia di `lib/`, belum dipakai kode saat ini |
+| `xchart-3.8.8.jar` | Tersedia di `lib/` (dicek `setup.ps1`), belum dipakai kode saat ini |
 
 ## Struktur Proyek
 
@@ -144,7 +147,15 @@ java -cp "out;lib/*" kantinflow.Main demo
 ```
 
 Alternatif sekali klik di Windows: `run-gui.cmd` (memeriksa dependensi,
-mengompilasi, menyalin resource, lalu membuka GUI).
+mengompilasi, menyalin resource, lalu membuka GUI dengan
+`--enable-native-access=ALL-UNNAMED`).
+
+Untuk demo atau presentasi UAS tanpa mengubah database bawaan repositori:
+
+```powershell
+$env:KANTINFLOW_DB = "data/kantinflow-demo.db"
+.\run-gui.cmd
+```
 
 Catatan:
 

@@ -107,7 +107,7 @@ if exist "%ROOT%src\main\resources\*" (
 )
 
 echo [OK] Kompilasi berhasil. Membuka GUI KantinFlow...
-java -cp "%OUT%;%ROOT%lib\*" kantinflow.Main gui
+java --enable-native-access=ALL-UNNAMED -cp "%OUT%;%ROOT%lib\*" kantinflow.Main gui
 set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (
