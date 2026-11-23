@@ -49,6 +49,12 @@ public class PengeluaranStok extends Transaksi {
                     "Tanggal pengeluaran tidak boleh sebelum tanggal masuk batch "
                     + batch.getKode());
         }
+        if (batch.statusPada(getTanggal()) == StatusKedaluwarsa.KEDALUWARSA) {
+            throw new IllegalArgumentException(
+                    "Batch " + batch.getKode() + " sudah kedaluwarsa pada "
+                    + getTanggal() + " dan tidak dapat dikeluarkan. "
+                    + "Gunakan Pembuangan.");
+        }
         if (batch.getSisaJumlah() < jumlah) {
             throw new StokTidakCukupException(
                     "Stok tidak cukup: diminta " + jumlah + " " + barang.getSatuan()
@@ -65,8 +71,23 @@ public class PengeluaranStok extends Transaksi {
      * Pengeluaran otomatis FEFO. Seluruh alokasi disusun dan total stok layak
      * diperiksa sebelum satu batch pun dikurangi.
      */
+    public void keluarkanFefo(Barang barang, int jumlah) {
+        keluarkanFefo(barang, jumlah, getTanggal());
+    }
+
+    /**
+     * Tanggal pengeluaran harus sama dengan tanggal transaksi. Batch yang
+     * belum masuk atau sudah kedaluwarsa pada tanggal itu tidak dialokasikan.
+     */
     public void keluarkanFefo(Barang barang, int jumlah, LocalDate tanggalPengeluaran) {
         pastikanBelumTercatat();
+        if (tanggalPengeluaran == null) {
+            throw new IllegalArgumentException("Tanggal pengeluaran wajib diisi");
+        }
+        if (!tanggalPengeluaran.equals(getTanggal())) {
+            throw new IllegalArgumentException(
+                    "Tanggal pengeluaran FEFO harus sama dengan tanggal transaksi");
+        }
         List<RincianTransaksi> alokasi = new FefoAllocator()
                 .susun(barang, jumlah, tanggalPengeluaran);
 

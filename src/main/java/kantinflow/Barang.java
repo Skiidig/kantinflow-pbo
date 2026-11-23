@@ -35,8 +35,8 @@ public class Barang {
         }
 
         this.id = id;
-        this.nama = nama;
-        this.satuan = satuan;
+        this.nama = nama.trim();
+        this.satuan = satuan.trim();
         this.stokMinimum = stokMinimum;
         this.daftarBatch = new ArrayList<>();
     }
@@ -53,6 +53,11 @@ public class Barang {
         return saldo;
     }
 
+    /**
+     * Menghitung total stok layak pada tanggal acuan: hanya batch dengan sisa
+     * positif, tanggal masuk tidak setelah tanggal acuan, dan belum
+     * kedaluwarsa. Selaras dengan kandidat alokasi {@link FefoAllocator}.
+     */
     public int hitungStokLayak(LocalDate tanggal) {
         if (tanggal == null) {
             throw new IllegalArgumentException("Tanggal pengecekan wajib diisi");

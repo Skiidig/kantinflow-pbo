@@ -7,8 +7,23 @@ import java.util.List;
 
 /**
  * Menyusun rencana pengeluaran FEFO tanpa mengubah stok.
+ *
+ * <p>Kandidat alokasi hanya batch yang sudah masuk pada tanggal transaksi
+ * (tanggal masuk tidak setelah tanggal transaksi), belum kedaluwarsa, dan
+ * masih bersisa.</p>
  */
 public class FefoAllocator {
+    /**
+     * Urutan FEFO tunggal untuk domain dan GUI: tanggal kedaluwarsa, tanggal
+     * masuk, lalu kode batch tanpa membedakan huruf besar-kecil.
+     */
+    public static final Comparator<BatchStok> URUTAN_FEFO =
+            Comparator.comparing(BatchStok::getTanggalKedaluwarsa)
+                    .thenComparing(BatchStok::getTanggalMasuk)
+                    .thenComparing(BatchStok::getKode,
+                            String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(BatchStok::getKode);
+
     public List<RincianTransaksi> susun(
             Barang barang,
             int jumlah,
@@ -30,10 +45,7 @@ public class FefoAllocator {
             }
         }
 
-        batchLayak.sort(
-                Comparator.comparing(BatchStok::getTanggalKedaluwarsa)
-                        .thenComparing(BatchStok::getTanggalMasuk)
-                        .thenComparing(BatchStok::getKode));
+        batchLayak.sort(URUTAN_FEFO);
 
         int totalLayak = 0;
         for (BatchStok batch : batchLayak) {

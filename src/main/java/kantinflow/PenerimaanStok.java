@@ -29,15 +29,19 @@ public class PenerimaanStok extends Transaksi {
         if (barang == null) {
             throw new IllegalArgumentException("Barang wajib diisi");
         }
+        if (kodeBatch == null || kodeBatch.isBlank()) {
+            throw new IllegalArgumentException("Kode batch wajib diisi");
+        }
+        String kodeBersih = kodeBatch.trim();
         for (BatchStok batchAda : barang.getDaftarBatch()) {
-            if (batchAda.getKode().equalsIgnoreCase(kodeBatch)) {
+            if (batchAda.getKode().equalsIgnoreCase(kodeBersih)) {
                 throw new IllegalArgumentException(
-                        "Kode batch sudah digunakan: " + kodeBatch);
+                        "Kode batch sudah digunakan: " + kodeBersih);
             }
         }
 
         BatchStok batch = new BatchStok(
-                kodeBatch,
+                kodeBersih,
                 tanggalMasuk,
                 tanggalKedaluwarsa,
                 jumlah);

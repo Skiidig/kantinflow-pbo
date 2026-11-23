@@ -30,7 +30,7 @@ public class BatchStok {
             throw new IllegalArgumentException("Sisa jumlah tidak boleh negatif");
         }
 
-        this.kode = kode;
+        this.kode = kode.trim();
         this.tanggalMasuk = tanggalMasuk;
         this.tanggalKedaluwarsa = tanggalKedaluwarsa;
         this.sisaJumlah = sisaJumlah;
@@ -52,11 +52,16 @@ public class BatchStok {
         return sisaJumlah;
     }
 
+    /**
+     * Batch layak dipakai pada tanggal acuan bila sisa positif, tanggal masuk
+     * tidak melewati tanggal acuan, dan belum kedaluwarsa pada tanggal acuan.
+     */
     public boolean layakPada(LocalDate tanggalPengeluaran) {
         if (tanggalPengeluaran == null) {
             throw new IllegalArgumentException("Tanggal pengeluaran wajib diisi");
         }
         return sisaJumlah > 0
+                && !tanggalMasuk.isAfter(tanggalPengeluaran)
                 && statusPada(tanggalPengeluaran) != StatusKedaluwarsa.KEDALUWARSA;
     }
 
@@ -74,12 +79,17 @@ public class BatchStok {
         return StatusKedaluwarsa.AMAN;
     }
 
-    public void kurangiSisa(int jumlah) {
+    /**
+     * Mengurangi sisa batch. Hanya untuk transaksi domain dalam package ini
+     * (PengeluaranStok, PembuanganStok) agar mutasi stok selalu tercatat.
+     */
+    void kurangiSisa(int jumlah) {
         if (jumlah <= 0) {
             throw new IllegalArgumentException("Jumlah pengurangan harus lebih dari 0");
         }
         if (jumlah > sisaJumlah) {
-            throw new IllegalArgumentException("Stok tidak cukup");
+            throw new StokTidakCukupException("Stok tidak cukup: diminta "
+                    + jumlah + ", tersedia " + sisaJumlah);
         }
         sisaJumlah -= jumlah;
     }

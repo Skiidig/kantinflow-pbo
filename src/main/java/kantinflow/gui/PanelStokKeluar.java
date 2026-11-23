@@ -357,12 +357,24 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         aturPesan(label, null);
     }
 
+    /**
+     * Tanggal transaksi pengeluaran manual adalah hari ini. Ini sengaja
+     * terpisah dari tanggal pemantauan ({@code konteks.getTanggalAcuan()})
+     * yang hanya dipakai untuk memeriksa status stok.
+     */
+    private LocalDate tanggalTransaksiManual() {
+        return LocalDate.now();
+    }
+
     private boolean batchKedaluwarsa(BatchStok batch) {
+        return batchKedaluwarsa(batch, tanggalTransaksiManual());
+    }
+
+    private boolean batchKedaluwarsa(BatchStok batch, LocalDate tanggalTransaksi) {
         if (batch == null) {
             return false;
         }
-        LocalDate acuan = konteks.getTanggalAcuan();
-        return batch.statusPada(acuan) == StatusKedaluwarsa.KEDALUWARSA;
+        return batch.statusPada(tanggalTransaksi) == StatusKedaluwarsa.KEDALUWARSA;
     }
 
     private void perbaruiSisa() {
@@ -412,11 +424,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
                     bersisa.add(batch);
                 }
             }
-            bersisa.sort(Comparator
-                    .comparing(BatchStok::getTanggalKedaluwarsa)
-                    .thenComparing(BatchStok::getTanggalMasuk)
-                    .thenComparing(BatchStok::getKode,
-                            String.CASE_INSENSITIVE_ORDER));
+            bersisa.sort(FefoAllocator.URUTAN_FEFO);
             for (BatchStok batch : bersisa) {
                 modelBatch.addRow(new Object[]{
                     batch.getKode(),
@@ -475,18 +483,6 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
         try {
             List<RincianTransaksi> alokasi = new FefoAllocator()
                     .susun(barang, jumlah, tanggal);
-            for (RincianTransaksi rincian : alokasi) {
-                if (tanggal.isBefore(rincian.getBatch().getTanggalMasuk())) {
-                    aturPreviewFefo(
-                            "Preview FEFO: tanggal pengeluaran sebelum tanggal "
-                            + "masuk batch " + rincian.getBatch().getKode()
-                            + " (" + FormatTanggal.format(
-                                    rincian.getBatch().getTanggalMasuk())
-                            + ").",
-                            Ui.MERAH_LEMBUT, Ui.MERAH, Ui.MERAH_BADGE);
-                    return;
-                }
-            }
             StringBuilder detail = new StringBuilder("Preview FEFO: ");
             for (int i = 0; i < alokasi.size(); i++) {
                 if (i > 0) {
@@ -542,7 +538,8 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             comboBatch.requestFocusInWindow();
             return;
         }
-        if (batchKedaluwarsa(batch)) {
+        LocalDate tanggalTransaksi = tanggalTransaksiManual();
+        if (batchKedaluwarsa(batch, tanggalTransaksi)) {
             aturPesan(peringatanBatchManual,
                     "Peringatan: Batch ini sudah kedaluwarsa!");
             aturPesan(pesanManual,
@@ -560,7 +557,7 @@ public class PanelStokKeluar extends PanelBarangTerpilih {
             return;
         }
 
-        PengeluaranStok pengeluaran = new PengeluaranStok(LocalDate.now());
+        PengeluaranStok pengeluaran = new PengeluaranStok(tanggalTransaksi);
         try {
             pengeluaran.keluarkan(barang, batch, jumlah);
         } catch (StokTidakCukupException | IllegalArgumentException exception) {
